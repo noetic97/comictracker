@@ -1,18 +1,4 @@
 import React, { useState } from "react";
-// import {
-//   Search,
-//   ChevronDown,
-//   ChevronUp,
-//   Check,
-//   BookOpen,
-//   Zap,
-// } from "lucide-react";
-// import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-// import { Input } from "@/components/ui/input";
-
-// import { Button } from "@/components/ui/button.tsx";
-
-// import { Select } from "@/components/ui/select";
 import { Comic } from "../types";
 
 interface Props {
