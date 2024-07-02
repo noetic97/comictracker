@@ -1,4 +1,18 @@
 import React, { useState } from "react";
+// import {
+//   Search,
+//   ChevronDown,
+//   ChevronUp,
+//   Check,
+//   BookOpen,
+//   Zap,
+// } from "lucide-react";
+// import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+// import { Input } from "@/components/ui/input";
+
+// import { Button } from "@/components/ui/button.tsx";
+
+// import { Select } from "@/components/ui/select";
 import { Comic } from "../types";
 
 interface Props {
@@ -58,7 +72,7 @@ const ComicList: React.FC<Props> = ({ comics, onCollect }) => {
         {Object.entries(groupedComics).map(([series, comicList]) => (
           <div key={series} className="border rounded shadow">
             <button
-              className="w-full p-4 text-left font-bold bg-gray-100 hover:bg-gray-200 focus:outline-none"
+              className="w-full p-4 text-left text-black font-bold bg-gray-100 hover:bg-blue-200 focus:outline-none"
               onClick={() => toggleSeries(series)}
             >
               {series} ({comicList.length} issues)

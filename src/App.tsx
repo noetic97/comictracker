@@ -3,6 +3,7 @@ import { Comic } from "./types.ts";
 import ComicList from "./components/ComicList.tsx";
 import FilterSort from "./components/FilterSort.tsx";
 import ImportCSV from "./components/ImportCSV.tsx";
+import { Zap } from "lucide-react";
 import { getComics, addComics, updateComic } from "./utils/db";
 
 const App: React.FC = () => {
@@ -57,8 +58,17 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-4">Comic Wantlist</h1>
+    <div className="bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 text-white min-h-screen p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <div className="bg-yellow-400 text-black p-2 rounded-full mr-4">
+            <Zap size={32} />
+          </div>
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500">
+            Comic Want List
+          </h1>
+        </div>
+      </div>
       <ImportCSV onImport={handleImport} />
       <FilterSort
         filter={filter}

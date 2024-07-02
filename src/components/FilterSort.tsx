@@ -25,7 +25,7 @@ const FilterSort: React.FC<Props> = ({
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         placeholder="Filter comics..."
-        className="p-2 border rounded mr-2"
+        className="p-2 border text-black rounded mr-2"
       />
       <select
         value={sortBy}
