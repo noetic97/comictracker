@@ -1,5 +1,6 @@
 {
   "name": "comictracker",
+  "homepage": "https://noetic97.github.io/comictracker/",
   "private": true,
   "version": "0.0.0",
   "type": "module",
