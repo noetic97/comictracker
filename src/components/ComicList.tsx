@@ -1,5 +1,17 @@
 import React, { useState } from "react";
 import { Comic } from "../types";
+import {
+  CollectButton,
+  ComicMeta,
+  ComicTitle,
+  ComicInfo,
+  ComicValue,
+  ComicItem,
+  CardHeader,
+  Card,
+  StyledButton,
+  ExpandContainer,
+} from "../styles";
 
 interface Props {
   comics: Comic[];
@@ -40,52 +52,44 @@ const ComicList: React.FC<Props> = ({ comics, onCollect }) => {
 
   return (
     <div>
-      <div className="mb-4">
-        <button
-          onClick={expandAll}
-          className="mr-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Expand All
-        </button>
-        <button
-          onClick={collapseAll}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Collapse All
-        </button>
-      </div>
+      <ExpandContainer className="mb-4">
+        <StyledButton onClick={expandAll}>Expand All</StyledButton>
+        <StyledButton onClick={collapseAll}>Collapse All</StyledButton>
+      </ExpandContainer>
       <div className="space-y-4">
         {Object.entries(groupedComics).map(([series, comicList]) => (
-          <div key={series} className="border rounded shadow">
-            <button
-              className="w-full p-4 text-left text-black font-bold bg-gray-100 hover:bg-blue-200 focus:outline-none"
-              onClick={() => toggleSeries(series)}
-            >
+          <Card key={series} className="border rounded shadow">
+            <CardHeader onClick={() => toggleSeries(series)}>
               {series} ({comicList.length} issues)
-            </button>
+            </CardHeader>
             {expandedSeries.includes(series) && (
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <ComicItem className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {comicList.map((comic) => (
-                  <div key={comic.id} className="border p-4 rounded shadow">
-                    <h3 className="text-lg font-semibold">
+                  <ComicInfo
+                    key={comic.id}
+                    className="border p-4 rounded shadow"
+                  >
+                    <ComicTitle>
                       {comic.series} {comic.volume && `Vol. ${comic.volume}`} #
                       {comic.issue}
-                    </h3>
-                    <p>Years: {comic.years}</p>
-                    <p>Current Value: ${comic.currentValue}</p>
-                    <button
+                    </ComicTitle>
+                    <ComicMeta>Years: {comic.years}</ComicMeta>
+                    <ComicValue>
+                      Current Value: ${comic.currentValue}
+                    </ComicValue>
+                    <CollectButton
                       onClick={() => onCollect(comic.id)}
                       className={`mt-2 px-4 py-2 rounded ${
                         comic.collected ? "bg-green-500" : "bg-blue-500"
                       } text-white`}
                     >
                       {comic.collected ? "Collected" : "Mark as Collected"}
-                    </button>
-                  </div>
+                    </CollectButton>
+                  </ComicInfo>
                 ))}
-              </div>
+              </ComicItem>
             )}
-          </div>
+          </Card>
         ))}
       </div>
     </div>
