@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useRef } from "react";
 import { Comic } from "../types";
+import { FileUpload, UploadButton } from "../styles";
+import { Upload } from "lucide-react";
 import Papa from "papaparse";
 
 interface Props {
@@ -7,8 +9,11 @@ interface Props {
 }
 
 const ImportCSV: React.FC<Props> = ({ onImport }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+
     if (file) {
       Papa.parse(file, {
         complete: (results) => {
@@ -30,13 +35,24 @@ const ImportCSV: React.FC<Props> = ({ onImport }) => {
     }
   };
 
+  const handleButtonClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   return (
-    <div className="mb-4">
+    <div>
+      <UploadButton onClick={handleButtonClick}>
+        <Upload size={16} />
+        Upload...
+      </UploadButton>
       <input
+        ref={fileInputRef}
         type="file"
         accept=".csv"
         onChange={handleFileUpload}
-        className="p-2 border rounded"
+        style={{ display: "none" }}
       />
     </div>
   );
