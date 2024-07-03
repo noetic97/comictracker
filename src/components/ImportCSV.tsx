@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { Comic } from "../types";
-import { FileUpload, UploadButton } from "../styles";
+import { UploadButton } from "../styles";
 import { Upload } from "lucide-react";
 import Papa from "papaparse";
 
