@@ -30,7 +30,15 @@ const App: React.FC = () => {
 
     const sorted =
       filtered &&
-      [...filtered].sort((a, b) => (a[sortBy] > b[sortBy] ? 1 : -1));
+      [...filtered].sort((a, b) => {
+        if (sortBy === "issueNumber") {
+          return a.issueNumber - b.issueNumber;
+        } else if (sortBy === "currentValue") {
+          return a.currentValue - b.currentValue;
+        } else {
+          return (a[sortBy] as string).localeCompare(b[sortBy] as string);
+        }
+      });
 
     setFilteredComics(sorted || []);
   }, [comics, filter, sortBy, hideCollected]);
