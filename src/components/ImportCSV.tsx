@@ -25,6 +25,7 @@ const ImportCSV: React.FC<Props> = ({ onImport }) => {
             years: row.Years,
             type: row.Type,
             issue: row.Issue,
+            issueNumber: parseInt(row["Issue Number"]),
             currentValue: parseFloat(row["Current Value"]),
             collected: false,
           }));
