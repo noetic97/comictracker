@@ -28,11 +28,11 @@ const App: React.FC = () => {
           (!hideCollected || !comic.collected)
       );
 
-    const sorted = [...filtered].sort((a, b) =>
-      a[sortBy] > b[sortBy] ? 1 : -1
-    );
+    const sorted =
+      filtered &&
+      [...filtered].sort((a, b) => (a[sortBy] > b[sortBy] ? 1 : -1));
 
-    setFilteredComics(sorted);
+    setFilteredComics(sorted || []);
   }, [comics, filter, sortBy, hideCollected]);
 
   const handleCollect = async (id: string) => {
