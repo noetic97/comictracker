@@ -31,11 +31,11 @@ const FilterSort: React.FC<Props> = ({
         value={sortBy}
         onChange={(e) => setSortBy(e.target.value as keyof Comic)}
       >
-        <option value="Series">Sort by Series</option>
-        <option value="Publisher">Sort by Publisher</option>
-        <option value="CurrentValue">Sort by Current Value</option>
-        <option value="Issue">Sort by Issue Number</option>
-        <option value="Collected">Sort by Collected Issues</option>
+        <option value="series">Sort by Series</option>
+        <option value="publisher">Sort by Publisher</option>
+        <option value="currentValue">Sort by Current Value</option>
+        <option value="issue">Sort by Issue Number</option>
+        <option value="collected">Sort by Collected Issues</option>
       </StyledSelect>
       <label>
         <input

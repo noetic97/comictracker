@@ -63,14 +63,14 @@ const ComicList: React.FC<Props> = ({ comics, onCollect }) => {
               {series} ({comicList.length} issues)
             </CardHeader>
             {expandedSeries.includes(series) && (
-              <ComicItem className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <ComicItem>
                 {comicList.map((comic) => (
                   <ComicInfo
                     key={comic.id}
                     className="border p-4 rounded shadow"
                   >
                     <ComicTitle>
-                      {comic.series} {comic.volume && `Vol. ${comic.volume}`} #
+                      {comic.series} {comic.volume && `${comic.volume}`} #
                       {comic.issue}
                     </ComicTitle>
                     <ComicMeta>Years: {comic.years}</ComicMeta>
