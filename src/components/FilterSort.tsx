@@ -5,8 +5,8 @@ import { StyledInput, StyledSelect, StyledControls } from "../styles/index";
 interface Props {
   filter: string;
   setFilter: (filter: string) => void;
-  sortBy: keyof Comic;
-  setSortBy: (sortBy: keyof Comic) => void;
+  sortBy: keyof Comic | "issueNumber";
+  setSortBy: (sortBy: keyof Comic | "issueNumber") => void;
   hideCollected: boolean;
   setHideCollected: (hide: boolean) => void;
 }
@@ -29,12 +29,15 @@ const FilterSort: React.FC<Props> = ({
       />
       <StyledSelect
         value={sortBy}
-        onChange={(e) => setSortBy(e.target.value as keyof Comic)}
+        onChange={(e) =>
+          setSortBy(e.target.value as keyof Comic | "issueNumber")
+        }
       >
         <option value="series">Sort by Series</option>
         <option value="publisher">Sort by Publisher</option>
         <option value="currentValue">Sort by Current Value</option>
-        <option value="issue">Sort by Issue Number</option>
+        <option value="issue">Sort by Issue (Alphabetically)</option>
+        <option value="issueNumber">Sort by Issue Number (Numerically)</option>
         <option value="collected">Sort by Collected Issues</option>
       </StyledSelect>
       <label>

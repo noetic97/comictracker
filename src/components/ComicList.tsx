@@ -26,7 +26,7 @@ const ComicList: React.FC<Props> = ({ comics, onCollect }) => {
   const [expandedSeries, setExpandedSeries] = useState<string[]>([]);
 
   const groupedComics = comics.reduce((acc: GroupedComics, comic) => {
-    const key = `${comic.publisher} - ${comic.series}`;
+    const key = `${comic.series} Vol. ${comic.volume}`;
     if (!acc[key]) {
       acc[key] = [];
     }
