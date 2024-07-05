@@ -26,7 +26,7 @@ const ComicList: React.FC<Props> = ({ comics, onCollect }) => {
   const [expandedSeries, setExpandedSeries] = useState<string[]>([]);
 
   const groupedComics = comics.reduce((acc: GroupedComics, comic) => {
-    const key = `${comic.series} Vol. ${comic.volume}`;
+    const key = `${comic.series} - ${comic.volume}`;
     if (!acc[key]) {
       acc[key] = [];
     }
@@ -70,7 +70,7 @@ const ComicList: React.FC<Props> = ({ comics, onCollect }) => {
                     className="border p-4 rounded shadow"
                   >
                     <ComicTitle>
-                      {comic.series} {comic.volume && `${comic.volume}`} #
+                      {comic.series} {` - ${comic.volume} # `}
                       {comic.issue}
                     </ComicTitle>
                     <ComicMeta>Years: {comic.years}</ComicMeta>

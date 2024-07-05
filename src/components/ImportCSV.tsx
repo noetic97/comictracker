@@ -21,7 +21,7 @@ const ImportCSV: React.FC<Props> = ({ onImport }) => {
             id: `imported-${index}`,
             publisher: row.Publisher,
             series: row.Series,
-            volume: row.Volume || "",
+            volume: row.Volume || null,
             years: row.Years,
             type: row.Type,
             issue: row.Issue,
