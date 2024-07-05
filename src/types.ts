@@ -6,6 +6,7 @@ export interface Comic {
   years: string;
   type: string;
   issue: string;
+  issueNumber: number;
   currentValue: number;
   collected: boolean;
 }
