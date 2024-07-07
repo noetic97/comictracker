@@ -1,6 +1,8 @@
 import React from "react";
+import { X } from "lucide-react";
 import { Comic } from "../../types";
 import * as S from "./styles";
+import Toggle from "../common/Toggle";
 
 interface Props {
   filter: string;
@@ -9,6 +11,8 @@ interface Props {
   setSortBy: (sortBy: keyof Comic | "issueNumber") => void;
   hideCollected: boolean;
   setHideCollected: (hide: boolean) => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 const FilterSort: React.FC<Props> = ({
@@ -18,39 +22,54 @@ const FilterSort: React.FC<Props> = ({
   setSortBy,
   hideCollected,
   setHideCollected,
+  isOpen,
+  onClose,
 }) => {
   return (
-    <S.FilterSortContainer>
-      <S.InputContainer>
-        <S.StyledInput
-          type="text"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          placeholder="Filter comics..."
-        />
-        {filter && <S.ClearButton size={18} onClick={() => setFilter("")} />}
-      </S.InputContainer>
-      <S.StyledSelect
-        value={sortBy}
-        onChange={(e) =>
-          setSortBy(e.target.value as keyof Comic | "issueNumber")
-        }
-      >
-        <option value="series">Sort by Series</option>
-        <option value="publisher">Sort by Publisher</option>
-        <option value="currentValue">Sort by Current Value</option>
-        <option value="issue">Sort by Issue (Alphabetically)</option>
-        <option value="issueNumber">Sort by Issue Number (Numerically)</option>
-        <option value="collected">Sort by Collected Issues</option>
-      </S.StyledSelect>
-      <S.CheckboxLabel>
-        <input
-          type="checkbox"
-          checked={hideCollected}
-          onChange={(e) => setHideCollected(e.target.checked)}
-        />
-        Hide Collected
-      </S.CheckboxLabel>
+    <S.FilterSortContainer isOpen={isOpen} data-sc="FilterSortContainer">
+      <S.FilterSortContent data-sc="FilterSortContent">
+        <S.CloseButton onClick={onClose} data-sc="CloseButton">
+          <X size={24} />
+        </S.CloseButton>
+        <S.FilterLabel>Filter</S.FilterLabel>
+        <S.InputContainer data-sc="InputContainer">
+          <S.StyledInput
+            type="text"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Filter comics..."
+            data-sc="StyledInput"
+          />
+          {filter && (
+            <S.ClearButton
+              onClick={() => setFilter("")}
+              data-sc="ClearButton"
+            />
+          )}
+        </S.InputContainer>
+        <S.FilterLabel>Sort by</S.FilterLabel>
+        <S.StyledSelect
+          value={sortBy}
+          onChange={(e) =>
+            setSortBy(e.target.value as keyof Comic | "issueNumber")
+          }
+          data-sc="StyledSelect"
+        >
+          <option value="series">Series</option>
+          <option value="publisher">Publisher</option>
+          <option value="currentValue">Current Value</option>
+          <option value="issue">Issue (Alphabetically)</option>
+          <option value="issueNumber">Issue Number (Numerically)</option>
+          <option value="collected">Collected Issues</option>
+        </S.StyledSelect>
+        <S.ToggleContainer>
+          <S.FilterLabel>Hide Collected</S.FilterLabel>
+          <Toggle
+            checked={hideCollected}
+            onChange={() => setHideCollected(!hideCollected)}
+          />
+        </S.ToggleContainer>
+      </S.FilterSortContent>
     </S.FilterSortContainer>
   );
 };

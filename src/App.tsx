@@ -3,7 +3,8 @@ import { Comic } from "./types.ts";
 import ComicList from "./components/ComicList";
 import FilterSort from "./components/FilterSort";
 import Header from "./components/Header";
-import { AppContainer } from "./styles";
+import HamburgerMenu from "./components/HamburgerMenu";
+import { AppContainer, HeaderContainer } from "./styles";
 import { getComics, addComics, updateComic } from "./utils/db";
 
 const App: React.FC = () => {
@@ -12,6 +13,8 @@ const App: React.FC = () => {
   const [filter, setFilter] = useState("");
   const [sortBy, setSortBy] = useState<keyof Comic>("series");
   const [hideCollected, setHideCollected] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
   useEffect(() => {
     getComics().then(setComics);
@@ -22,8 +25,8 @@ const App: React.FC = () => {
       comics &&
       comics.filter(
         (comic) =>
-          (comic?.series.toLowerCase().includes(filter.toLowerCase()) ||
-            comic?.publisher.toLowerCase().includes(filter.toLowerCase())) &&
+          (comic.series.toLowerCase().includes(filter.toLowerCase()) ||
+            comic.publisher.toLowerCase().includes(filter.toLowerCase())) &&
           (!hideCollected || !comic.collected)
       );
 
@@ -65,18 +68,41 @@ const App: React.FC = () => {
     setComics((prevComics) => [...prevComics, ...newComics]);
   };
 
+  const toggleFilterModal = () => {
+    setIsFilterModalOpen(!isFilterModalOpen);
+    if (isMenuOpen) {
+      setIsMenuOpen(false);
+    }
+  };
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+    if (isFilterModalOpen) {
+      setIsFilterModalOpen(false);
+    }
+  };
+
   return (
-    <AppContainer>
-      <Header onImport={handleImport} />
-      <FilterSort
-        filter={filter}
-        setFilter={setFilter}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        hideCollected={hideCollected}
-        setHideCollected={setHideCollected}
-      />
+    <AppContainer data-sc="AppContainer">
+      <HeaderContainer data-sc="HeaderContainer">
+        <Header onFilterClick={toggleFilterModal} onMenuClick={toggleMenu} />
+        <FilterSort
+          filter={filter}
+          setFilter={setFilter}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          isOpen={isFilterModalOpen}
+          onClose={() => setIsFilterModalOpen(false)}
+          hideCollected={hideCollected}
+          setHideCollected={setHideCollected}
+        />
+      </HeaderContainer>
       <ComicList comics={filteredComics} onCollect={handleCollect} />
+      <HamburgerMenu
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        onImport={handleImport}
+      />
     </AppContainer>
   );
 };

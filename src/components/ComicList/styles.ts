@@ -39,12 +39,14 @@ export const SeriesHeader = styled.div`
   cursor: pointer;
 `;
 
-export const ComicItem = styled.div`
+export const ComicItem = styled.div<{ collected: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
   border-top: 1px solid hsl(var(--border));
+  background-color: ${(props) =>
+    props.collected ? "hsl(var(--primary) / 0.1)" : "transparent"};
 `;
 
 export const ComicInfo = styled.div`

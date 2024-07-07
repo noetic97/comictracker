@@ -9,3 +9,8 @@ export const AppContainer = styled.div`
     padding: 1.5rem;
   }
 `;
+
+export const HeaderContainer = styled.div`
+  position: relative;
+  margin-bottom: 1rem;
+`;

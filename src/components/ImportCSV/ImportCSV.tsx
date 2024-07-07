@@ -44,7 +44,7 @@ const ImportCSV: React.FC<Props> = ({ onImport }) => {
 
   return (
     <div>
-      <UploadButton onClick={handleButtonClick}>
+      <UploadButton data-sc="UploadButton" onClick={handleButtonClick}>
         <Upload size={16} />
         Upload...
       </UploadButton>

@@ -1,36 +1,30 @@
-import React, { useState } from "react";
-import { Zap, Menu } from "lucide-react";
-import { Comic } from "../../types.ts";
+import React from "react";
+import { Zap, Menu, Filter } from "lucide-react";
 import * as S from "./styles";
-import HamburgerMenu from "../HamburgerMenu";
 
 interface Props {
-  onImport: (comics: Comic[]) => void;
+  onFilterClick: () => void;
+  onMenuClick: () => void;
 }
 
-const Header: React.FC<Props> = ({ onImport }) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
+const Header: React.FC<Props> = ({ onFilterClick, onMenuClick }) => {
   return (
-    <S.StyledHeader>
-      <S.LogoContainer>
-        <S.StyledLogoIcon>
+    <S.HeaderContainer data-sc="HeaderContainer">
+      <S.LogoContainer data-sc="LogoContainer">
+        <S.StyledLogoIcon data-sc="StyledLogoIcon">
           <Zap size={32} />
         </S.StyledLogoIcon>
-        <S.StyledTitle>Comic Want List</S.StyledTitle>
+        <S.StyledTitle data-sc="StyledTitle">Comic Want List</S.StyledTitle>
       </S.LogoContainer>
-      <Menu
-        size={24}
-        style={{ cursor: "pointer" }}
-        onClick={() => setIsMenuOpen(!isMenuOpen)}
-      />
-      {isMenuOpen && (
-        <HamburgerMenu
-          onImport={onImport}
-          onClose={() => setIsMenuOpen(false)}
-        />
-      )}
-    </S.StyledHeader>
+      <S.IconContainer data-sc="IconContainer">
+        <S.IconButton onClick={onFilterClick} data-sc="IconButton">
+          <Filter size={24} />
+        </S.IconButton>
+        <S.IconButton onClick={onMenuClick} data-sc="IconButton">
+          <Menu size={24} />
+        </S.IconButton>
+      </S.IconContainer>
+    </S.HeaderContainer>
   );
 };
 

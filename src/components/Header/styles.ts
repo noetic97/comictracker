@@ -1,6 +1,6 @@
 import styled from "styled-components";
 
-export const StyledHeader = styled.div`
+export const HeaderContainer = styled.header`
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -50,4 +50,20 @@ export const StyledTitle = styled.h1`
   @media (min-width: 768px) {
     font-size: 2rem;
   }
+`;
+
+export const IconButton = styled.button`
+  background: none;
+  border: none;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+export const IconContainer = styled.div`
+  display: flex;
+  gap: 0.5rem;
 `;

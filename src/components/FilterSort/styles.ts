@@ -1,16 +1,38 @@
 import styled from "styled-components";
 import { X } from "lucide-react";
 
-export const FilterSortContainer = styled.div`
+export const FilterSortContainer = styled.div<{ isOpen: boolean }>`
+  position: absolute;
+  top: 60px; // Adjust based on your header height
+  left: 0;
+  right: 0;
+  background-color: hsl(var(--background));
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  padding: 1rem;
+  display: ${(props) => (props.isOpen ? "block" : "none")};
+`;
+
+export const FilterSortContent = styled.div`
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 1rem;
+`;
 
-  @media (min-width: 768px) {
-    flex-direction: row;
-    align-items: center;
-  }
+export const CloseButton = styled.button`
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+`;
+
+export const FilterLabel = styled.label`
+  font-weight: bold;
+  color: hsl(var(--foreground));
 `;
 
 export const InputContainer = styled.div`
@@ -57,10 +79,9 @@ export const StyledSelect = styled.select`
   }
 `;
 
-export const CheckboxLabel = styled.label`
+export const ToggleContainer = styled.div`
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
-  color: hsl(var(--foreground));
-  font-size: 0.9rem;
+  margin-top: 1rem;
 `;

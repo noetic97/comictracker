@@ -59,7 +59,11 @@ const ComicList: React.FC<Props> = ({ comics, onCollect }) => {
           {expandedSeries.includes(series) && (
             <>
               {comicList.map((comic) => (
-                <S.ComicItem key={comic.id} data-sc="ComicItem">
+                <S.ComicItem
+                  key={comic.id}
+                  collected={comic.collected}
+                  data-sc="ComicItem"
+                >
                   <S.ComicInfo data-sc="ComicInfo">
                     <S.ComicTitle data-sc="ComicTitle">
                       {comic.series} {` - ${comic.volume && comic.volume} # `}
