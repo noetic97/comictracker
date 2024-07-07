@@ -5,11 +5,13 @@ import FilterSort from "./components/FilterSort";
 import Header from "./components/Header";
 import HamburgerMenu from "./components/HamburgerMenu";
 import { AppContainer, HeaderContainer } from "./styles";
-import { getComics, addComics, updateComic } from "./utils/db";
+import { getComics, addComics, updateComic, syncComics } from "./utils/db";
 
 const App: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [comics, setComics] = useState<Comic[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filteredComics, setFilteredComics] = useState<Comic[]>([]);
   const [filter, setFilter] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("series");
@@ -37,7 +39,20 @@ const App: React.FC = () => {
   }
 
   useEffect(() => {
-    getComics().then(setComics);
+    const fetchComics = async () => {
+      try {
+        setIsLoading(true);
+        const fetchedComics = await getComics();
+        setComics(fetchedComics);
+        setError(null);
+      } catch (err) {
+        setError("Failed to load comics. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchComics();
   }, []);
 
   useEffect(() => {
@@ -66,26 +81,52 @@ const App: React.FC = () => {
   }, [comics, filter, sortBy, hideCollected]);
 
   const handleCollect = async (id: string) => {
-    const comic = comics.find((c) => c.id === id);
-    if (comic) {
-      const updatedComic = { ...comic, collected: !comic.collected };
-      await updateComic(updatedComic);
-      setComics(comics.map((c) => (c.id === id ? updatedComic : c)));
+    try {
+      const comic = comics.find((c) => c.id === id);
+      if (comic) {
+        const updatedComic = { ...comic, collected: !comic.collected };
+        await updateComic(updatedComic);
+        setComics((prevComics) =>
+          prevComics.map((c) => (c.id === id ? updatedComic : c))
+        );
+      }
+    } catch (err) {
+      setError("Failed to update comic. Please try again.");
     }
   };
 
-  const handleImport = async (importedComics: Comic[]) => {
-    const newComics = importedComics.filter(
-      (importedComic) =>
-        !comics.some(
-          (existingComic) =>
-            existingComic.publisher === importedComic.publisher &&
-            existingComic.series === importedComic.series &&
-            existingComic.issue === importedComic.issue
-        )
-    );
-    await addComics(newComics);
-    setComics((prevComics) => [...prevComics, ...newComics]);
+  const handleImport = async (importedComics: Comic[]): Promise<void> => {
+    try {
+      const addedOrUpdatedComics = await addComics(importedComics);
+
+      setComics((prevComics) => {
+        const newComics = [...prevComics];
+        let newComicsCount = 0;
+        let updatedComicsCount = 0;
+
+        addedOrUpdatedComics.forEach((comic) => {
+          const index = newComics.findIndex((c) => c.id === comic.id);
+          if (index !== -1) {
+            // Update existing comic, but keep the collected state from the current state
+            newComics[index] = {
+              ...comic,
+              collected: newComics[index].collected, // Preserve the existing collected state
+            };
+            updatedComicsCount++;
+          } else {
+            newComics.push(comic); // Add new comic
+            newComicsCount++;
+          }
+        });
+
+        console.log(
+          `Import complete: ${newComicsCount} new comics added, ${updatedComicsCount} comics updated.`
+        );
+        return newComics;
+      });
+    } catch (err) {
+      setError("Failed to import comics. Please try again.");
+    }
   };
 
   const toggleFilterModal = () => {
@@ -101,6 +142,24 @@ const App: React.FC = () => {
       setIsFilterModalOpen(false);
     }
   };
+
+  // Function to sync changes when coming back online
+  const syncChanges = async () => {
+    try {
+      await syncComics(comics);
+      setError(null);
+    } catch (err) {
+      setError("Failed to sync changes. Some updates may not be saved.");
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("online", syncChanges);
+    return () => window.removeEventListener("online", syncChanges);
+  }, [comics]);
+
+  if (isLoading) return <div>Loading comics...</div>;
+  if (error) return <div>{error}</div>;
 
   return (
     <AppContainer data-sc="AppContainer">
