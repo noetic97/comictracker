@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [hideCollected, setHideCollected] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -170,13 +171,19 @@ const App: React.FC = () => {
           setFilter={setFilter}
           sortBy={sortBy}
           setSortBy={setSortBy}
+          itemsPerPage={itemsPerPage}
+          setItemsPerPage={setItemsPerPage}
           isOpen={isFilterModalOpen}
           onClose={() => setIsFilterModalOpen(false)}
           hideCollected={hideCollected}
           setHideCollected={setHideCollected}
         />
       </HeaderContainer>
-      <ComicList comics={filteredComics} onCollect={handleCollect} />
+      <ComicList
+        comics={filteredComics}
+        onCollect={handleCollect}
+        itemsPerPage={itemsPerPage}
+      />
       <HamburgerMenu
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}

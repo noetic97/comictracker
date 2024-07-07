@@ -11,6 +11,8 @@ interface Props {
   setSortBy: (sortBy: SortOption | "issueNumber") => void;
   hideCollected: boolean;
   setHideCollected: (hide: boolean) => void;
+  itemsPerPage: number;
+  setItemsPerPage: (value: number) => void;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -22,6 +24,8 @@ const FilterSort: React.FC<Props> = ({
   setSortBy,
   hideCollected,
   setHideCollected,
+  itemsPerPage,
+  setItemsPerPage,
   isOpen,
   onClose,
 }) => {
@@ -61,6 +65,16 @@ const FilterSort: React.FC<Props> = ({
           <option value="issue">Issue (Alphabetically)</option>
           <option value="issueNumber">Issue Number (Numerically)</option>
           <option value="collected">Collected Issues</option>
+        </S.StyledSelect>
+        <S.FilterLabel>Items per page</S.FilterLabel>
+        <S.StyledSelect
+          value={itemsPerPage}
+          onChange={(e) => setItemsPerPage(Number(e.target.value))}
+          data-sc="StyledSelect"
+        >
+          <option value={25}>25</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
         </S.StyledSelect>
         <S.ToggleContainer>
           <S.FilterLabel>Hide Collected</S.FilterLabel>
