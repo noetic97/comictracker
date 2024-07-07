@@ -1,14 +1,14 @@
 import React from "react";
 import { X } from "lucide-react";
-import { Comic } from "../../types";
+import { SortOption } from "../../types";
 import * as S from "./styles";
 import Toggle from "../common/Toggle";
 
 interface Props {
   filter: string;
   setFilter: (filter: string) => void;
-  sortBy: keyof Comic | "issueNumber";
-  setSortBy: (sortBy: keyof Comic | "issueNumber") => void;
+  sortBy: SortOption | "issueNumber";
+  setSortBy: (sortBy: SortOption | "issueNumber") => void;
   hideCollected: boolean;
   setHideCollected: (hide: boolean) => void;
   isOpen: boolean;
@@ -51,7 +51,7 @@ const FilterSort: React.FC<Props> = ({
         <S.StyledSelect
           value={sortBy}
           onChange={(e) =>
-            setSortBy(e.target.value as keyof Comic | "issueNumber")
+            setSortBy(e.target.value as SortOption | "issueNumber")
           }
           data-sc="StyledSelect"
         >

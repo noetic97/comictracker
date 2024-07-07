@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Comic } from "../../types";
+import React, { useState, useMemo } from "react";
+import { Comic, GroupedComics } from "../../types";
 import * as S from "./styles";
 
 interface Props {
@@ -7,22 +7,20 @@ interface Props {
   onCollect: (id: string) => void;
 }
 
-interface GroupedComics {
-  [key: string]: Comic[];
-}
-
 const ComicList: React.FC<Props> = ({ comics, onCollect }) => {
   const [expandedSeries, setExpandedSeries] = useState<string[]>([]);
   const [isAllExpanded, setIsAllExpanded] = useState(false);
 
-  const groupedComics = comics.reduce((acc: GroupedComics, comic) => {
-    const key = `${comic.series} - ${comic.volume}`;
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(comic);
-    return acc;
-  }, {});
+  const groupedComics = useMemo(() => {
+    return comics.reduce((acc: GroupedComics, comic) => {
+      const key = `${comic.series} - ${comic.volume}`;
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(comic);
+      return acc;
+    }, {});
+  }, [comics]);
 
   const toggleAll = () => {
     if (isAllExpanded) {

@@ -10,3 +10,15 @@ export interface Comic {
   currentValue: number;
   collected: boolean;
 }
+
+export type SortOption =
+  | "series"
+  | "publisher"
+  | "currentValue"
+  | "issue"
+  | "issueNumber"
+  | "collected";
+
+export interface GroupedComics {
+  [key: string]: Comic[];
+}

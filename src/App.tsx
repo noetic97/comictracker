@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Comic } from "./types.ts";
+import { Comic, SortOption } from "./types.ts";
 import ComicList from "./components/ComicList";
 import FilterSort from "./components/FilterSort";
 import Header from "./components/Header";
@@ -8,13 +8,33 @@ import { AppContainer, HeaderContainer } from "./styles";
 import { getComics, addComics, updateComic } from "./utils/db";
 
 const App: React.FC = () => {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [comics, setComics] = useState<Comic[]>([]);
   const [filteredComics, setFilteredComics] = useState<Comic[]>([]);
   const [filter, setFilter] = useState("");
-  const [sortBy, setSortBy] = useState<keyof Comic>("series");
+  const [sortBy, setSortBy] = useState<SortOption>("series");
   const [hideCollected, setHideCollected] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  if (!isOnline) {
+    return (
+      <div>You are currently offline. Some features may be unavailable.</div>
+    );
+  }
 
   useEffect(() => {
     getComics().then(setComics);
