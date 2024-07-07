@@ -39,14 +39,14 @@ export const SeriesHeader = styled.div`
   cursor: pointer;
 `;
 
-export const ComicItem = styled.div<{ collected: boolean }>`
+export const ComicItem = styled.div<{ $collected: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
   border-top: 1px solid hsl(var(--border));
   background-color: ${(props) =>
-    props.collected ? "hsl(var(--primary) / 0.1)" : "transparent"};
+    props.$collected ? "hsl(var(--primary) / 0.1)" : "transparent"};
 `;
 
 export const ComicInfo = styled.div`
@@ -71,9 +71,9 @@ export const ComicValue = styled.p`
   color: hsl(var(--accent));
 `;
 
-export const CollectButton = styled.button<{ collected: boolean }>`
+export const CollectButton = styled.button<{ $collected: boolean }>`
   background-color: ${(props) =>
-    props.collected ? "hsl(var(--accent))" : "hsl(var(--secondary))"};
+    props.$collected ? "hsl(var(--accent))" : "hsl(var(--secondary))"};
   color: hsl(var(--card));
   border: none;
   padding: 0.5rem 1rem;

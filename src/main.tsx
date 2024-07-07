@@ -3,6 +3,12 @@ import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
 import GlobalStyles from "./GlobalStyles";
 
+// Suppress setCapture warning
+console.warn = (...args) => {
+  if (args[0].includes("setCapture")) return;
+  console.warn(...args);
+};
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker

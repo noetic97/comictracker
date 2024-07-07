@@ -89,7 +89,7 @@ const ComicList: React.FC<Props> = ({ comics, onCollect, itemsPerPage }) => {
                 {paginatedComics.map((comic) => (
                   <S.ComicItem
                     key={comic.id}
-                    collected={comic.collected}
+                    $collected={comic.collected}
                     data-sc="ComicItem"
                   >
                     <S.ComicInfo data-sc="ComicInfo">
@@ -106,7 +106,7 @@ const ComicList: React.FC<Props> = ({ comics, onCollect, itemsPerPage }) => {
                     </S.ComicInfo>
                     <S.CollectButton
                       onClick={() => onCollect(comic.id)}
-                      collected={comic.collected}
+                      $collected={comic.collected}
                       data-sc="CollectButton"
                     >
                       {comic.collected ? "Collected" : "Mark as Collected"}

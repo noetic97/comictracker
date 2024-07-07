@@ -29,6 +29,8 @@ const FilterSort: React.FC<Props> = ({
   isOpen,
   onClose,
 }) => {
+  if (!isOpen) return null;
+
   return (
     <S.FilterSortContainer isOpen={isOpen} data-sc="FilterSortContainer">
       <S.FilterSortContent data-sc="FilterSortContent">
