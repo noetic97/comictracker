@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Comic } from "./types.ts";
-import ComicList from "./components/ComicList.tsx";
-import FilterSort from "./components/FilterSort.tsx";
-import ImportCSV from "./components/ImportCSV.tsx";
-import Header from "./components/Header.tsx";
-import { AppContainer } from "./styles/index.ts";
+import ComicList from "./components/ComicList";
+import FilterSort from "./components/FilterSort";
+import Header from "./components/Header";
+import { AppContainer } from "./styles";
 import { getComics, addComics, updateComic } from "./utils/db";
 
 const App: React.FC = () => {
@@ -68,8 +67,7 @@ const App: React.FC = () => {
 
   return (
     <AppContainer>
-      <Header />
-      <ImportCSV onImport={handleImport} />
+      <Header onImport={handleImport} />
       <FilterSort
         filter={filter}
         setFilter={setFilter}

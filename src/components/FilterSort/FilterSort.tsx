@@ -1,6 +1,6 @@
 import React from "react";
-import { Comic } from "../types";
-import { StyledInput, StyledSelect, StyledControls } from "../styles/index";
+import { Comic } from "../../types";
+import * as S from "./styles";
 
 interface Props {
   filter: string;
@@ -20,14 +20,17 @@ const FilterSort: React.FC<Props> = ({
   setHideCollected,
 }) => {
   return (
-    <StyledControls>
-      <StyledInput
-        type="text"
-        value={filter}
-        onChange={(e) => setFilter(e.target.value)}
-        placeholder="Filter comics..."
-      />
-      <StyledSelect
+    <S.FilterSortContainer>
+      <S.InputContainer>
+        <S.StyledInput
+          type="text"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="Filter comics..."
+        />
+        {filter && <S.ClearButton size={18} onClick={() => setFilter("")} />}
+      </S.InputContainer>
+      <S.StyledSelect
         value={sortBy}
         onChange={(e) =>
           setSortBy(e.target.value as keyof Comic | "issueNumber")
@@ -39,16 +42,16 @@ const FilterSort: React.FC<Props> = ({
         <option value="issue">Sort by Issue (Alphabetically)</option>
         <option value="issueNumber">Sort by Issue Number (Numerically)</option>
         <option value="collected">Sort by Collected Issues</option>
-      </StyledSelect>
-      <label>
+      </S.StyledSelect>
+      <S.CheckboxLabel>
         <input
           type="checkbox"
           checked={hideCollected}
           onChange={(e) => setHideCollected(e.target.checked)}
         />
         Hide Collected
-      </label>
-    </StyledControls>
+      </S.CheckboxLabel>
+    </S.FilterSortContainer>
   );
 };
 
