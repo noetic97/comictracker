@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { Comic, GroupedComics } from "../../types";
+import React, { useState, useMemo, lazy, Suspense } from "react";
+import { Comic, PublisherGroupedComics } from "../../types";
 import * as S from "./styles";
-import { ChevronLeft, ChevronRight, ChevronsUp } from "lucide-react";
 
+const SeriesCard = lazy(() => import("./SeriesCard"));
+const ToTopButton = lazy(() => import("./ToTopButton"));
 interface Props {
   comics: Comic[];
   onCollect: (id: string) => void;
@@ -10,45 +11,68 @@ interface Props {
 }
 
 const ComicList: React.FC<Props> = ({ comics, onCollect, itemsPerPage }) => {
+  const [expandedPublishers, setExpandedPublishers] = useState<string[]>([]);
   const [expandedSeries, setExpandedSeries] = useState<string[]>([]);
   const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [currentPages, setCurrentPages] = useState<{ [key: string]: number }>(
     {}
   );
-  const [showToTop, setShowToTop] = useState(false);
+  // const [showToTop, setShowToTop] = useState(false);
 
   const groupedComics = useMemo(() => {
-    return comics.reduce((acc: GroupedComics, comic) => {
-      const key = comic.volume
+    return comics.reduce((acc: PublisherGroupedComics, comic) => {
+      const publisher = comic.publisher;
+      const seriesKey = comic.volume
         ? `${comic.series} - ${comic.volume}`
         : comic.series;
-      if (!acc[key]) {
-        acc[key] = [];
+
+      if (!acc[publisher]) {
+        acc[publisher] = {};
       }
-      acc[key].push(comic);
+      if (!acc[publisher][seriesKey]) {
+        acc[publisher][seriesKey] = [];
+      }
+      acc[publisher][seriesKey].push(comic);
       return acc;
     }, {});
   }, [comics]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowToTop(window.pageYOffset > 300);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   const toggleAll = () => {
     setIsAllExpanded(!isAllExpanded);
-    setExpandedSeries(isAllExpanded ? [] : Object.keys(groupedComics));
+    if (!isAllExpanded) {
+      const allPublishers = Object.keys(groupedComics);
+      const allSeries = allPublishers.flatMap((publisher) =>
+        Object.keys(groupedComics[publisher])
+      );
+      setExpandedPublishers(allPublishers);
+      setExpandedSeries(allSeries);
+    } else {
+      setExpandedPublishers([]);
+      setExpandedSeries([]);
+    }
   };
 
-  const toggleSeries = (series: string) => {
+  const togglePublisher = (publisher: string) => {
+    setExpandedPublishers((prev) => {
+      if (prev.includes(publisher)) {
+        // If collapsing a publisher, also collapse all its series
+        setExpandedSeries((series) =>
+          series.filter(
+            (s) => !Object.keys(groupedComics[publisher]).includes(s)
+          )
+        );
+        return prev.filter((p) => p !== publisher);
+      } else {
+        return [...prev, publisher];
+      }
+    });
+  };
+
+  const toggleSeries = (seriesKey: string) => {
     setExpandedSeries((prev) =>
-      prev.includes(series)
-        ? prev.filter((s) => s !== series)
-        : [...prev, series]
+      prev.includes(seriesKey)
+        ? prev.filter((s) => s !== seriesKey)
+        : [...prev, seriesKey]
     );
   };
 
@@ -56,105 +80,69 @@ const ComicList: React.FC<Props> = ({ comics, onCollect, itemsPerPage }) => {
     setCurrentPages((prev) => ({ ...prev, [series]: newPage }));
   };
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const LoadingSpinner = () => <div>Loading...</div>;
+
+  // useEffect(() => {
+  //   const handleScroll = () => {
+  //     setShowToTop(window.pageYOffset > 300);
+  //   };
+
+  //   window.addEventListener("scroll", handleScroll);
+  //   return () => window.removeEventListener("scroll", handleScroll);
+  // }, []);
 
   return (
     <S.ComicListContainer data-sc="ComicListContainer">
-      <S.ExpandContainer data-sc="ExpandContainer">
-        <S.ToggleButton onClick={toggleAll} data-sc="ToggleButton">
-          {isAllExpanded ? "Collapse All" : "Expand All"}
-        </S.ToggleButton>
-      </S.ExpandContainer>
-
-      {Object.entries(groupedComics).map(([seriesKey, comicList]) => {
-        const currentPage = currentPages[seriesKey] || 1;
-        const totalPages = Math.ceil(comicList.length / itemsPerPage);
-        const paginatedComics = comicList.slice(
-          (currentPage - 1) * itemsPerPage,
-          currentPage * itemsPerPage
-        );
-
-        return (
-          <S.SeriesCard key={seriesKey} data-sc="SeriesCard">
-            <S.SeriesHeader
-              onClick={() => toggleSeries(seriesKey)}
-              data-sc="SeriesHeader"
+      <Suspense fallback={<LoadingSpinner />}>
+        <S.ExpandContainer data-sc="ExpandContainer">
+          <S.ToggleButton onClick={toggleAll} data-sc="ToggleButton">
+            {isAllExpanded ? "Collapse All" : "Expand All"}
+          </S.ToggleButton>
+        </S.ExpandContainer>
+        <S.PublisherGrid data-sc="PublisherGrid">
+          {Object.entries(groupedComics).map(([publisher, publisherComics]) => (
+            <S.PublisherCard
+              key={publisher}
+              $isExpanded={expandedPublishers.includes(publisher)}
+              data-sc="PublisherCard"
             >
-              {seriesKey} ({comicList.length} issues)
-            </S.SeriesHeader>
-            {expandedSeries.includes(seriesKey) && (
-              <>
-                {paginatedComics.map((comic) => (
-                  <S.ComicItem
-                    key={comic.id}
-                    $collected={comic.collected}
-                    data-sc="ComicItem"
-                  >
-                    <S.ComicInfo data-sc="ComicInfo">
-                      <S.ComicTitle data-sc="ComicTitle">
-                        {comic.series}
-                        {comic.volume && ` - ${comic.volume}`} #{comic.issue}
-                      </S.ComicTitle>
-                      <S.ComicMeta data-sc="ComicMeta">
-                        Years: {comic.years}
-                      </S.ComicMeta>
-                      <S.ComicValue data-sc="ComicValue">
-                        Current Value: ${comic.currentValue}
-                      </S.ComicValue>
-                    </S.ComicInfo>
-                    <S.CollectButton
-                      onClick={() => onCollect(comic.id)}
-                      $collected={comic.collected}
-                      data-sc="CollectButton"
-                    >
-                      {comic.collected ? "Collected" : "Mark as Collected"}
-                    </S.CollectButton>
-                  </S.ComicItem>
-                ))}
-                {totalPages > 1 && (
-                  <S.PaginationContainer data-sc="PaginationContainer">
-                    <S.PaginationButton
-                      onClick={() =>
-                        handlePageChange(
-                          seriesKey,
-                          Math.max(currentPage - 1, 1)
-                        )
+              <S.PublisherButton
+                $isExpanded={expandedPublishers.includes(publisher)}
+                onClick={() => togglePublisher(publisher)}
+              >
+                <S.PublisherName>{publisher}</S.PublisherName>
+                <S.SeriesCount>
+                  {Object.keys(publisherComics).length} series
+                </S.SeriesCount>
+              </S.PublisherButton>
+              <S.SeriesList
+                className={
+                  expandedPublishers.includes(publisher) ? "expanded" : ""
+                }
+              >
+                {Object.entries(publisherComics).map(
+                  ([seriesKey, comicList]) => (
+                    <SeriesCard
+                      key={seriesKey}
+                      seriesKey={seriesKey}
+                      comicList={comicList}
+                      $isExpanded={expandedSeries.includes(seriesKey)}
+                      toggleSeries={toggleSeries}
+                      currentPage={currentPages[seriesKey] || 1}
+                      itemsPerPage={itemsPerPage}
+                      onCollect={onCollect}
+                      onPageChange={(newPage) =>
+                        handlePageChange(seriesKey, newPage)
                       }
-                      disabled={currentPage === 1}
-                      data-sc="PaginationButton"
-                    >
-                      <ChevronLeft size={20} />
-                    </S.PaginationButton>
-                    <S.PaginationInfo data-sc="PaginationInfo">
-                      Page {currentPage} of {totalPages}
-                    </S.PaginationInfo>
-                    <S.PaginationButton
-                      onClick={() =>
-                        handlePageChange(
-                          seriesKey,
-                          Math.min(currentPage + 1, totalPages)
-                        )
-                      }
-                      disabled={currentPage === totalPages}
-                      data-sc="PaginationButton"
-                    >
-                      <ChevronRight size={20} />
-                    </S.PaginationButton>
-                  </S.PaginationContainer>
+                    />
+                  )
                 )}
-              </>
-            )}
-          </S.SeriesCard>
-        );
-      })}
-
-      {showToTop && (
-        <S.ToTopButton onClick={scrollToTop} data-sc="ToTopButton">
-          <ChevronsUp size={24} />
-        </S.ToTopButton>
-      )}
+              </S.SeriesList>
+            </S.PublisherCard>
+          ))}
+        </S.PublisherGrid>
+        <ToTopButton />
+      </Suspense>
     </S.ComicListContainer>
   );
 };

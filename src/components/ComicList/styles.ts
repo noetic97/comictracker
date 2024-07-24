@@ -1,9 +1,7 @@
 import styled from "styled-components";
 
 export const ComicListContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  padding: 1rem;
 `;
 
 export const ExpandContainer = styled.div`
@@ -11,8 +9,8 @@ export const ExpandContainer = styled.div`
 `;
 
 export const ToggleButton = styled.button`
-  background-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background-color: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.colors.foreground};
   border: none;
   padding: 0.5rem 1rem;
   border-radius: var(--radius);
@@ -21,113 +19,111 @@ export const ToggleButton = styled.button`
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: hsl(var(--primary) / 0.8);
+    background-color: ${({ theme }) => theme.colors.secondary};
   }
 `;
 
-export const SeriesCard = styled.div`
-  background-color: hsl(var(--card-foreground) / 0.15);
-  border-radius: var(--radius);
+export const PublisherGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+`;
+
+export const PublisherCard = styled.div<{ $isExpanded: boolean }>`
+  background-color: ${({ theme }) => theme.colors.card};
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-`;
-
-export const SeriesHeader = styled.div`
-  padding: 0.75rem 1rem;
-  font-weight: bold;
-  background-color: hsl(var(--secondary) / 0.5);
-  cursor: pointer;
-`;
-
-export const ComicItem = styled.div<{ $collected: boolean }>`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  border-top: 1px solid hsl(var(--border));
-  background-color: ${(props) =>
-    props.$collected ? "hsl(var(--primary) / 0.1)" : "transparent"};
-`;
-
-export const ComicInfo = styled.div`
-  flex: 1;
-`;
-
-export const ComicTitle = styled.h3`
-  margin: 0;
-  font-size: 1rem;
-  color: hsl(var(--primary));
-`;
-
-export const ComicMeta = styled.p`
-  margin: 0.25rem 0;
-  font-size: 0.8rem;
-  color: hsl(var(--foreground) / 0.7);
-`;
-
-export const ComicValue = styled.p`
-  margin: 0.25rem 0;
-  font-size: 0.9rem;
-  color: hsl(var(--accent));
-`;
-
-export const CollectButton = styled.button<{ $collected: boolean }>`
-  background-color: ${(props) =>
-    props.$collected ? "hsl(var(--accent))" : "hsl(var(--secondary))"};
-  color: hsl(var(--card));
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius);
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
+  position: relative;
 
   &:hover {
-    opacity: 0.9;
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
   }
+
+  ${({ $isExpanded }) =>
+    $isExpanded &&
+    `
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+  `}
 `;
 
-export const PaginationContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 1rem;
-  gap: 1rem;
-`;
-
-export const PaginationButton = styled.button`
-  background-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+export const PublisherButton = styled.button<{ $isExpanded: boolean }>`
+  width: 100%;
+  height: ${({ $isExpanded }) => ($isExpanded ? "auto" : "150px")};
+  background-color: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.colors.cardForeground};
   border: none;
-  padding: 0.5rem;
-  border-radius: var(--radius);
+  padding: 1rem;
+  font-weight: bold;
   cursor: pointer;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  &:before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0) 80%
+    );
+    transform: rotate(45deg);
+    transition: all 0.3s ease;
   }
+
+  &:hover:before {
+    transform: rotate(45deg) translate(50%, 50%);
+  }
+
+  ${({ $isExpanded }) =>
+    $isExpanded &&
+    `
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 1.5rem;
+    &:before {
+      display: none;
+    }
+  `}
 `;
 
-export const PaginationInfo = styled.span`
-  color: hsl(var(--foreground));
+export const PublisherName = styled.span`
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
 `;
 
-export const ToTopButton = styled.button`
-  position: fixed;
-  bottom: 2rem;
-  left: 2rem;
-  background-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  border: none;
-  padding: 0.5rem;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+export const SeriesCount = styled.span`
+  font-size: 0.9rem;
+  opacity: 0.8;
+`;
+
+export const PublisherComicCount = styled.span`
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+`;
+
+export const SeriesList = styled.div`
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+
+  &.expanded {
+    max-height: 100%; // Adjust this value based on your needs
+    padding: 1rem;
+  }
 `;

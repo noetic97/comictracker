@@ -1,8 +1,8 @@
 import styled from "styled-components";
 
 export const UploadButton = styled.button`
-  background-color: #facc15;
-  color: #4a1d96;
+  background-color: ${({ theme }) => theme.colors.foreground};
+  color: ${({ theme }) => theme.colors.primary};
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 0.25rem;
@@ -13,6 +13,6 @@ export const UploadButton = styled.button`
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: #fde68a;
+    background-color: ${({ theme }) => theme.colors.secondary};
   }
 `;

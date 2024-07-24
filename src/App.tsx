@@ -1,13 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Comic, SortOption } from "./types.ts";
-import ComicList from "./components/ComicList";
-import FilterSort from "./components/FilterSort";
-import Header from "./components/Header";
-import HamburgerMenu from "./components/HamburgerMenu";
 import { AppContainer, HeaderContainer } from "./styles";
 import { getComics, addComics, updateComic, syncComics } from "./utils/db";
+import {
+  ThemeProvider as CustomThemeProvider,
+  useTheme,
+} from "./themes/ThemeContext";
+import { ThemeProvider } from "styled-components";
+import GlobalStyles from "./GlobalStyles";
 
-const App: React.FC = () => {
+const Header = lazy(() => import("./components/Header"));
+const FilterSort = lazy(() => import("./components/FilterSort"));
+const ComicList = lazy(() => import("./components/ComicList"));
+const HamburgerMenu = lazy(() => import("./components/HamburgerMenu"));
+
+const ThemedApp: React.FC = () => {
+  const { theme } = useTheme();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [comics, setComics] = useState<Comic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -162,34 +170,52 @@ const App: React.FC = () => {
   if (isLoading) return <div>Loading comics...</div>;
   if (error) return <div>{error}</div>;
 
+  const LoadingSpinner = () => <div>Loading...</div>;
+
   return (
-    <AppContainer data-sc="AppContainer">
-      <HeaderContainer data-sc="HeaderContainer">
-        <Header onFilterClick={toggleFilterModal} onMenuClick={toggleMenu} />
-        <FilterSort
-          filter={filter}
-          setFilter={setFilter}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          itemsPerPage={itemsPerPage}
-          setItemsPerPage={setItemsPerPage}
-          isOpen={isFilterModalOpen}
-          onClose={() => setIsFilterModalOpen(false)}
-          hideCollected={hideCollected}
-          setHideCollected={setHideCollected}
-        />
-      </HeaderContainer>
-      <ComicList
-        comics={filteredComics}
-        onCollect={handleCollect}
-        itemsPerPage={itemsPerPage}
-      />
-      <HamburgerMenu
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        onImport={handleImport}
-      />
-    </AppContainer>
+    <ThemeProvider theme={theme}>
+      <GlobalStyles theme={theme} />
+      <AppContainer data-sc="AppContainer">
+        <Suspense fallback={<LoadingSpinner />}>
+          <HeaderContainer data-sc="HeaderContainer">
+            <Header
+              onFilterClick={toggleFilterModal}
+              onMenuClick={toggleMenu}
+            />
+            <FilterSort
+              filter={filter}
+              setFilter={setFilter}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              itemsPerPage={itemsPerPage}
+              setItemsPerPage={setItemsPerPage}
+              isOpen={isFilterModalOpen}
+              onClose={() => setIsFilterModalOpen(false)}
+              hideCollected={hideCollected}
+              setHideCollected={setHideCollected}
+            />
+          </HeaderContainer>
+          <ComicList
+            comics={filteredComics}
+            onCollect={handleCollect}
+            itemsPerPage={itemsPerPage}
+          />
+          <HamburgerMenu
+            isOpen={isMenuOpen}
+            onClose={() => setIsMenuOpen(false)}
+            onImport={handleImport}
+          />
+        </Suspense>
+      </AppContainer>
+    </ThemeProvider>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <CustomThemeProvider>
+      <ThemedApp />
+    </CustomThemeProvider>
   );
 };
 

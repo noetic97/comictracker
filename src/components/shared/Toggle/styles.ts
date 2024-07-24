@@ -13,7 +13,7 @@ export const ToggleInput = styled.input`
   height: 0;
 
   &:checked + span {
-    background-color: hsl(var(--primary));
+    background-color: ${({ theme }) => theme.colors.primary};
   }
 
   &:checked + span:before {
@@ -28,7 +28,7 @@ export const ToggleSlider = styled.span`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: hsl(var(--input));
+  background-color: ${({ theme }) => theme.colors.input};
   transition: 0.4s;
   border-radius: 34px;
 
@@ -39,7 +39,7 @@ export const ToggleSlider = styled.span`
     width: 26px;
     left: 4px;
     bottom: 4px;
-    background-color: hsl(var(--background));
+    background-color: ${({ theme }) => theme.colors.background};
     transition: 0.4s;
     border-radius: 50%;
   }

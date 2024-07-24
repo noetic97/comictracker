@@ -19,6 +19,10 @@ export type SortOption =
   | "issueNumber"
   | "collected";
 
-export interface GroupedComics {
+interface GroupedComics {
   [key: string]: Comic[];
+}
+
+export interface PublisherGroupedComics {
+  [publisher: string]: GroupedComics;
 }

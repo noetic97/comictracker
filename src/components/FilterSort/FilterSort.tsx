@@ -2,7 +2,7 @@ import React from "react";
 import { X } from "lucide-react";
 import { SortOption } from "../../types";
 import * as S from "./styles";
-import Toggle from "../common/Toggle";
+import Toggle from "../shared/Toggle";
 
 interface Props {
   filter: string;
@@ -66,7 +66,6 @@ const FilterSort: React.FC<Props> = ({
           <option value="currentValue">Current Value</option>
           <option value="issue">Issue (Alphabetically)</option>
           <option value="issueNumber">Issue Number (Numerically)</option>
-          <option value="collected">Collected Issues</option>
         </S.StyledSelect>
         <S.FilterLabel>Items per page</S.FilterLabel>
         <S.StyledSelect
@@ -74,6 +73,7 @@ const FilterSort: React.FC<Props> = ({
           onChange={(e) => setItemsPerPage(Number(e.target.value))}
           data-sc="StyledSelect"
         >
+          <option value={10}>10</option>
           <option value={25}>25</option>
           <option value={50}>50</option>
           <option value={100}>100</option>

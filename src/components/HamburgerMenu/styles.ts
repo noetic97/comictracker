@@ -7,7 +7,7 @@ export const MenuContainer = styled.div`
   right: 0;
   width: 250px;
   height: 100%;
-  background-color: hsl(var(--background));
+  background-color: ${({ theme }) => theme.colors.background};
   padding: 20px;
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
   z-index: 1000;
@@ -18,11 +18,11 @@ export const MenuContainer = styled.div`
 export const CloseButton = styled(X)`
   cursor: pointer;
   align-self: flex-end;
-  color: hsl(var(--foreground));
+  color: ${({ theme }) => theme.colors.foreground};
 `;
 
 export const MenuTitle = styled.h2`
-  color: hsl(var(--primary));
+  color: ${({ theme }) => theme.colors.primary};
   margin-bottom: 20px;
   font-size: 1.5rem;
 `;

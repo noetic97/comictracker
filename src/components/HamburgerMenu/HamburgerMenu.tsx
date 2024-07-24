@@ -2,6 +2,7 @@ import React from "react";
 import ImportCSV from "../ImportCSV";
 import { Comic } from "../../types";
 import * as S from "./styles";
+import ThemeSwitcher from "../ThemeSwitcher";
 
 interface Props {
   isOpen: boolean;
@@ -19,7 +20,9 @@ const HamburgerMenu: React.FC<Props> = ({ isOpen, onImport, onClose }) => {
       <S.MenuOption data-sc="MenuOption">
         <ImportCSV onImport={onImport} />
       </S.MenuOption>
-      {/* Add more menu items here */}
+      <S.MenuOption data-sc="MenuOption">
+        <ThemeSwitcher />
+      </S.MenuOption>
     </S.MenuContainer>
   );
 };

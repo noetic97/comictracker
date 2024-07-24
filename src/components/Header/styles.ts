@@ -24,8 +24,8 @@ export const LogoContainer = styled.div`
 `;
 
 export const StyledLogoIcon = styled.div`
-  background-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background-color: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.colors.foreground};
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -40,8 +40,8 @@ export const StyledTitle = styled.h1`
   margin: 0;
   background: linear-gradient(
     45deg,
-    hsl(var(--primary)),
-    hsl(var(--secondary))
+    ${({ theme }) => theme.colors.primary},
+    ${({ theme }) => theme.colors.secondary}
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -55,7 +55,7 @@ export const StyledTitle = styled.h1`
 export const IconButton = styled.button`
   background: none;
   border: none;
-  color: hsl(var(--foreground));
+  color: ${({ theme }) => theme.colors.foreground};
   cursor: pointer;
   padding: 0.5rem;
   display: flex;

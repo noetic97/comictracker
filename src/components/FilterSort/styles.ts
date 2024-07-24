@@ -6,7 +6,7 @@ export const FilterSortContainer = styled.div<{ isOpen: boolean }>`
   top: 60px; // Adjust based on your header height
   left: 0;
   right: 0;
-  background-color: hsl(var(--background));
+  background-color: ${({ theme }) => theme.colors.background};
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   padding: 1rem;
@@ -26,13 +26,13 @@ export const CloseButton = styled.button`
   right: 0;
   background: none;
   border: none;
-  color: hsl(var(--foreground));
+  color: ${({ theme }) => theme.colors.foreground};
   cursor: pointer;
 `;
 
 export const FilterLabel = styled.label`
   font-weight: bold;
-  color: hsl(var(--foreground));
+  color: ${({ theme }) => theme.colors.foreground};
 `;
 
 export const InputContainer = styled.div`
@@ -44,13 +44,13 @@ export const StyledInput = styled.input`
   width: 100%;
   padding: 0.5rem;
   border-radius: var(--radius);
-  background-color: hsl(var(--input));
-  color: hsl(var(--foreground));
+  background-color: ${({ theme }) => theme.colors.input};
+  color: ${({ theme }) => theme.colors.foreground};
   border: none;
   font-size: 1rem;
 
   &:focus {
-    outline: 2px solid hsl(var(--primary));
+    outline: 2px solid ${({ theme }) => theme.colors.primary};
   }
 `;
 
@@ -61,7 +61,7 @@ export const ClearButton = styled(X)`
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: hsl(var(--foreground));
+  color: ${({ theme }) => theme.colors.foreground};
   cursor: pointer;
 `;
 
@@ -69,13 +69,13 @@ export const StyledSelect = styled.select`
   width: 100%;
   padding: 0.5rem;
   border-radius: var(--radius);
-  background-color: hsl(var(--input));
-  color: hsl(var(--foreground));
+  background-color: ${({ theme }) => theme.colors.input};
+  color: ${({ theme }) => theme.colors.foreground};
   border: none;
   font-size: 1rem;
 
   &:focus {
-    outline: 2px solid hsl(var(--primary));
+    outline: 2px solid ${({ theme }) => theme.colors.primary};
   }
 `;
 

@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
-import GlobalStyles from "./GlobalStyles";
+// import GlobalStyles from "./GlobalStyles";
 
 // Suppress setCapture warning
 console.warn = (...args) => {
@@ -27,7 +27,7 @@ if ("serviceWorker" in navigator) {
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <GlobalStyles />
+    {/* <GlobalStyles /> */}
     <App />
   </React.StrictMode>
 );
