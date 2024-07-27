@@ -1,7 +1,7 @@
 import React, { useState, useMemo, lazy, Suspense } from "react";
 import { Comic, PublisherGroupedComics } from "../../types";
 import * as S from "./styles";
-import { isValidComic } from "../../utils/isValidComic";
+import { isValidComic } from "../../utils/validation";
 import ErrorMessage from "../shared/ErrorMessage";
 
 const SeriesCard = lazy(() => import("./SeriesCard"));

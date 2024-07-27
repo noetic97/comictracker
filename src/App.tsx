@@ -15,7 +15,6 @@ const ComicList = lazy(() => import("./components/ComicList"));
 const HamburgerMenu = lazy(() => import("./components/HamburgerMenu"));
 
 const ThemedApp: React.FC = () => {
-  const { theme } = useTheme();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [comics, setComics] = useState<Comic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -173,40 +172,44 @@ const ThemedApp: React.FC = () => {
   const LoadingSpinner = () => <div>Loading...</div>;
 
   return (
-    <ThemeProvider theme={theme}>
-      <GlobalStyles theme={theme} />
-      <AppContainer data-sc="AppContainer">
-        <Suspense fallback={<LoadingSpinner />}>
-          <HeaderContainer data-sc="HeaderContainer">
-            <Header
-              onFilterClick={toggleFilterModal}
-              onMenuClick={toggleMenu}
-            />
-            <FilterSort
-              filter={filter}
-              setFilter={setFilter}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
-              itemsPerPage={itemsPerPage}
-              setItemsPerPage={setItemsPerPage}
-              isOpen={isFilterModalOpen}
-              onClose={() => setIsFilterModalOpen(false)}
-              hideCollected={hideCollected}
-              setHideCollected={setHideCollected}
-            />
-          </HeaderContainer>
-          <ComicList
-            comics={filteredComics}
-            onCollect={handleCollect}
+    <AppContainer data-sc="AppContainer">
+      <Suspense fallback={<LoadingSpinner />}>
+        <HeaderContainer data-sc="HeaderContainer">
+          <Header onFilterClick={toggleFilterModal} onMenuClick={toggleMenu} />
+          <FilterSort
+            filter={filter}
+            setFilter={setFilter}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
             itemsPerPage={itemsPerPage}
+            setItemsPerPage={setItemsPerPage}
+            isOpen={isFilterModalOpen}
+            onClose={() => setIsFilterModalOpen(false)}
+            hideCollected={hideCollected}
+            setHideCollected={setHideCollected}
           />
-          <HamburgerMenu
-            isOpen={isMenuOpen}
-            onClose={() => setIsMenuOpen(false)}
-            onImport={handleImport}
-          />
-        </Suspense>
-      </AppContainer>
+        </HeaderContainer>
+        <ComicList
+          comics={filteredComics}
+          onCollect={handleCollect}
+          itemsPerPage={itemsPerPage}
+        />
+        <HamburgerMenu
+          isOpen={isMenuOpen}
+          onClose={() => setIsMenuOpen(false)}
+          onImport={handleImport}
+        />
+      </Suspense>
+    </AppContainer>
+  );
+};
+
+const ThemeWrapper: React.FC = () => {
+  const { theme } = useTheme();
+  return (
+    <ThemeProvider theme={theme}>
+      <GlobalStyles />
+      <ThemedApp />
     </ThemeProvider>
   );
 };
@@ -214,7 +217,7 @@ const ThemedApp: React.FC = () => {
 const App: React.FC = () => {
   return (
     <CustomThemeProvider>
-      <ThemedApp />
+      <ThemeWrapper />
     </CustomThemeProvider>
   );
 };

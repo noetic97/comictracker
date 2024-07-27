@@ -1,6 +1,6 @@
-import { createGlobalStyle, DefaultTheme } from "styled-components";
+import { createGlobalStyle } from "styled-components";
 
-const GlobalStyles = createGlobalStyle<{ theme: DefaultTheme }>`
+const GlobalStyles = createGlobalStyle`
   body {
     background-color: ${({ theme }) => theme.colors.background};
     color: ${({ theme }) => theme.colors.foreground};

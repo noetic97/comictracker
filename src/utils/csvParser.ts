@@ -1,16 +1,7 @@
 import Papa from "papaparse";
 import { Comic } from "../types";
 import { CSVComicRow, ParseResult } from "../types/csvTypes";
-
-const isValidComic = (row: CSVComicRow): boolean => {
-  return (
-    !!row.Publisher &&
-    !!row.Series &&
-    !!row.Issue &&
-    !isNaN(parseInt(row.Issue)) &&
-    !isNaN(parseFloat(row["Current Value"]))
-  );
-};
+import { isValidComicCSVRow, canConvertToComic } from "./validation";
 
 export const parseComicsCSV = async (file: File): Promise<ParseResult> => {
   return new Promise((resolve, reject) => {
@@ -21,7 +12,7 @@ export const parseComicsCSV = async (file: File): Promise<ParseResult> => {
         const invalidRows: CSVComicRow[] = [];
 
         results.data.forEach((row, index) => {
-          if (isValidComic(row)) {
+          if (isValidComicCSVRow(row) && canConvertToComic(row)) {
             validComics.push({
               id: `imported-${index}`,
               publisher: row.Publisher,
