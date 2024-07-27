@@ -1,4 +1,4 @@
-import React, { useEffect, memo } from "react";
+import React, { memo } from "react";
 import { X } from "lucide-react";
 import { SortOption } from "../../types";
 import Input from "../shared/Input";
