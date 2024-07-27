@@ -13,16 +13,12 @@ export const defaultTheme: Theme = {
     cardForeground: "#FFFFFF",
     border: "#FFFFFF",
     input: "#4A258D",
+    error: "#ff0505",
+    errorLight: "#ff5b00",
+    warning: "#ff8f00",
+    warningLight: "#ffc302",
   },
 };
-
-// #4A258D
-// #FAD205
-// #FACC14
-// #65459E
-// #B26AB4
-// #51FF8B
-// "#FFFFFF"
 
 export const spiderManTheme: Theme = {
   name: "Spider-Man",
@@ -37,6 +33,10 @@ export const spiderManTheme: Theme = {
     cardForeground: "#FFFFFF", // White
     border: "#2196F3", // Light Blue
     input: "#0A2472", // Darker Blue
+    error: "#ff0505",
+    errorLight: "#ff5b00",
+    warning: "#ff8f00",
+    warningLight: "#ffc302",
   },
 };
 
@@ -53,6 +53,10 @@ export const greenGoblinTheme: Theme = {
     cardForeground: "#FFFFFF", // White
     border: "#4CAF50", // Light Green
     input: "#0A3D0A", // Darker Green
+    error: "#ff0505",
+    errorLight: "#ff5b00",
+    warning: "#ff8f00",
+    warningLight: "#ffc302",
   },
 };
 
@@ -69,6 +73,10 @@ export const ironManTheme: Theme = {
     cardForeground: "#FFFFFF", // White
     border: "#EF5350", // Light Red
     input: "#7F0000", // Darker Red
+    error: "#ff0505",
+    errorLight: "#ff5b00",
+    warning: "#ff8f00",
+    warningLight: "#ffc302",
   },
 };
 

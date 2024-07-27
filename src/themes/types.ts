@@ -11,5 +11,9 @@ export interface Theme {
     cardForeground: string;
     border: string;
     input: string;
+    error: string;
+    errorLight: string;
+    warning: string;
+    warningLight: string;
   };
 }

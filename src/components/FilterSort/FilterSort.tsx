@@ -1,6 +1,7 @@
 import React from "react";
 import { X } from "lucide-react";
 import { SortOption } from "../../types";
+import Input from "../shared/Input";
 import * as S from "./styles";
 import Toggle from "../shared/Toggle";
 
@@ -37,22 +38,15 @@ const FilterSort: React.FC<Props> = ({
         <S.CloseButton onClick={onClose} data-sc="CloseButton">
           <X size={24} />
         </S.CloseButton>
-        <S.FilterLabel>Filter</S.FilterLabel>
-        <S.InputContainer data-sc="InputContainer">
-          <S.StyledInput
-            type="text"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter comics..."
-            data-sc="StyledInput"
-          />
-          {filter && (
-            <S.ClearButton
-              onClick={() => setFilter("")}
-              data-sc="ClearButton"
-            />
-          )}
-        </S.InputContainer>
+        <Input
+          label="Filter"
+          type="text"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          onClear={() => setFilter("")}
+          placeholder="Filter publishers, series, comics..."
+          data-sc="SearchInput"
+        />
         <S.FilterLabel>Sort by</S.FilterLabel>
         <S.StyledSelect
           value={sortBy}

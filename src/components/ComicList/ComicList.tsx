@@ -1,6 +1,8 @@
 import React, { useState, useMemo, lazy, Suspense } from "react";
 import { Comic, PublisherGroupedComics } from "../../types";
 import * as S from "./styles";
+import { isValidComic } from "../../utils/isValidComic";
+import ErrorMessage from "../shared/ErrorMessage";
 
 const SeriesCard = lazy(() => import("./SeriesCard"));
 const ToTopButton = lazy(() => import("./ToTopButton"));
@@ -17,24 +19,37 @@ const ComicList: React.FC<Props> = ({ comics, onCollect, itemsPerPage }) => {
   const [currentPages, setCurrentPages] = useState<{ [key: string]: number }>(
     {}
   );
-  // const [showToTop, setShowToTop] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const groupedComics = useMemo(() => {
-    return comics.reduce((acc: PublisherGroupedComics, comic) => {
-      const publisher = comic.publisher;
-      const seriesKey = comic.volume
-        ? `${comic.series} - ${comic.volume}`
-        : comic.series;
+    try {
+      return comics.reduce((acc: PublisherGroupedComics, comic) => {
+        if (!isValidComic(comic)) {
+          console.error("Invalid comic object:", comic);
+          return acc;
+        }
 
-      if (!acc[publisher]) {
-        acc[publisher] = {};
-      }
-      if (!acc[publisher][seriesKey]) {
-        acc[publisher][seriesKey] = [];
-      }
-      acc[publisher][seriesKey].push(comic);
-      return acc;
-    }, {});
+        const publisher = comic.publisher;
+        const seriesKey = comic.volume
+          ? `${comic.series} - ${comic.volume}`
+          : comic.series;
+
+        if (!acc[publisher]) {
+          acc[publisher] = {};
+        }
+        if (!acc[publisher][seriesKey]) {
+          acc[publisher][seriesKey] = [];
+        }
+        acc[publisher][seriesKey].push(comic);
+        return acc;
+      }, {});
+    } catch (error) {
+      console.error("Error grouping comics:", error);
+      setError(
+        "An error occurred while processing the comics. Some data may not be displayed correctly."
+      );
+      return {};
+    }
   }, [comics]);
 
   const toggleAll = () => {
@@ -82,18 +97,16 @@ const ComicList: React.FC<Props> = ({ comics, onCollect, itemsPerPage }) => {
 
   const LoadingSpinner = () => <div>Loading...</div>;
 
-  // useEffect(() => {
-  //   const handleScroll = () => {
-  //     setShowToTop(window.pageYOffset > 300);
-  //   };
-
-  //   window.addEventListener("scroll", handleScroll);
-  //   return () => window.removeEventListener("scroll", handleScroll);
-  // }, []);
-
   return (
     <S.ComicListContainer data-sc="ComicListContainer">
       <Suspense fallback={<LoadingSpinner />}>
+        {error && (
+          <ErrorMessage
+            message={error}
+            type="error"
+            onDismiss={() => setError(null)}
+          />
+        )}
         <S.ExpandContainer data-sc="ExpandContainer">
           <S.ToggleButton onClick={toggleAll} data-sc="ToggleButton">
             {isAllExpanded ? "Collapse All" : "Expand All"}

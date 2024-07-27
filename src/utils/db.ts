@@ -1,5 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from "idb";
 import { Comic } from "../types";
+import { isValidComic } from "./isValidComic";
 
 interface MyDB extends DBSchema {
   comics: {
@@ -51,7 +52,9 @@ const retryOperation = async <T>(
 export const getComics = async (): Promise<Comic[]> => {
   try {
     const db = await initDB();
-    return await retryOperation(() => db.getAll(STORE_NAME));
+    const allComics = await retryOperation(() => db.getAll(STORE_NAME));
+
+    return allComics.filter((comic) => isValidComic(comic));
   } catch (error) {
     console.error("Error fetching comics:", error);
     throw new Error("Failed to fetch comics. Please try again later.");

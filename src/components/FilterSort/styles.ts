@@ -1,5 +1,4 @@
 import styled from "styled-components";
-import { X } from "lucide-react";
 
 export const FilterSortContainer = styled.div<{ isOpen: boolean }>`
   position: absolute;
@@ -33,36 +32,6 @@ export const CloseButton = styled.button`
 export const FilterLabel = styled.label`
   font-weight: bold;
   color: ${({ theme }) => theme.colors.foreground};
-`;
-
-export const InputContainer = styled.div`
-  position: relative;
-  width: 100%;
-`;
-
-export const StyledInput = styled.input`
-  width: 100%;
-  padding: 0.5rem;
-  border-radius: var(--radius);
-  background-color: ${({ theme }) => theme.colors.input};
-  color: ${({ theme }) => theme.colors.foreground};
-  border: none;
-  font-size: 1rem;
-
-  &:focus {
-    outline: 2px solid ${({ theme }) => theme.colors.primary};
-  }
-`;
-
-export const ClearButton = styled(X)`
-  position: absolute;
-  right: 0.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: ${({ theme }) => theme.colors.foreground};
-  cursor: pointer;
 `;
 
 export const StyledSelect = styled.select`
