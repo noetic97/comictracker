@@ -1,0 +1,2 @@
+src/utils/db.ts:108 - deleteComic
+src/utils/db.ts:118 - searchComics

@@ -4,7 +4,7 @@ import { HiddenInput } from "./styles";
 import { FileUploadButtonProps } from "./types";
 import Button from "../Button";
 
-export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
+const FileUploadButton: React.FC<FileUploadButtonProps> = ({
   onFileSelect,
   accept = "*",
   children,

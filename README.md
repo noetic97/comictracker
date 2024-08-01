@@ -105,3 +105,32 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [PapaParse](https://www.papaparse.com/)
 - [idb](https://github.com/jakearchibald/idb)
 - [Lucide](https://lucide.dev/)
+
+## Testing
+
+This project uses Vitest for unit and integration testing, and React Testing Library for rendering and interacting with components in tests.
+
+### Running Tests
+
+To run all tests:
+
+```bash
+npm test
+```
+
+To run tests with coverage report:
+
+```bash
+npm run test:coverage
+```
+
+### Writing Tests
+
+- Test files should be co-located with the component or module they're testing.
+- Use the `.test.tsx` or `.test.ts` extension for test files.
+- Follow the Arrange-Act-Assert pattern in your tests.
+- Use React Testing Library's queries to interact with components.
+
+### Coverage
+
+We aim for high test coverage, but also focus on meaningful tests that verify component behavior, not just lines covered.

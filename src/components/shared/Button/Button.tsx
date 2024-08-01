@@ -6,7 +6,7 @@ export type ButtonVariant = "primary" | "secondary" | "tertiary";
 export type ButtonSize = "small" | "medium" | "large";
 export type ButtonShape = "default" | "rounded" | "circular";
 
-export interface ButtonProps {
+interface ButtonProps {
   onClick: () => void;
   children?: React.ReactNode;
   variant?: ButtonVariant;

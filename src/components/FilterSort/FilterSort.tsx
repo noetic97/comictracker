@@ -52,7 +52,7 @@ const FilterSort: React.FC<Props> = memo(
             onChange={(e) =>
               setSortBy(e.target.value as SortOption | "issueNumber")
             }
-            data-sc="StyledSelect"
+            data-sc="SortBySelect"
           >
             <option value="series">Series</option>
             <option value="publisher">Publisher</option>
@@ -64,7 +64,7 @@ const FilterSort: React.FC<Props> = memo(
           <S.StyledSelect
             value={itemsPerPage}
             onChange={(e) => setItemsPerPage(Number(e.target.value))}
-            data-sc="StyledSelect"
+            data-sc="ItemsPerPageSelect"
           >
             <option value={10}>10</option>
             <option value={25}>25</option>

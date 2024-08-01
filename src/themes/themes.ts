@@ -20,7 +20,7 @@ export const defaultTheme: Theme = {
   },
 };
 
-export const spiderManTheme: Theme = {
+const spiderManTheme: Theme = {
   name: "Spider-Man",
   colors: {
     background: "#0D47A1",
@@ -40,7 +40,7 @@ export const spiderManTheme: Theme = {
   },
 };
 
-export const greenGoblinTheme: Theme = {
+const greenGoblinTheme: Theme = {
   name: "Green Goblin",
   colors: {
     background: "#1B5E20",
@@ -60,7 +60,7 @@ export const greenGoblinTheme: Theme = {
   },
 };
 
-export const ironManTheme: Theme = {
+const ironManTheme: Theme = {
   name: "Iron Man",
   colors: {
     background: "#B71C1C",
@@ -80,9 +80,4 @@ export const ironManTheme: Theme = {
   },
 };
 
-export const themes: Theme[] = [
-  defaultTheme,
-  spiderManTheme,
-  greenGoblinTheme,
-  ironManTheme,
-];
+export const themes: Theme[] = [spiderManTheme, greenGoblinTheme, ironManTheme];

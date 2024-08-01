@@ -3,7 +3,7 @@ import * as S from "./styles";
 import { ErrorMessageProps } from "./types";
 import { AlertCircle, AlertTriangle, X } from "lucide-react";
 
-export const ErrorMessage: React.FC<ErrorMessageProps> = ({
+const ErrorMessage: React.FC<ErrorMessageProps> = ({
   message,
   type = "error",
   showIcon = true,

@@ -2,7 +2,7 @@ import React, { InputHTMLAttributes, forwardRef } from "react";
 import { X } from "lucide-react";
 import * as S from "./styles";
 
-export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   icon?: React.ReactNode;
@@ -10,7 +10,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   fullWidth?: boolean;
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(
+const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, icon, onClear, fullWidth = false, ...props }, ref) => {
     return (
       <S.InputWrapper $fullWidth={fullWidth}>

@@ -112,11 +112,6 @@ export const SeriesCount = styled.span`
   opacity: 0.8;
 `;
 
-export const PublisherComicCount = styled.span`
-  font-size: 0.8rem;
-  margin-top: 0.5rem;
-`;
-
 export const SeriesList = styled.div`
   max-height: 0;
   overflow: hidden;
