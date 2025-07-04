@@ -1,2 +1,10 @@
-src/utils/db.ts:108 - deleteComic
-src/utils/db.ts:118 - searchComics
+Client: src/GlobalStyles.ts:18 - default
+Client: src/styles.ts:3 - AppContainer
+Client: src/styles.ts:13 - HeaderContainer
+Client: src/utils/api.ts:8 - getComics
+Client: src/utils/db.ts:52 - getComics
+Client: src/utils/db.ts:64 - addComics
+Client: src/utils/db.ts:98 - updateComic
+Client: src/utils/db.ts:108 - deleteComic
+Client: src/utils/db.ts:118 - searchComics
+Client: src/utils/db.ts:138 - syncComics

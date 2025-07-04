@@ -1,0 +1,20 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Comic {
+  id           Int      @id @default(autoincrement())
+  publisher    String
+  series       String
+  volume       String?
+  issue        String
+  issueNumber  Int
+  currentValue Float
+  collected    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
