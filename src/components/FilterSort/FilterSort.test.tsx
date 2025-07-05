@@ -83,65 +83,111 @@ describe("FilterSort Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
-
   it("renders correctly when open", () => {
-    render(<FilterSort {...defaultProps} />);
+    render(
+      <FilterSort
+        {...defaultProps}
+        filterOption="all"
+        setFilterOption={vi.fn()}
+      />
+    );
     expect(screen.getByTestId("filter-sort-container")).toBeInTheDocument();
   });
-
   it("does not render when closed", () => {
-    render(<FilterSort {...defaultProps} isOpen={false} />);
+    render(
+      <FilterSort
+        {...defaultProps}
+        isOpen={false}
+        filterOption="all"
+        setFilterOption={vi.fn()}
+      />
+    );
     expect(
       screen.queryByTestId("filter-sort-container")
     ).not.toBeInTheDocument();
   });
-
   it("calls onClose when close button is clicked", () => {
-    render(<FilterSort {...defaultProps} />);
+    render(
+      <FilterSort
+        {...defaultProps}
+        filterOption="all"
+        setFilterOption={vi.fn()}
+      />
+    );
     fireEvent.click(screen.getByTestId("close-button"));
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
-
   it("updates filter when input changes", () => {
-    render(<FilterSort {...defaultProps} />);
+    render(
+      <FilterSort
+        {...defaultProps}
+        filterOption="all"
+        setFilterOption={vi.fn()}
+      />
+    );
     fireEvent.change(screen.getByTestId("mock-input"), {
       target: { value: "new filter" },
     });
     expect(mockSetFilter).toHaveBeenCalledWith("new filter");
   });
-
   it("updates sortBy when select changes", () => {
-    render(<FilterSort {...defaultProps} />);
+    render(
+      <FilterSort
+        {...defaultProps}
+        filterOption="all"
+        setFilterOption={vi.fn()}
+      />
+    );
     fireEvent.change(screen.getByTestId("styled-select-SortBySelect"), {
       target: { value: "publisher" },
     });
     expect(mockSetSortBy).toHaveBeenCalledWith("publisher");
   });
-
   it("updates itemsPerPage when select changes", () => {
-    render(<FilterSort {...defaultProps} />);
+    render(
+      <FilterSort
+        {...defaultProps}
+        filterOption="all"
+        setFilterOption={vi.fn()}
+      />
+    );
     fireEvent.change(screen.getByTestId("styled-select-ItemsPerPageSelect"), {
       target: { value: "50" },
     });
     expect(mockSetItemsPerPage).toHaveBeenCalledWith(50);
   });
-
   it("toggles hideCollected when toggle is clicked", () => {
-    render(<FilterSort {...defaultProps} />);
+    render(
+      <FilterSort
+        {...defaultProps}
+        filterOption="all"
+        setFilterOption={vi.fn()}
+      />
+    );
     fireEvent.click(screen.getByTestId("mock-toggle"));
     expect(mockSetHideCollected).toHaveBeenCalledWith(true);
   });
-
   it("updates filter when input changes", () => {
-    render(<FilterSort {...defaultProps} />);
+    render(
+      <FilterSort
+        {...defaultProps}
+        filterOption="all"
+        setFilterOption={vi.fn()}
+      />
+    );
     fireEvent.change(screen.getByTestId("mock-input"), {
       target: { value: "new filter" },
     });
     expect(mockSetFilter).toHaveBeenCalledWith("new filter");
   });
-
   it("clears filter when clear button is clicked", () => {
-    render(<FilterSort {...defaultProps} />);
+    render(
+      <FilterSort
+        {...defaultProps}
+        filterOption="all"
+        setFilterOption={vi.fn()}
+      />
+    );
     fireEvent.click(screen.getByTestId("clear-button"));
     expect(mockSetFilter).toHaveBeenCalledWith("");
   });
