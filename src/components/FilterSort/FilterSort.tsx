@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { X } from "lucide-react";
-import { SortOption } from "../../types";
+import { SortOption, FilterOption } from "../../types";
 import Input from "../shared/Input";
 import * as S from "./styles";
 import Toggle from "../shared/Toggle";
@@ -10,6 +10,8 @@ interface Props {
   setFilter: (filter: string) => void;
   sortBy: SortOption | "issueNumber";
   setSortBy: (sortBy: SortOption | "issueNumber") => void;
+  filterOption: FilterOption;
+  setFilterOption: (option: FilterOption) => void;
   hideCollected: boolean;
   setHideCollected: (hide: boolean) => void;
   itemsPerPage: number;
@@ -24,6 +26,8 @@ const FilterSort: React.FC<Props> = memo(
     setFilter,
     sortBy,
     setSortBy,
+    filterOption,
+    setFilterOption,
     hideCollected,
     setHideCollected,
     itemsPerPage,
@@ -37,8 +41,9 @@ const FilterSort: React.FC<Props> = memo(
           <S.CloseButton onClick={onClose} data-sc="CloseButton">
             <X size={24} />
           </S.CloseButton>
+
           <Input
-            label="Filter"
+            label="Search"
             type="text"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -46,6 +51,20 @@ const FilterSort: React.FC<Props> = memo(
             placeholder="Filter publishers, series, comics..."
             data-sc="SearchInput"
           />
+
+          <S.FilterLabel>Filter by</S.FilterLabel>
+          <S.StyledSelect
+            value={filterOption}
+            onChange={(e) => setFilterOption(e.target.value as FilterOption)}
+            data-sc="FilterOptionSelect"
+          >
+            <option value="all">All Comics</option>
+            <option value="favoriteSeriesOnly">Favorite Series Only</option>
+            <option value="grailComicsOnly">Grail Comics Only</option>
+            <option value="collected">Collected Only</option>
+            <option value="uncollected">Uncollected Only</option>
+          </S.StyledSelect>
+
           <S.FilterLabel>Sort by</S.FilterLabel>
           <S.StyledSelect
             value={sortBy}
@@ -54,12 +73,13 @@ const FilterSort: React.FC<Props> = memo(
             }
             data-sc="SortBySelect"
           >
-            <option value="series">Series</option>
+            <option value="series">Series (Alphabetical, ignores "the")</option>
             <option value="publisher">Publisher</option>
             <option value="currentValue">Current Value</option>
             <option value="issue">Issue (Alphabetically)</option>
             <option value="issueNumber">Issue Number (Numerically)</option>
           </S.StyledSelect>
+
           <S.FilterLabel>Items per page</S.FilterLabel>
           <S.StyledSelect
             value={itemsPerPage}
@@ -71,6 +91,7 @@ const FilterSort: React.FC<Props> = memo(
             <option value={50}>50</option>
             <option value={100}>100</option>
           </S.StyledSelect>
+
           <S.ToggleContainer>
             <S.FilterLabel>Hide Collected</S.FilterLabel>
             <Toggle

@@ -18,7 +18,8 @@ export const isValidComic = (comic: unknown): comic is Comic => {
     typeof c.collected === "boolean" &&
     c.volume !== undefined &&
     c.years !== undefined &&
-    c.type !== undefined
+    c.type !== undefined &&
+    (c.isGrail === undefined || typeof c.isGrail === "boolean") // isGrail is optional for backward compatibility
   );
 };
 

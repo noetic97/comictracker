@@ -1,18 +1,59 @@
 import React, { useState, useMemo, lazy, Suspense } from "react";
-import { Comic, PublisherGroupedComics } from "../../types";
+import {
+  Comic,
+  PublisherGroupedComics,
+  FavoriteSeries,
+  FilterOption,
+  ViewMode,
+} from "../../types";
 import * as S from "./styles";
 import { isValidComic } from "../../utils/validation";
+import { sortSeriesKeysIgnoringArticles } from "../../utils/sortingUtils";
 import ErrorMessage from "../shared/ErrorMessage";
 
 const SeriesCard = lazy(() => import("./SeriesCard"));
 const ToTopButton = lazy(() => import("./ToTopButton"));
+const SeriesDetailView = lazy(() => import("../SeriesDetailView"));
+
 interface Props {
   comics: Comic[];
   onCollect: (id: string) => void;
+  onToggleGrail: (id: string) => void;
   itemsPerPage: number;
+  filterOption: FilterOption;
+  favoriteSeries: FavoriteSeries[];
+  onToggleFavoriteSeries: (
+    publisher: string,
+    series: string,
+    volume: string
+  ) => void;
 }
 
-const ComicList: React.FC<Props> = ({ comics, onCollect, itemsPerPage }) => {
+interface Props {
+  comics: Comic[];
+  onCollect: (id: string) => void;
+  onToggleGrail: (id: string) => void;
+  itemsPerPage: number;
+  setItemsPerPage: (count: number) => void;
+  filterOption: FilterOption;
+  favoriteSeries: FavoriteSeries[];
+  onToggleFavoriteSeries: (
+    publisher: string,
+    series: string,
+    volume: string
+  ) => void;
+}
+
+const ComicList: React.FC<Props> = ({
+  comics,
+  onCollect,
+  onToggleGrail,
+  itemsPerPage,
+  setItemsPerPage,
+  filterOption,
+  favoriteSeries,
+  onToggleFavoriteSeries,
+}) => {
   const [expandedPublishers, setExpandedPublishers] = useState<string[]>([]);
   const [expandedSeries, setExpandedSeries] = useState<string[]>([]);
   const [isAllExpanded, setIsAllExpanded] = useState(false);
@@ -20,29 +61,76 @@ const ComicList: React.FC<Props> = ({ comics, onCollect, itemsPerPage }) => {
     {}
   );
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [selectedSeries, setSelectedSeries] = useState<{
+    publisher: string;
+    series: string;
+    volume?: string;
+  } | null>(null);
+
+  // Filter comics based on filter option
+  const filteredComics = useMemo(() => {
+    return comics.filter((comic) => {
+      switch (filterOption) {
+        case "favoriteSeriesOnly":
+          return favoriteSeries.some(
+            (fav) =>
+              fav.publisher === comic.publisher &&
+              fav.series === comic.series &&
+              fav.volume === comic.volume
+          );
+        case "grailComicsOnly":
+          return comic.isGrail;
+        case "collected":
+          return comic.collected;
+        case "uncollected":
+          return !comic.collected;
+        default:
+          return true;
+      }
+    });
+  }, [comics, filterOption, favoriteSeries]);
 
   const groupedComics = useMemo(() => {
     try {
-      return comics.reduce((acc: PublisherGroupedComics, comic) => {
-        if (!isValidComic(comic)) {
-          console.error("Invalid comic object:", comic);
+      const grouped = filteredComics.reduce(
+        (acc: PublisherGroupedComics, comic) => {
+          if (!isValidComic(comic)) {
+            console.error("Invalid comic object:", comic);
+            return acc;
+          }
+
+          const publisher = comic.publisher;
+          const seriesKey = comic.volume
+            ? `${comic.series} - ${comic.volume}`
+            : comic.series;
+
+          if (!acc[publisher]) {
+            acc[publisher] = {};
+          }
+          if (!acc[publisher][seriesKey]) {
+            acc[publisher][seriesKey] = [];
+          }
+          acc[publisher][seriesKey].push(comic);
           return acc;
-        }
+        },
+        {}
+      );
 
-        const publisher = comic.publisher;
-        const seriesKey = comic.volume
-          ? `${comic.series} - ${comic.volume}`
-          : comic.series;
+      // Sort series within each publisher using the new sorting logic
+      Object.keys(grouped).forEach((publisher) => {
+        const seriesKeys = Object.keys(grouped[publisher]);
+        const sortedKeys = sortSeriesKeysIgnoringArticles(seriesKeys);
 
-        if (!acc[publisher]) {
-          acc[publisher] = {};
-        }
-        if (!acc[publisher][seriesKey]) {
-          acc[publisher][seriesKey] = [];
-        }
-        acc[publisher][seriesKey].push(comic);
-        return acc;
-      }, {});
+        const sortedSeries: { [key: string]: Comic[] } = {};
+        sortedKeys.forEach((key) => {
+          sortedSeries[key] = grouped[publisher][key];
+        });
+
+        grouped[publisher] = sortedSeries;
+      });
+
+      return grouped;
     } catch (error) {
       console.error("Error grouping comics:", error);
       setError(
@@ -50,7 +138,7 @@ const ComicList: React.FC<Props> = ({ comics, onCollect, itemsPerPage }) => {
       );
       return {};
     }
-  }, [comics]);
+  }, [filteredComics]);
 
   const toggleAll = () => {
     setIsAllExpanded(!isAllExpanded);
@@ -95,8 +183,76 @@ const ComicList: React.FC<Props> = ({ comics, onCollect, itemsPerPage }) => {
     setCurrentPages((prev) => ({ ...prev, [series]: newPage }));
   };
 
+  const handleOpenDetailView = (
+    publisher: string,
+    series: string,
+    volume?: string
+  ) => {
+    setSelectedSeries({ publisher, series, volume });
+    setViewMode("series-detail");
+  };
+
+  const handleBackToGrid = () => {
+    setViewMode("grid");
+    setSelectedSeries(null);
+  };
+
+  const isFavoriteSeries = (
+    publisher: string,
+    series: string,
+    volume: string
+  ) => {
+    return favoriteSeries.some(
+      (fav) =>
+        fav.publisher === publisher &&
+        fav.series === series &&
+        fav.volume === volume
+    );
+  };
+
   const LoadingSpinner = () => <div>Loading...</div>;
 
+  // Render series detail view
+  if (viewMode === "series-detail" && selectedSeries) {
+    const seriesComics = filteredComics.filter(
+      (comic) =>
+        comic.publisher === selectedSeries.publisher &&
+        comic.series === selectedSeries.series &&
+        comic.volume === (selectedSeries.volume || "")
+    );
+
+    const isFavorite = isFavoriteSeries(
+      selectedSeries.publisher,
+      selectedSeries.series,
+      selectedSeries.volume || ""
+    );
+
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <SeriesDetailView
+          comics={seriesComics}
+          publisher={selectedSeries.publisher}
+          series={selectedSeries.series}
+          volume={selectedSeries.volume}
+          onCollect={onCollect}
+          onToggleGrail={onToggleGrail}
+          onBack={handleBackToGrid}
+          itemsPerPage={itemsPerPage}
+          setItemsPerPage={setItemsPerPage}
+          isFavorite={isFavorite}
+          onToggleFavorite={() =>
+            onToggleFavoriteSeries(
+              selectedSeries.publisher,
+              selectedSeries.series,
+              selectedSeries.volume || ""
+            )
+          }
+        />
+      </Suspense>
+    );
+  }
+
+  // Render grid view
   return (
     <S.ComicListContainer data-sc="ComicListContainer">
       <Suspense fallback={<LoadingSpinner />}>
@@ -144,8 +300,22 @@ const ComicList: React.FC<Props> = ({ comics, onCollect, itemsPerPage }) => {
                       currentPage={currentPages[seriesKey] || 1}
                       itemsPerPage={itemsPerPage}
                       onCollect={onCollect}
+                      onToggleGrail={onToggleGrail}
                       onPageChange={(newPage) =>
                         handlePageChange(seriesKey, newPage)
+                      }
+                      onOpenDetailView={handleOpenDetailView}
+                      isFavorite={isFavoriteSeries(
+                        comicList[0].publisher,
+                        comicList[0].series,
+                        comicList[0].volume
+                      )}
+                      onToggleFavorite={() =>
+                        onToggleFavoriteSeries(
+                          comicList[0].publisher,
+                          comicList[0].series,
+                          comicList[0].volume
+                        )
                       }
                     />
                   )

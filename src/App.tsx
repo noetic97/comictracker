@@ -1,7 +1,15 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
-import { Comic, SortOption } from "./types.ts";
+import { Comic, SortOption, FilterOption, FavoriteSeries } from "./types.ts";
 import { AppContainer, HeaderContainer } from "./styles";
-import { getComics, addComics, updateComic, syncComics } from "./utils/db";
+import {
+  getComics,
+  addComics,
+  updateComic,
+  syncComics,
+  getFavoriteSeries,
+  addFavoriteSeries,
+  removeFavoriteSeries,
+} from "./utils/db";
 import {
   ThemeProvider as CustomThemeProvider,
   useTheme,
@@ -17,11 +25,13 @@ const HamburgerMenu = lazy(() => import("./components/HamburgerMenu"));
 const ThemedApp: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [comics, setComics] = useState<Comic[]>([]);
+  const [favoriteSeries, setFavoriteSeries] = useState<FavoriteSeries[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filteredComics, setFilteredComics] = useState<Comic[]>([]);
   const [filter, setFilter] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("series");
+  const [filterOption, setFilterOption] = useState<FilterOption>("all");
   const [hideCollected, setHideCollected] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -47,45 +57,45 @@ const ThemedApp: React.FC = () => {
   }
 
   useEffect(() => {
-    const fetchComics = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
-        const fetchedComics = await getComics();
+        const [fetchedComics, fetchedFavorites] = await Promise.all([
+          getComics(),
+          getFavoriteSeries(),
+        ]);
         setComics(fetchedComics);
+        setFavoriteSeries(fetchedFavorites);
         setError(null);
       } catch (err) {
-        setError("Failed to load comics. Please try again later.");
+        setError("Failed to load data. Please try again later.");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchComics();
+    fetchData();
   }, []);
 
   useEffect(() => {
-    const filtered =
-      comics &&
-      comics.filter(
-        (comic) =>
-          (comic.series.toLowerCase().includes(filter.toLowerCase()) ||
-            comic.publisher.toLowerCase().includes(filter.toLowerCase())) &&
-          (!hideCollected || !comic.collected)
-      );
+    const filtered = comics.filter(
+      (comic) =>
+        (comic.series.toLowerCase().includes(filter.toLowerCase()) ||
+          comic.publisher.toLowerCase().includes(filter.toLowerCase())) &&
+        (!hideCollected || !comic.collected)
+    );
 
-    const sorted =
-      filtered &&
-      [...filtered].sort((a, b) => {
-        if (sortBy === "issueNumber") {
-          return a.issueNumber - b.issueNumber;
-        } else if (sortBy === "currentValue") {
-          return a.currentValue - b.currentValue;
-        } else {
-          return (a[sortBy] as string).localeCompare(b[sortBy] as string);
-        }
-      });
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === "issueNumber") {
+        return a.issueNumber - b.issueNumber;
+      } else if (sortBy === "currentValue") {
+        return a.currentValue - b.currentValue;
+      } else {
+        return (a[sortBy] as string).localeCompare(b[sortBy] as string);
+      }
+    });
 
-    setFilteredComics(sorted || []);
+    setFilteredComics(sorted);
   }, [comics, filter, sortBy, hideCollected]);
 
   const handleCollect = async (id: string) => {
@@ -103,6 +113,52 @@ const ThemedApp: React.FC = () => {
     }
   };
 
+  const handleToggleGrail = async (id: string) => {
+    try {
+      const comic = comics.find((c) => c.id === id);
+      if (comic) {
+        const updatedComic = { ...comic, isGrail: !comic.isGrail };
+        await updateComic(updatedComic);
+        setComics((prevComics) =>
+          prevComics.map((c) => (c.id === id ? updatedComic : c))
+        );
+      }
+    } catch (err) {
+      setError("Failed to update grail status. Please try again.");
+    }
+  };
+
+  const handleToggleFavoriteSeries = async (
+    publisher: string,
+    series: string,
+    volume: string
+  ) => {
+    try {
+      const existingFavorite = favoriteSeries.find(
+        (fav) =>
+          fav.publisher === publisher &&
+          fav.series === series &&
+          fav.volume === volume
+      );
+
+      if (existingFavorite) {
+        await removeFavoriteSeries(existingFavorite.id);
+        setFavoriteSeries((prev) =>
+          prev.filter((fav) => fav.id !== existingFavorite.id)
+        );
+      } else {
+        const newFavorite = await addFavoriteSeries({
+          publisher,
+          series,
+          volume,
+        });
+        setFavoriteSeries((prev) => [...prev, newFavorite]);
+      }
+    } catch (err) {
+      setError("Failed to update favorite series. Please try again.");
+    }
+  };
+
   const handleImport = async (importedComics: Comic[]): Promise<void> => {
     try {
       const addedOrUpdatedComics = await addComics(importedComics);
@@ -115,14 +171,15 @@ const ThemedApp: React.FC = () => {
         addedOrUpdatedComics.forEach((comic) => {
           const index = newComics.findIndex((c) => c.id === comic.id);
           if (index !== -1) {
-            // Update existing comic, but keep the collected state from the current state
+            // Update existing comic, but keep the collected and grail state from the current state
             newComics[index] = {
               ...comic,
-              collected: newComics[index].collected, // Preserve the existing collected state
+              collected: newComics[index].collected,
+              isGrail: newComics[index].isGrail ?? false,
             };
             updatedComicsCount++;
           } else {
-            newComics.push(comic); // Add new comic
+            newComics.push({ ...comic, isGrail: false }); // Add new comic with default grail status
             newComicsCount++;
           }
         });
@@ -181,6 +238,8 @@ const ThemedApp: React.FC = () => {
             setFilter={setFilter}
             sortBy={sortBy}
             setSortBy={setSortBy}
+            filterOption={filterOption}
+            setFilterOption={setFilterOption}
             itemsPerPage={itemsPerPage}
             setItemsPerPage={setItemsPerPage}
             isOpen={isFilterModalOpen}
@@ -192,7 +251,12 @@ const ThemedApp: React.FC = () => {
         <ComicList
           comics={filteredComics}
           onCollect={handleCollect}
+          onToggleGrail={handleToggleGrail}
           itemsPerPage={itemsPerPage}
+          setItemsPerPage={setItemsPerPage}
+          filterOption={filterOption}
+          favoriteSeries={favoriteSeries}
+          onToggleFavoriteSeries={handleToggleFavoriteSeries}
         />
         <HamburgerMenu
           isOpen={isMenuOpen}
