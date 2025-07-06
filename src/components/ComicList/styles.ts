@@ -27,7 +27,7 @@ export const PublisherGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 1rem;
-  padding: 1rem;
+  padding: 0.5rem;
 `;
 
 export const PublisherCard = styled.div<{ $isExpanded: boolean }>`
@@ -95,7 +95,7 @@ export const PublisherButton = styled.button<{ $isExpanded: boolean }>`
     `
     flex-direction: row;
     justify-content: space-between;
-    padding: 1.5rem;
+    padding: 0.5rem 1.5rem;
     &:before {
       display: none;
     }
