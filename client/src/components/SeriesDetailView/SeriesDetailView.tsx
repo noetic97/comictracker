@@ -7,7 +7,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { Comic } from "../../types";
+import { Comic } from "../../../../src/types";
 import Button from "../shared/Button";
 import PaginationControls from "../ComicList/PaginationControls";
 import * as S from "./styles";
