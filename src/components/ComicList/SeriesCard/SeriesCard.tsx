@@ -85,6 +85,11 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
                 {grailCount}
               </S.GrailIndicator>
             )}
+            {isFavorite && (
+              <S.FavoriteIndicator title="Favorite series">
+                <Heart size={16} fill="currentColor" />
+              </S.FavoriteIndicator>
+            )}
           </S.SeriesTitle>
           <S.SeriesStats>
             {comicList.length} issues • {collectedCount} collected

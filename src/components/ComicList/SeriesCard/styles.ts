@@ -63,6 +63,20 @@ export const GrailIndicator = styled.span`
   margin-left: 0.5rem;
 `;
 
+export const FavoriteIndicator = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: ${({ theme }) => theme.colors.accent};
+  color: ${({ theme }) => theme.colors.background};
+  padding: 0.125rem 0.375rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+`;
+
 export const SeriesStats = styled.p`
   margin: 0;
   font-size: 0.875rem;
