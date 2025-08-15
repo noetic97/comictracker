@@ -33,3 +33,10 @@ server/.env*
 !.env.example
 !client/.env.example
 !server/.env.example
+
+unused-exports.txt
+# Local Netlify folder
+.netlify
+
+# test results folder
+client/coverage

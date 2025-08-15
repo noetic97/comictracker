@@ -1,0 +1,164 @@
+.
+├── client
+│   ├── client
+│   ├── coverage
+│   │   ├── base.css
+│   │   ├── block-navigation.js
+│   │   ├── components
+│   │   │   ├── FilterSort
+│   │   │   │   ├── FilterSort.tsx.html
+│   │   │   │   └── index.html
+│   │   │   ├── Header
+│   │   │   │   ├── Header.tsx.html
+│   │   │   │   └── index.html
+│   │   │   └── ThemeSwitcher
+│   │   │       ├── index.html
+│   │   │       └── ThemeSwitcher.tsx.html
+│   │   ├── coverage-final.json
+│   │   ├── favicon.png
+│   │   ├── index.html
+│   │   ├── prettify.css
+│   │   ├── prettify.js
+│   │   ├── sort-arrow-sprite.png
+│   │   ├── sorter.js
+│   │   └── themes
+│   │       ├── index.html
+│   │       ├── ThemeContext.tsx.html
+│   │       └── themes.ts.html
+│   ├── index.html
+│   ├── package.json
+│   ├── public
+│   │   ├── apple-touch-icon.png
+│   │   ├── apple-touch-icon.svg
+│   │   ├── icon-192x192.png
+│   │   ├── icon-512x512.png
+│   │   ├── manifest.json
+│   │   └── service-worker.js
+│   ├── src
+│   │   ├── App.tsx
+│   │   ├── components
+│   │   │   ├── ComicList
+│   │   │   │   ├── ComicList.tsx
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── PaginationControls
+│   │   │   │   ├── SeriesCard
+│   │   │   │   ├── styles.ts
+│   │   │   │   └── ToTopButton
+│   │   │   ├── FilterSort
+│   │   │   │   ├── FilterSort.test.tsx
+│   │   │   │   ├── FilterSort.tsx
+│   │   │   │   ├── index.ts
+│   │   │   │   └── styles.ts
+│   │   │   ├── HamburgerMenu
+│   │   │   │   ├── HamburgerMenu.tsx
+│   │   │   │   ├── index.ts
+│   │   │   │   └── styles.ts
+│   │   │   ├── Header
+│   │   │   │   ├── Header.test.tsx
+│   │   │   │   ├── Header.tsx
+│   │   │   │   ├── index.ts
+│   │   │   │   └── styles.ts
+│   │   │   ├── ImportCSV
+│   │   │   │   ├── ImportCSV.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── SeriesDetailView
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── SeriesDetailView.tsx
+│   │   │   │   └── styles.ts
+│   │   │   ├── shared
+│   │   │   │   ├── Button
+│   │   │   │   ├── ErrorMessage
+│   │   │   │   ├── FileUploadButton
+│   │   │   │   ├── Input
+│   │   │   │   └── Toggle
+│   │   │   └── ThemeSwitcher
+│   │   │       ├── index.ts
+│   │   │       ├── styles.ts
+│   │   │       ├── ThemeSwitcher.test.tsx
+│   │   │       └── ThemeSwitcher.tsx
+│   │   ├── GlobalStyles.ts
+│   │   ├── main.tsx
+│   │   ├── styles.ts
+│   │   ├── test
+│   │   │   ├── setup.d.ts
+│   │   │   └── setup.ts
+│   │   ├── themes
+│   │   │   ├── ThemeContext.tsx
+│   │   │   ├── themes.ts
+│   │   │   └── types.ts
+│   │   ├── types
+│   │   │   └── csvTypes.ts
+│   │   ├── types.ts
+│   │   ├── utils
+│   │   │   ├── api.ts
+│   │   │   ├── apiService.ts
+│   │   │   ├── csvParser.ts
+│   │   │   ├── db.ts
+│   │   │   ├── sortingUtils.ts
+│   │   │   └── validation.ts
+│   │   └── vite-env.d.ts
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   ├── tsconfig.node.tsbuildinfo
+│   ├── vite.config.d.ts
+│   ├── vite.config.js
+│   ├── vite.config.ts
+│   └── vitest.config.ts
+├── directory_structure.txt
+├── dist
+│   ├── apple-touch-icon.png
+│   ├── apple-touch-icon.svg
+│   ├── assets
+│   │   ├── Button-CVQeG4Hd.js
+│   │   ├── Button-CVQeG4Hd.js.map
+│   │   ├── createLucideIcon-DNmkKfnB.js
+│   │   ├── createLucideIcon-DNmkKfnB.js.map
+│   │   ├── ErrorMessage-BoFK59ZM.js
+│   │   ├── ErrorMessage-BoFK59ZM.js.map
+│   │   ├── index-62ieu3kz.js
+│   │   ├── index-62ieu3kz.js.map
+│   │   ├── index-B3dIZxfm.js
+│   │   ├── index-B3dIZxfm.js.map
+│   │   ├── index-B73S0PHH.js
+│   │   ├── index-B73S0PHH.js.map
+│   │   ├── index-B8ALpHsT.js
+│   │   ├── index-B8ALpHsT.js.map
+│   │   ├── index-CVZZK4dd.js
+│   │   ├── index-CVZZK4dd.js.map
+│   │   ├── index-D4EfmMSf.js
+│   │   ├── index-D4EfmMSf.js.map
+│   │   ├── index-DsbL0XZW.js
+│   │   ├── index-DsbL0XZW.js.map
+│   │   ├── index-LdzcsvnY.js
+│   │   ├── index-LdzcsvnY.js.map
+│   │   ├── PaginationControls-BriBOROw.js
+│   │   ├── PaginationControls-BriBOROw.js.map
+│   │   ├── x-CrKMogK2.js
+│   │   └── x-CrKMogK2.js.map
+│   ├── icon-192x192.png
+│   ├── icon-512x512.png
+│   ├── index.html
+│   ├── manifest.json
+│   └── service-worker.js
+├── feature-roadmap.md
+├── find-unused.cjs
+├── functions
+│   ├── comics.ts
+│   ├── favorites.ts
+│   └── utils
+│       ├── cors.ts
+│       └── prisma.ts
+├── LICENSE
+├── netlify.toml
+├── package-lock.json
+├── package.json
+├── prisma
+│   ├── migrations
+│   │   └── migrations.ts
+│   └── schema.prisma
+├── README.md
+├── shared
+├── tsconfig.node.tsbuildinfo
+└── unused-exports.txt
+
+39 directories, 123 files

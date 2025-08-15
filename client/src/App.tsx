@@ -1,15 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Comic, SortOption, FilterOption, FavoriteSeries } from "./types.ts";
 import { AppContainer, HeaderContainer } from "./styles";
-import {
-  getComics,
-  addComics,
-  updateComic,
-  syncComics,
-  getFavoriteSeries,
-  addFavoriteSeries,
-  removeFavoriteSeries,
-} from "./utils/db";
+import { apiService } from "./utils/apiService"; // Changed from db imports
 import {
   ThemeProvider as CustomThemeProvider,
   useTheme,
@@ -60,14 +52,15 @@ const ThemedApp: React.FC = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [fetchedComics, fetchedFavorites] = await Promise.all([
-          getComics(),
-          getFavoriteSeries(),
+        const [comicsResponse, favoritesResponse] = await Promise.all([
+          apiService.comics.getAll({ limit: 1000 }), // Get all comics
+          apiService.favorites.getAll(),
         ]);
-        setComics(fetchedComics);
-        setFavoriteSeries(fetchedFavorites);
+        setComics(comicsResponse.comics);
+        setFavoriteSeries(favoritesResponse);
         setError(null);
-      } catch (err) {
+      } catch (err: any) {
+        console.error("Failed to load data:", err);
         setError("Failed to load data. Please try again later.");
       } finally {
         setIsLoading(false);
@@ -100,30 +93,24 @@ const ThemedApp: React.FC = () => {
 
   const handleCollect = async (id: string) => {
     try {
-      const comic = comics.find((c) => c.id === id);
-      if (comic) {
-        const updatedComic = { ...comic, collected: !comic.collected };
-        await updateComic(updatedComic);
-        setComics((prevComics) =>
-          prevComics.map((c) => (c.id === id ? updatedComic : c))
-        );
-      }
-    } catch (err) {
+      const updatedComic = await apiService.comics.toggleCollected(id);
+      setComics((prevComics) =>
+        prevComics.map((c) => (c.id === id ? updatedComic : c))
+      );
+    } catch (err: any) {
+      console.error("Failed to update comic:", err);
       setError("Failed to update comic. Please try again.");
     }
   };
 
   const handleToggleGrail = async (id: string) => {
     try {
-      const comic = comics.find((c) => c.id === id);
-      if (comic) {
-        const updatedComic = { ...comic, isGrail: !comic.isGrail };
-        await updateComic(updatedComic);
-        setComics((prevComics) =>
-          prevComics.map((c) => (c.id === id ? updatedComic : c))
-        );
-      }
-    } catch (err) {
+      const updatedComic = await apiService.comics.toggleGrail(id);
+      setComics((prevComics) =>
+        prevComics.map((c) => (c.id === id ? updatedComic : c))
+      );
+    } catch (err: any) {
+      console.error("Failed to update grail status:", err);
       setError("Failed to update grail status. Please try again.");
     }
   };
@@ -142,55 +129,40 @@ const ThemedApp: React.FC = () => {
       );
 
       if (existingFavorite) {
-        await removeFavoriteSeries(existingFavorite.id);
+        await apiService.favorites.remove(existingFavorite.id);
         setFavoriteSeries((prev) =>
           prev.filter((fav) => fav.id !== existingFavorite.id)
         );
       } else {
-        const newFavorite = await addFavoriteSeries({
+        const newFavorite = await apiService.favorites.add({
           publisher,
           series,
           volume,
         });
         setFavoriteSeries((prev) => [...prev, newFavorite]);
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error("Failed to update favorite series:", err);
       setError("Failed to update favorite series. Please try again.");
     }
   };
 
   const handleImport = async (importedComics: Comic[]): Promise<void> => {
     try {
-      const addedOrUpdatedComics = await addComics(importedComics);
+      setIsLoading(true);
+      const result = await apiService.comics.bulkCreate(importedComics);
 
-      setComics((prevComics) => {
-        const newComics = [...prevComics];
-        let newComicsCount = 0;
-        let updatedComicsCount = 0;
+      // Refresh the comics list after import
+      const comicsResponse = await apiService.comics.getAll({ limit: 1000 });
+      setComics(comicsResponse.comics);
 
-        addedOrUpdatedComics.forEach((comic) => {
-          const index = newComics.findIndex((c) => c.id === comic.id);
-          if (index !== -1) {
-            // Update existing comic, but keep the collected and grail state from the current state
-            newComics[index] = {
-              ...comic,
-              collected: newComics[index].collected,
-              isGrail: newComics[index].isGrail ?? false,
-            };
-            updatedComicsCount++;
-          } else {
-            newComics.push({ ...comic, isGrail: false }); // Add new comic with default grail status
-            newComicsCount++;
-          }
-        });
-
-        console.log(
-          `Import complete: ${newComicsCount} new comics added, ${updatedComicsCount} comics updated.`
-        );
-        return newComics;
-      });
-    } catch (err) {
+      console.log(`Import complete: ${result.count} comics processed.`);
+      setError(null);
+    } catch (err: any) {
+      console.error("Failed to import comics:", err);
       setError("Failed to import comics. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -208,20 +180,8 @@ const ThemedApp: React.FC = () => {
     }
   };
 
-  // Function to sync changes when coming back online
-  const syncChanges = async () => {
-    try {
-      await syncComics(comics);
-      setError(null);
-    } catch (err) {
-      setError("Failed to sync changes. Some updates may not be saved.");
-    }
-  };
-
-  useEffect(() => {
-    window.addEventListener("online", syncChanges);
-    return () => window.removeEventListener("online", syncChanges);
-  }, [comics]);
+  // Remove sync function since we're using API now
+  // const syncChanges = async () => { ... }
 
   if (isLoading) return <div>Loading comics...</div>;
   if (error) return <div>{error}</div>;

@@ -3,20 +3,31 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "client",
-    "server"
+    "client"
   ],
-  "devDependencies": {
-    "ts-prune": "^0.10.3",
-    "concurrently": "^6.2.0"
-  },
   "scripts": {
-    "start": "docker compose up",
-    "start:local": "concurrently \"npm run start:client\" \"npm run start:server\"",
-    "start:client": "cd client && npm run dev",
-    "start:server": "cd server && npm run dev",
-    "build": "docker compose build",
-    "down": "docker compose down",
-    "find-unused": "node find-unused.cjs"
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:functions\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:functions": "netlify functions:serve",
+    "dev:netlify": "netlify dev",
+    "build": "cd client && npm run build",
+    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
+    "db:migrate": "npx prisma migrate dev",
+    "db:studio": "npx prisma studio",
+    "netlify:dev": "npx netlify dev",
+    "netlify:build": "npx netlify build",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^2.4.1",
+    "@types/node": "^22.0.2",
+    "concurrently": "^8.2.2",
+    "netlify-cli": "^17.10.1",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.17.0",
+    "prisma": "^5.17.0"
   }
 }

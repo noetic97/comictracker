@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Comic {
+  id           String   @id @default(cuid())
+  publisher    String
+  series       String
+  volume       String   @default("")
+  years        String   @default("")
+  type         String   @default("")
+  issue        String
+  issueNumber  Int
+  currentValue Float
+  collected    Boolean  @default(false)
+  isGrail      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([publisher, series, issue])
+  @@index([series])
+  @@index([collected])
+  @@index([isGrail])
+  @@map("comics")
+}
+
+model FavoriteSeries {
+  id        String   @id @default(cuid())
+  publisher String
+  series    String
+  volume    String   @default("")
+  dateAdded DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([publisher, series, volume])
+  @@index([publisher, series])
+  @@map("favorite_series")
+}
