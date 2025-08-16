@@ -20,20 +20,6 @@ interface Props {
   onCollect: (id: string) => void;
   onToggleGrail: (id: string) => void;
   itemsPerPage: number;
-  filterOption: FilterOption;
-  favoriteSeries: FavoriteSeries[];
-  onToggleFavoriteSeries: (
-    publisher: string,
-    series: string,
-    volume: string
-  ) => void;
-}
-
-interface Props {
-  comics: Comic[];
-  onCollect: (id: string) => void;
-  onToggleGrail: (id: string) => void;
-  itemsPerPage: number;
   setItemsPerPage: (count: number) => void;
   filterOption: FilterOption;
   favoriteSeries: FavoriteSeries[];
@@ -90,6 +76,29 @@ const ComicList: React.FC<Props> = ({
       }
     });
   }, [comics, filterOption, favoriteSeries]);
+
+  // Calculate statistics for display
+  const stats = useMemo(() => {
+    const total = comics.length;
+    const filtered = filteredComics.length;
+    const collected = comics.filter((comic) => comic.collected).length;
+    const grails = comics.filter((comic) => comic.isGrail).length;
+    const totalValue = comics.reduce(
+      (sum, comic) => sum + comic.currentValue,
+      0
+    );
+
+    return {
+      total,
+      filtered,
+      collected,
+      grails,
+      totalValue,
+      collectedValue: comics
+        .filter((comic) => comic.collected)
+        .reduce((sum, comic) => sum + comic.currentValue, 0),
+    };
+  }, [comics, filteredComics]);
 
   const groupedComics = useMemo(() => {
     try {
@@ -264,9 +273,48 @@ const ComicList: React.FC<Props> = ({
           />
         )}
         <S.ExpandContainer data-sc="ExpandContainer">
-          <S.ToggleButton onClick={toggleAll} data-sc="ToggleButton">
-            {isAllExpanded ? "Collapse All" : "Expand All"}
-          </S.ToggleButton>
+          <S.ControlsRow>
+            <S.ToggleButton onClick={toggleAll} data-sc="ToggleButton">
+              {isAllExpanded ? "Collapse All" : "Expand All"}
+            </S.ToggleButton>
+
+            <S.StatsContainer>
+              <S.StatsBadge>
+                <S.StatsNumber>{stats.total.toLocaleString()}</S.StatsNumber>
+                <S.StatsLabel>Total Comics</S.StatsLabel>
+              </S.StatsBadge>
+
+              {filterOption !== "all" && (
+                <S.StatsBadge variant="filtered">
+                  <S.StatsNumber>
+                    {stats.filtered.toLocaleString()}
+                  </S.StatsNumber>
+                  <S.StatsLabel>Filtered</S.StatsLabel>
+                </S.StatsBadge>
+              )}
+
+              <S.StatsBadge variant="collected">
+                <S.StatsNumber>
+                  {stats.collected.toLocaleString()}
+                </S.StatsNumber>
+                <S.StatsLabel>Collected</S.StatsLabel>
+              </S.StatsBadge>
+
+              {stats.grails > 0 && (
+                <S.StatsBadge variant="grail">
+                  <S.StatsNumber>{stats.grails.toLocaleString()}</S.StatsNumber>
+                  <S.StatsLabel>Grails</S.StatsLabel>
+                </S.StatsBadge>
+              )}
+
+              <S.StatsBadge variant="value">
+                <S.StatsNumber>
+                  ${Math.round(stats.totalValue).toLocaleString()}
+                </S.StatsNumber>
+                <S.StatsLabel>Total Value</S.StatsLabel>
+              </S.StatsBadge>
+            </S.StatsContainer>
+          </S.ControlsRow>
         </S.ExpandContainer>
         <S.PublisherGrid data-sc="PublisherGrid">
           {Object.entries(groupedComics).map(([publisher, publisherComics]) => (

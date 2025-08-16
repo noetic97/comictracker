@@ -22,10 +22,16 @@ model Comic {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // Indexes for performance
   @@index([publisher, series, issue])
   @@index([series])
   @@index([collected])
   @@index([isGrail])
+  @@index([publisher])
+  @@index([issueNumber])
+  
+  // Composite unique constraint to prevent exact duplicates (including type)
+  @@unique([publisher, series, volume, issue, type], name: "publisher_series_volume_issue_type")
   @@map("comics")
 }
 
@@ -38,7 +44,8 @@ model FavoriteSeries {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([publisher, series, volume])
+  // Ensure no duplicate favorite series
+  @@unique([publisher, series, volume], name: "publisher_series_volume")
   @@index([publisher, series])
   @@map("favorite_series")
 }

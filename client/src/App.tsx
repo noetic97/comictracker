@@ -52,10 +52,17 @@ const ThemedApp: React.FC = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
+        console.log("🔄 Loading all comics and favorites...");
+
         const [comicsResponse, favoritesResponse] = await Promise.all([
-          apiService.comics.getAll({ limit: 1000 }), // Get all comics
+          apiService.comics.getAll(), // Remove the { limit: 1000 } parameter to get ALL comics
           apiService.favorites.getAll(),
         ]);
+
+        console.log(
+          `✅ Loaded ${comicsResponse.comics.length} comics and ${favoritesResponse.length} favorites`
+        );
+
         setComics(comicsResponse.comics);
         setFavoriteSeries(favoritesResponse);
         setError(null);
@@ -150,17 +157,21 @@ const ThemedApp: React.FC = () => {
   const handleImport = async (importedComics: Comic[]): Promise<void> => {
     try {
       setIsLoading(true);
-      const result = await apiService.comics.bulkCreate(importedComics);
 
-      // Refresh the comics list after import
-      const comicsResponse = await apiService.comics.getAll({ limit: 1000 });
+      // The actual import is now handled by the ImportCSV component
+      // This is just called to refresh the UI after import
+      console.log("🔄 Refreshing comics list after import...");
+
+      const comicsResponse = await apiService.comics.getAll(); // Remove { limit: 1000 }
       setComics(comicsResponse.comics);
 
-      console.log(`Import complete: ${result.count} comics processed.`);
+      console.log(
+        `✅ Refreshed: Now showing ${comicsResponse.comics.length} total comics`
+      );
       setError(null);
     } catch (err: any) {
-      console.error("Failed to import comics:", err);
-      setError("Failed to import comics. Please try again.");
+      console.error("Failed to refresh comics after import:", err);
+      setError("Failed to refresh comics. Please reload the page.");
     } finally {
       setIsLoading(false);
     }

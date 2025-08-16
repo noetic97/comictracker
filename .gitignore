@@ -40,3 +40,4 @@ unused-exports.txt
 
 # test results folder
 client/coverage
+tsconfig.tsbuildinfo

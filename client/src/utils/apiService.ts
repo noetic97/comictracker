@@ -46,6 +46,11 @@ export const apiService = {
         });
       }
 
+      // If no limit is specified, get ALL comics by setting a very high limit
+      if (!params?.limit) {
+        searchParams.set("limit", "50000"); // Set a high limit to get all comics
+      }
+
       const url = `${API_BASE_URL}/comics${
         searchParams.toString() ? `?${searchParams}` : ""
       }`;
@@ -69,7 +74,17 @@ export const apiService = {
 
     bulkCreate: async (
       comics: Omit<Comic, "id">[]
-    ): Promise<{ count: number; message: string }> => {
+    ): Promise<{
+      processed: number;
+      created: number;
+      updated: number;
+      errors: number;
+      message: string;
+      processingErrors?: string[];
+      validationErrors?: string[];
+      processingTime?: number;
+      rate?: number;
+    }> => {
       const response = await fetch(`${API_BASE_URL}/comics/bulk`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -121,28 +136,29 @@ export const apiService = {
     },
   },
 
-  // Favorites API (placeholder for now - we'll implement this next)
+  // Favorites API - Now fully implemented
   favorites: {
     getAll: async (): Promise<FavoriteSeries[]> => {
-      // For now, return empty array until we implement favorites function
-      return [];
+      const response = await fetch(`${API_BASE_URL}/favorites`);
+      return handleResponse(response);
     },
 
     add: async (
       series: Omit<FavoriteSeries, "id" | "dateAdded">
     ): Promise<FavoriteSeries> => {
-      // Placeholder - will implement when favorites function is ready
-      const newFavorite: FavoriteSeries = {
-        ...series,
-        id: `temp-${Date.now()}`,
-        dateAdded: Date.now(),
-      };
-      return newFavorite;
+      const response = await fetch(`${API_BASE_URL}/favorites`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(series),
+      });
+      return handleResponse(response);
     },
 
     remove: async (id: string): Promise<void> => {
-      // Placeholder
-      console.log("Remove favorite:", id);
+      const response = await fetch(`${API_BASE_URL}/favorites/${id}`, {
+        method: "DELETE",
+      });
+      await handleResponse(response);
     },
 
     check: async (
@@ -153,8 +169,14 @@ export const apiService = {
       isFavorite: boolean;
       favorite?: FavoriteSeries;
     }> => {
-      // Placeholder
-      return { isFavorite: false };
+      const params = new URLSearchParams({
+        publisher,
+        series,
+        ...(volume && { volume }),
+      });
+
+      const response = await fetch(`${API_BASE_URL}/favorites/check?${params}`);
+      return handleResponse(response);
     },
   },
 };
@@ -162,7 +184,7 @@ export const apiService = {
 // Health check utility
 export const checkApiHealth = async (): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/comics`);
+    const response = await fetch(`${API_BASE_URL}/comics?limit=1`);
     return response.ok;
   } catch {
     return false;
