@@ -1,5 +1,8 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Comic, SortOption, FilterOption, FavoriteSeries } from "./types.ts";
+import { useComicActions } from "./hooks/useComicActions";
+import ComicActionsErrorBoundary from "./components/shared/ComicActionErrorBoundary";
+import ErrorMessage from "./components/shared/ErrorMessage";
 import { AppContainer, HeaderContainer } from "./styles";
 import { apiService } from "./utils/apiService"; // Changed from db imports
 import {
@@ -47,6 +50,23 @@ const ThemedApp: React.FC = () => {
       <div>You are currently offline. Some features may be unavailable.</div>
     );
   }
+
+  const comicActions = useComicActions({
+    onComicUpdated: (updatedComic) => {
+      console.log(`📝 Comic updated in UI:`, updatedComic);
+      setComics((prevComics) =>
+        prevComics.map((c) => (c.id === updatedComic.id ? updatedComic : c))
+      );
+    },
+    onError: (error, comic) => {
+      console.error(
+        `❌ Comic action error for ${comic.series} #${comic.issue}:`,
+        error
+      );
+      setError(`Failed to update ${comic.series} #${comic.issue}: ${error}`);
+    },
+    optimisticUpdates: true, // Enable optimistic updates for better UX
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -99,26 +119,42 @@ const ThemedApp: React.FC = () => {
   }, [comics, filter, sortBy, hideCollected]);
 
   const handleCollect = async (id: string) => {
+    const comic = comics.find((c) => c.id === id);
+    if (!comic) {
+      console.error("Comic not found:", id);
+      setError("Comic not found");
+      return;
+    }
+
+    console.log(
+      `🔄 Handling collect toggle for ${comic.series} #${comic.issue}`
+    );
+
     try {
-      const updatedComic = await apiService.comics.toggleCollected(id);
-      setComics((prevComics) =>
-        prevComics.map((c) => (c.id === id ? updatedComic : c))
-      );
-    } catch (err: any) {
-      console.error("Failed to update comic:", err);
-      setError("Failed to update comic. Please try again.");
+      await comicActions.handleCollectedToggle(comic);
+      // Success is handled by the onComicUpdated callback
+    } catch (error: any) {
+      console.error("Collect toggle failed:", error);
+      // Error is handled by the onError callback
     }
   };
 
   const handleToggleGrail = async (id: string) => {
+    const comic = comics.find((c) => c.id === id);
+    if (!comic) {
+      console.error("Comic not found:", id);
+      setError("Comic not found");
+      return;
+    }
+
+    console.log(`⭐ Handling grail toggle for ${comic.series} #${comic.issue}`);
+
     try {
-      const updatedComic = await apiService.comics.toggleGrail(id);
-      setComics((prevComics) =>
-        prevComics.map((c) => (c.id === id ? updatedComic : c))
-      );
-    } catch (err: any) {
-      console.error("Failed to update grail status:", err);
-      setError("Failed to update grail status. Please try again.");
+      await comicActions.handleGrailToggle(comic);
+      // Success is handled by the onComicUpdated callback
+    } catch (error: any) {
+      console.error("Grail toggle failed:", error);
+      // Error is handled by the onError callback
     }
   };
 
@@ -194,48 +230,105 @@ const ThemedApp: React.FC = () => {
   // Remove sync function since we're using API now
   // const syncChanges = async () => { ... }
 
+  // Add error display for comic actions
+  const renderComicActionErrors = () => {
+    if (!comicActions.hasErrors) return null;
+
+    const errors = comicActions.getAllErrors();
+    const errorMessage = `Comic update errors: ${errors
+      .map(([id, error]) => error)
+      .join(", ")}`;
+
+    return (
+      <ErrorMessage
+        message={errorMessage}
+        type="error"
+        onDismiss={comicActions.clearErrors}
+      />
+    );
+  };
+
+  // Show loading state or status
+  const renderActionStatus = () => {
+    if (comicActions.isUpdating && comicActions.lastOperation) {
+      return (
+        <div
+          style={{
+            padding: "0.5rem 1rem",
+            backgroundColor: "rgba(66, 165, 245, 0.1)",
+            borderRadius: "4px",
+            margin: "0.5rem 0",
+            fontSize: "0.9rem",
+            color: "#1976d2",
+          }}
+        >
+          🔄 {comicActions.lastOperation}
+        </div>
+      );
+    }
+    return null;
+  };
+
   if (isLoading) return <div>Loading comics...</div>;
   if (error) return <div>{error}</div>;
 
   const LoadingSpinner = () => <div>Loading...</div>;
 
   return (
-    <AppContainer data-sc="AppContainer">
-      <Suspense fallback={<LoadingSpinner />}>
-        <HeaderContainer data-sc="HeaderContainer">
-          <Header onFilterClick={toggleFilterModal} onMenuClick={toggleMenu} />
-          <FilterSort
-            filter={filter}
-            setFilter={setFilter}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            filterOption={filterOption}
-            setFilterOption={setFilterOption}
+    <ComicActionsErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error("🚨 Comic Actions crashed:", error, errorInfo);
+        setError(
+          `Application error: ${error.message}. Please refresh the page.`
+        );
+      }}
+    >
+      <AppContainer data-sc="AppContainer">
+        <Suspense fallback={<LoadingSpinner />}>
+          <HeaderContainer data-sc="HeaderContainer">
+            <Header
+              onFilterClick={toggleFilterModal}
+              onMenuClick={toggleMenu}
+            />
+            <FilterSort
+              filter={filter}
+              setFilter={setFilter}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              filterOption={filterOption}
+              setFilterOption={setFilterOption}
+              itemsPerPage={itemsPerPage}
+              setItemsPerPage={setItemsPerPage}
+              isOpen={isFilterModalOpen}
+              onClose={() => setIsFilterModalOpen(false)}
+              hideCollected={hideCollected}
+              setHideCollected={setHideCollected}
+            />
+          </HeaderContainer>
+
+          {/* Show action status and errors */}
+          {renderActionStatus()}
+          {renderComicActionErrors()}
+
+          <ComicList
+            comics={filteredComics}
+            onCollect={handleCollect}
+            onToggleGrail={handleToggleGrail}
             itemsPerPage={itemsPerPage}
             setItemsPerPage={setItemsPerPage}
-            isOpen={isFilterModalOpen}
-            onClose={() => setIsFilterModalOpen(false)}
-            hideCollected={hideCollected}
-            setHideCollected={setHideCollected}
+            filterOption={filterOption}
+            favoriteSeries={favoriteSeries}
+            onToggleFavoriteSeries={handleToggleFavoriteSeries}
           />
-        </HeaderContainer>
-        <ComicList
-          comics={filteredComics}
-          onCollect={handleCollect}
-          onToggleGrail={handleToggleGrail}
-          itemsPerPage={itemsPerPage}
-          setItemsPerPage={setItemsPerPage}
-          filterOption={filterOption}
-          favoriteSeries={favoriteSeries}
-          onToggleFavoriteSeries={handleToggleFavoriteSeries}
-        />
-        <HamburgerMenu
-          isOpen={isMenuOpen}
-          onClose={() => setIsMenuOpen(false)}
-          onImport={handleImport}
-        />
-      </Suspense>
-    </AppContainer>
+
+          <HamburgerMenu
+            isOpen={isMenuOpen}
+            onClose={() => setIsMenuOpen(false)}
+            onImport={handleImport}
+          />
+        </Suspense>
+      </AppContainer>
+    </ComicActionsErrorBoundary>
   );
 };
 

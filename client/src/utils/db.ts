@@ -1,6 +1,7 @@
 import { openDB, DBSchema, IDBPDatabase } from "idb";
 import { Comic, FavoriteSeries } from "../types";
 import { isValidComic } from "./validation";
+import { generateFavoriteSeriesId } from "./comicValidator";
 
 interface MyDB extends DBSchema {
   comics: {
@@ -166,7 +167,11 @@ export const addFavoriteSeries = async (
     const db = await initDB();
     const favoriteSeries: FavoriteSeries = {
       ...series,
-      id: `${series.publisher}-${series.series}-${series.volume}`,
+      id: generateFavoriteSeriesId(
+        series.publisher,
+        series.series,
+        series.volume
+      ),
       dateAdded: Date.now(),
     };
 
@@ -197,7 +202,7 @@ export const isFavoriteSeries = async (
 ): Promise<boolean> => {
   try {
     const db = await initDB();
-    const id = `${publisher}-${series}-${volume}`;
+    const id = generateFavoriteSeriesId(publisher, series, volume);
     const favorite = await retryOperation(() =>
       db.get(FAVORITE_SERIES_STORE, id)
     );
@@ -221,7 +226,7 @@ export const searchComics = async (query: string): Promise<Comic[]> => {
       (comic) =>
         comic.publisher.toLowerCase().includes(query.toLowerCase()) ||
         comic.series.toLowerCase().includes(query.toLowerCase()) ||
-        comic.issue.toLowerCase().includes(query.toLowerCase())
+        (comic.issue && comic.issue.toLowerCase().includes(query.toLowerCase()))
     );
   } catch (error) {
     console.error("Error searching comics:", error);

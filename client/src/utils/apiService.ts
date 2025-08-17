@@ -1,28 +1,61 @@
 import { Comic, FavoriteSeries } from "../types";
+import { debugFetch, apiDebugger } from "./apiDebugger";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/.netlify/functions";
 
 class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public response?: any) {
     super(message);
     this.name = "ApiError";
   }
 }
 
 const handleResponse = async (response: Response) => {
+  // Always log response details for debugging
+  console.log(
+    `📡 API Response: ${response.status} ${response.statusText} (${response.url})`
+  );
+
   if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ error: "Unknown error" }));
-    throw new ApiError(response.status, error.error || "Request failed");
+    let errorData: any = { error: "Unknown error" };
+
+    try {
+      const responseText = await response.text();
+      if (responseText) {
+        errorData = JSON.parse(responseText);
+      }
+    } catch (parseError) {
+      console.warn("Failed to parse error response:", parseError);
+      errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+    }
+
+    const errorMessage =
+      errorData.error || errorData.message || `HTTP ${response.status}`;
+    console.error(`❌ API Error:`, {
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url,
+      error: errorMessage,
+      fullResponse: errorData,
+    });
+
+    throw new ApiError(response.status, errorMessage, errorData);
   }
 
   // Handle 204 No Content
   if (response.status === 204) {
+    console.log("✅ API Success: No content (204)");
     return null;
   }
 
-  return response.json();
+  try {
+    const data = await response.json();
+    console.log(`✅ API Success:`, data);
+    return data;
+  } catch (parseError) {
+    console.error("Failed to parse success response:", parseError);
+    throw new ApiError(500, "Failed to parse response from server");
+  }
 };
 
 export const apiService = {
@@ -46,25 +79,44 @@ export const apiService = {
         });
       }
 
-      // If no limit is specified, get ALL comics by setting a very high limit
+      // If no limit is specified, get ALL comics by setting a high limit
       if (!params?.limit) {
-        searchParams.set("limit", "50000"); // Set a high limit to get all comics
+        searchParams.set("limit", "50000");
       }
 
       const url = `${API_BASE_URL}/comics${
         searchParams.toString() ? `?${searchParams}` : ""
       }`;
-      const response = await fetch(url);
+
+      console.log(`🔍 Fetching comics: ${url}`);
+      const response = await debugFetch(url);
       return handleResponse(response);
     },
 
     getById: async (id: string): Promise<Comic> => {
-      const response = await fetch(`${API_BASE_URL}/comics/${id}`);
+      if (!id) {
+        throw new ApiError(400, "Comic ID is required");
+      }
+
+      const url = `${API_BASE_URL}/comics/${encodeURIComponent(id)}`;
+      console.log(`🔍 Fetching comic by ID: ${url}`);
+
+      const response = await debugFetch(url);
       return handleResponse(response);
     },
 
     create: async (comic: Omit<Comic, "id">): Promise<Comic> => {
-      const response = await fetch(`${API_BASE_URL}/comics`, {
+      if (!comic.publisher || !comic.series || !comic.issue) {
+        throw new ApiError(
+          400,
+          "Missing required fields: publisher, series, issue"
+        );
+      }
+
+      const url = `${API_BASE_URL}/comics`;
+      console.log(`➕ Creating comic: ${comic.series} #${comic.issue}`);
+
+      const response = await debugFetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(comic),
@@ -85,7 +137,17 @@ export const apiService = {
       processingTime?: number;
       rate?: number;
     }> => {
-      const response = await fetch(`${API_BASE_URL}/comics/bulk`, {
+      if (!Array.isArray(comics) || comics.length === 0) {
+        throw new ApiError(
+          400,
+          "Comics array is required and must not be empty"
+        );
+      }
+
+      const url = `${API_BASE_URL}/comics/bulk`;
+      console.log(`📦 Bulk creating ${comics.length} comics`);
+
+      const response = await debugFetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comics }),
@@ -94,7 +156,14 @@ export const apiService = {
     },
 
     update: async (id: string, updates: Partial<Comic>): Promise<Comic> => {
-      const response = await fetch(`${API_BASE_URL}/comics/${id}`, {
+      if (!id) {
+        throw new ApiError(400, "Comic ID is required");
+      }
+
+      const url = `${API_BASE_URL}/comics/${encodeURIComponent(id)}`;
+      console.log(`📝 Updating comic: ${id}`, updates);
+
+      const response = await debugFetch(url, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
@@ -103,21 +172,42 @@ export const apiService = {
     },
 
     toggleCollected: async (id: string): Promise<Comic> => {
-      const response = await fetch(`${API_BASE_URL}/comics/${id}/collect`, {
+      if (!id) {
+        throw new ApiError(400, "Comic ID is required");
+      }
+
+      const url = `${API_BASE_URL}/comics/${encodeURIComponent(id)}/collect`;
+      console.log(`🔄 Toggling collected status for comic: ${id}`);
+
+      const response = await debugFetch(url, {
         method: "PATCH",
       });
       return handleResponse(response);
     },
 
     toggleGrail: async (id: string): Promise<Comic> => {
-      const response = await fetch(`${API_BASE_URL}/comics/${id}/grail`, {
+      if (!id) {
+        throw new ApiError(400, "Comic ID is required");
+      }
+
+      const url = `${API_BASE_URL}/comics/${encodeURIComponent(id)}/grail`;
+      console.log(`⭐ Toggling grail status for comic: ${id}`);
+
+      const response = await debugFetch(url, {
         method: "PATCH",
       });
       return handleResponse(response);
     },
 
     delete: async (id: string): Promise<void> => {
-      const response = await fetch(`${API_BASE_URL}/comics/${id}`, {
+      if (!id) {
+        throw new ApiError(400, "Comic ID is required");
+      }
+
+      const url = `${API_BASE_URL}/comics/${encodeURIComponent(id)}`;
+      console.log(`🗑️ Deleting comic: ${id}`);
+
+      const response = await debugFetch(url, {
         method: "DELETE",
       });
       await handleResponse(response);
@@ -131,22 +221,35 @@ export const apiService = {
       collectedValue: number;
       publishers: Array<{ publisher: string; count: number; value: number }>;
     }> => {
-      const response = await fetch(`${API_BASE_URL}/comics/stats/overview`);
+      const url = `${API_BASE_URL}/comics/stats/overview`;
+      console.log(`📊 Fetching comic stats`);
+
+      const response = await debugFetch(url);
       return handleResponse(response);
     },
   },
 
-  // Favorites API - Now fully implemented
+  // Favorites API
   favorites: {
     getAll: async (): Promise<FavoriteSeries[]> => {
-      const response = await fetch(`${API_BASE_URL}/favorites`);
+      const url = `${API_BASE_URL}/favorites`;
+      console.log(`🔍 Fetching all favorites`);
+
+      const response = await debugFetch(url);
       return handleResponse(response);
     },
 
     add: async (
       series: Omit<FavoriteSeries, "id" | "dateAdded">
     ): Promise<FavoriteSeries> => {
-      const response = await fetch(`${API_BASE_URL}/favorites`, {
+      if (!series.publisher || !series.series) {
+        throw new ApiError(400, "Missing required fields: publisher, series");
+      }
+
+      const url = `${API_BASE_URL}/favorites`;
+      console.log(`⭐ Adding favorite: ${series.publisher} - ${series.series}`);
+
+      const response = await debugFetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(series),
@@ -155,7 +258,14 @@ export const apiService = {
     },
 
     remove: async (id: string): Promise<void> => {
-      const response = await fetch(`${API_BASE_URL}/favorites/${id}`, {
+      if (!id) {
+        throw new ApiError(400, "Favorite ID is required");
+      }
+
+      const url = `${API_BASE_URL}/favorites/${encodeURIComponent(id)}`;
+      console.log(`🗑️ Removing favorite: ${id}`);
+
+      const response = await debugFetch(url, {
         method: "DELETE",
       });
       await handleResponse(response);
@@ -169,13 +279,20 @@ export const apiService = {
       isFavorite: boolean;
       favorite?: FavoriteSeries;
     }> => {
+      if (!publisher || !series) {
+        throw new ApiError(400, "Publisher and series are required");
+      }
+
       const params = new URLSearchParams({
         publisher,
         series,
         ...(volume && { volume }),
       });
 
-      const response = await fetch(`${API_BASE_URL}/favorites/check?${params}`);
+      const url = `${API_BASE_URL}/favorites/check?${params}`;
+      console.log(`🔍 Checking favorite status: ${publisher} - ${series}`);
+
+      const response = await debugFetch(url);
       return handleResponse(response);
     },
   },
@@ -184,11 +301,12 @@ export const apiService = {
 // Health check utility
 export const checkApiHealth = async (): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/comics?limit=1`);
+    console.log(`🏥 Checking API health`);
+    const response = await debugFetch(`${API_BASE_URL}/comics?limit=1`);
     return response.ok;
   } catch {
     return false;
   }
 };
 
-export { ApiError };
+export { ApiError, apiDebugger };
