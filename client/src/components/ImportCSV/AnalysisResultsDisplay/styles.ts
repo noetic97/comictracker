@@ -1,12 +1,5 @@
 import styled from "styled-components";
 
-export const ImportContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-// New Analysis Results Styles
 export const AnalysisResults = styled.div`
   background-color: ${({ theme }) => theme.colors.card};
   border: 2px solid ${({ theme }) => theme.colors.secondary};
