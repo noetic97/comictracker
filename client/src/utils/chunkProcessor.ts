@@ -62,128 +62,136 @@ export const chunkArray = <T>(array: T[], size: number): T[][] => {
 /**
  * Processes comics in chunks with progress tracking
  */
-export class ChunkProcessor {
-  private options: ChunkProcessorOptions;
-  private startTime: number = 0;
+export const processComicsInChunks = async (
+  comics: Omit<Comic, "id">[],
+  options: ChunkProcessorOptions
+): Promise<ProcessingResult> => {
+  const chunks = chunkArray(comics, options.chunkSize);
+  const results: ChunkResult[] = [];
+  const errors: ChunkError[] = [];
 
-  constructor(options: ChunkProcessorOptions) {
-    this.options = options;
-  }
+  let totalProcessed = 0;
+  let totalCreated = 0;
+  let totalUpdated = 0;
+  let totalErrors = 0;
 
-  async processComics(comics: Omit<Comic, "id">[]): Promise<ProcessingResult> {
-    const chunks = chunkArray(comics, this.options.chunkSize);
-    const results: ChunkResult[] = [];
-    const errors: ChunkError[] = [];
+  const startTime = Date.now();
 
-    let totalProcessed = 0;
-    let totalCreated = 0;
-    let totalUpdated = 0;
-    let totalErrors = 0;
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
 
-    this.startTime = Date.now();
+    // Calculate and report progress
+    const progress: ChunkProgress = {
+      currentChunk: i + 1,
+      totalChunks: chunks.length,
+      processedItems: totalProcessed,
+      totalItems: comics.length,
+      percentComplete: (totalProcessed / comics.length) * 100,
+      estimatedTimeRemaining: calculateETA(
+        totalProcessed,
+        comics.length,
+        startTime
+      ),
+      startTime,
+    };
 
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
+    options.onProgress?.(progress);
 
-      // Calculate and report progress
-      const progress: ChunkProgress = {
-        currentChunk: i + 1,
-        totalChunks: chunks.length,
-        processedItems: totalProcessed,
-        totalItems: comics.length,
-        percentComplete: (totalProcessed / comics.length) * 100,
-        estimatedTimeRemaining: this.calculateETA(
-          totalProcessed,
-          comics.length
-        ),
-        startTime: this.startTime,
+    try {
+      const chunkStartTime = Date.now();
+      const result = await processChunk(chunk, i);
+      const processingTime = Date.now() - chunkStartTime;
+
+      const chunkResult: ChunkResult = {
+        ...result,
+        chunkIndex: i,
+        processingTime,
       };
 
-      this.options.onProgress?.(progress);
+      results.push(chunkResult);
 
-      try {
-        const chunkStartTime = Date.now();
-        const result = await this.processChunk(chunk, i);
-        const processingTime = Date.now() - chunkStartTime;
+      totalProcessed += result.processed;
+      totalCreated += result.created;
+      totalUpdated += result.updated;
+      totalErrors += result.errors;
 
-        const chunkResult: ChunkResult = {
-          ...result,
-          chunkIndex: i,
-          processingTime,
-        };
+      options.onChunkComplete?.(chunkResult);
 
-        results.push(chunkResult);
-
-        totalProcessed += result.processed;
-        totalCreated += result.created;
-        totalUpdated += result.updated;
-        totalErrors += result.errors;
-
-        this.options.onChunkComplete?.(chunkResult);
-
-        // Delay between chunks if not the last chunk
-        if (i < chunks.length - 1 && this.options.delayBetweenChunks > 0) {
-          await this.sleep(this.options.delayBetweenChunks);
-        }
-      } catch (error) {
-        const chunkError: ChunkError = {
-          chunkIndex: i,
-          error: error as Error,
-          chunk,
-        };
-
-        errors.push(chunkError);
-        totalErrors += chunk.length; // Assume all items in chunk failed
-        totalProcessed += chunk.length;
-
-        this.options.onError?.(chunkError);
+      // Delay between chunks if not the last chunk
+      if (i < chunks.length - 1 && options.delayBetweenChunks > 0) {
+        await sleep(options.delayBetweenChunks);
       }
-    }
+    } catch (error) {
+      const chunkError: ChunkError = {
+        chunkIndex: i,
+        error: error as Error,
+        chunk,
+      };
 
+      errors.push(chunkError);
+      totalErrors += chunk.length; // Assume all items in chunk failed
+      totalProcessed += chunk.length;
+
+      options.onError?.(chunkError);
+    }
+  }
+
+  return {
+    totalProcessed,
+    totalCreated,
+    totalUpdated,
+    totalErrors,
+    processingTime: Date.now() - startTime,
+    chunks: results,
+    errors,
+  };
+};
+
+/**
+ * Process a single chunk of comics
+ */
+const processChunk = async (chunk: Omit<Comic, "id">[], _index: number) => {
+  if (chunk.length === 0) {
     return {
-      totalProcessed,
-      totalCreated,
-      totalUpdated,
-      totalErrors,
-      processingTime: Date.now() - this.startTime,
-      chunks: results,
-      errors,
+      processed: 0,
+      created: 0,
+      updated: 0,
+      errors: 0,
+      processingErrors: [],
     };
   }
 
-  private async processChunk(chunk: Omit<Comic, "id">[], index: number) {
-    if (chunk.length === 0) {
-      return {
-        processed: 0,
-        created: 0,
-        updated: 0,
-        errors: 0,
-        processingErrors: [],
-      };
-    }
-
-    return await apiService.comics.bulkCreate(chunk);
-  }
-
-  private calculateETA(processed: number, total: number): number {
-    if (processed === 0) return 0;
-
-    const elapsed = Date.now() - this.startTime;
-    const rate = processed / elapsed; // items per ms
-    const remaining = total - processed;
-
-    return remaining / rate;
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-}
+  return await apiService.comics.bulkCreate(chunk);
+};
 
 /**
- * Helper function for simple chunk processing
+ * Calculate estimated time remaining
  */
-export const processComicsInChunks = async (
+const calculateETA = (
+  processed: number,
+  total: number,
+  startTime: number
+): number => {
+  if (processed === 0) return 0;
+
+  const elapsed = Date.now() - startTime;
+  const rate = processed / elapsed; // items per ms
+  const remaining = total - processed;
+
+  return remaining / rate;
+};
+
+/**
+ * Sleep for specified milliseconds
+ */
+const sleep = (ms: number): Promise<void> => {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+/**
+ * Helper function for simple chunk processing with default options
+ */
+export const processComicsInChunksWithDefaults = async (
   comics: Omit<Comic, "id">[],
   options: Partial<ChunkProcessorOptions> = {}
 ): Promise<ProcessingResult> => {
@@ -193,6 +201,5 @@ export const processComicsInChunks = async (
     ...options,
   };
 
-  const processor = new ChunkProcessor(defaultOptions);
-  return processor.processComics(comics);
+  return processComicsInChunks(comics, defaultOptions);
 };

@@ -1,4 +1,3 @@
-// src/components/ComicList/SeriesCard/SeriesCard.tsx
 import React from "react";
 import { ExternalLink, Heart, Star, Check } from "lucide-react";
 import { Comic } from "../../../types";
@@ -132,7 +131,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
               <S.ComicMeta data-sc="ComicMeta">
                 <span>Years: {comic.years}</span>
                 <S.ComicValue>
-                  ${comic.currentValue.toLocaleString()}
+                  ${comic.currentValue?.toLocaleString()}
                 </S.ComicValue>
               </S.ComicMeta>
             </S.ComicInfo>

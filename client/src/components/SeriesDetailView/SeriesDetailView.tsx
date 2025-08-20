@@ -45,7 +45,7 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
 
   const sortedComics = useMemo(() => {
     return [...comics].sort((a, b) => {
-      const comparison = a.issueNumber - b.issueNumber;
+      const comparison = (a.issueNumber ?? 0) - (b.issueNumber ?? 0);
       return sortOrder === "asc" ? comparison : -comparison;
     });
   }, [comics, sortOrder]);
@@ -57,7 +57,10 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
   );
 
   const seriesTitle = volume ? `${series} - ${volume}` : series;
-  const totalValue = comics.reduce((sum, comic) => sum + comic.currentValue, 0);
+  const totalValue = comics.reduce(
+    (sum, comic) => sum + (comic.currentValue ?? 0),
+    0
+  );
   const collectedCount = comics.filter((comic) => comic.collected).length;
   const grailCount = comics.filter((comic) => comic.isGrail).length;
 
@@ -173,7 +176,7 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
               <S.ComicMetaLine>
                 <span>{comic.years}</span>
                 <S.ComicValue>
-                  ${comic.currentValue.toLocaleString()}
+                  ${comic.currentValue?.toLocaleString()}
                 </S.ComicValue>
               </S.ComicMetaLine>
             </S.CompactComicDetails>

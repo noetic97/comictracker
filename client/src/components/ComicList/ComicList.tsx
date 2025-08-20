@@ -84,7 +84,7 @@ const ComicList: React.FC<Props> = ({
     const collected = comics.filter((comic) => comic.collected).length;
     const grails = comics.filter((comic) => comic.isGrail).length;
     const totalValue = comics.reduce(
-      (sum, comic) => sum + comic.currentValue,
+      (sum, comic) => sum + (comic.currentValue ?? 0),
       0
     );
 
@@ -96,7 +96,7 @@ const ComicList: React.FC<Props> = ({
       totalValue,
       collectedValue: comics
         .filter((comic) => comic.collected)
-        .reduce((sum, comic) => sum + comic.currentValue, 0),
+        .reduce((sum, comic) => sum + (comic.currentValue ?? 0), 0),
     };
   }, [comics, filteredComics]);
 
@@ -356,13 +356,13 @@ const ComicList: React.FC<Props> = ({
                       isFavorite={isFavoriteSeries(
                         comicList[0].publisher,
                         comicList[0].series,
-                        comicList[0].volume
+                        comicList[0].volume || ""
                       )}
                       onToggleFavorite={() =>
                         onToggleFavoriteSeries(
                           comicList[0].publisher,
                           comicList[0].series,
-                          comicList[0].volume
+                          comicList[0].volume || ""
                         )
                       }
                     />

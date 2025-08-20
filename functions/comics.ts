@@ -9,8 +9,21 @@ export const handler: Handler = async (event) => {
   try {
     const { httpMethod, path } = event;
     const segments = path?.split("/").filter(Boolean) || [];
-    const comicId = segments[segments.length - 1];
-    const action = segments[segments.length - 2];
+
+    // Parse URL segments correctly
+    let comicId: string | undefined;
+    let action: string | undefined;
+
+    // Handle different URL patterns:
+    // /comics/{id}/collect or /comics/{id}/grail
+    if (segments.length >= 4 && segments[segments.length - 4] === "comics") {
+      comicId = segments[segments.length - 3]; // The ID is before the action
+      action = segments[segments.length - 1]; // The action is the last segment
+    } else if (segments.length >= 3) {
+      // Fallback for other patterns
+      comicId = segments[segments.length - 2];
+      action = segments[segments.length - 1];
+    }
 
     return await withPrisma(async (prisma) => {
       switch (httpMethod) {
@@ -213,7 +226,7 @@ export const handler: Handler = async (event) => {
 
                     // Fallback: process individually with better error handling
                     const individualResults = await Promise.allSettled(
-                      batch.map(async (comic, idx) => {
+                      batch.map(async (comic) => {
                         try {
                           // Check if exists first
                           const existing = await prisma.comic.findFirst({
@@ -403,10 +416,26 @@ export const handler: Handler = async (event) => {
               "Comic ID required for PATCH operations"
             );
           }
-
-          const comic = await prisma.comic.findUnique({
+          // Try to find by ID first, then by composite key if that fails
+          let comic = await prisma.comic.findUnique({
             where: { id: comicId },
           });
+
+          // If not found by ID, try to parse the client-generated ID format
+          if (!comic && comicId.includes("-")) {
+            const parts = comicId.split("-");
+            if (parts.length >= 4) {
+              const [publisher, series, volume, issue] = parts;
+              comic = await prisma.comic.findFirst({
+                where: {
+                  publisher: publisher,
+                  series: series,
+                  volume: volume,
+                  issue: issue,
+                },
+              });
+            }
+          }
 
           if (!comic) {
             return createErrorResponse(404, "Comic not found");

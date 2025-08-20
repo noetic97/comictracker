@@ -5,7 +5,7 @@ export interface Comic {
   volume?: string;
   years?: string;
   type?: string;
-  issue?: string;
+  issue: string; // Required - comics must have an issue number
   issueNumber?: number;
   currentValue?: number;
   collected: boolean;

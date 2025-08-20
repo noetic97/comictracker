@@ -1,5 +1,9 @@
 import { useState, useCallback } from "react";
-import { ComicAnalyzer, AnalysisResult } from "../utils/comicAnalyzer";
+import {
+  analyzeComics,
+  getAnalysisSummary,
+  AnalysisResult,
+} from "../utils/comicAnalyzer";
 
 export interface AnalysisState {
   isAnalyzing: boolean;
@@ -18,8 +22,8 @@ export const useComicAnalysis = () => {
     setState((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  const analyzeComics = useCallback(
-    async (fileComics: any[]) => {
+  const analyzeComicsData = useCallback(
+    async (fileComics: any[]): Promise<AnalysisResult | null> => {
       try {
         updateState({
           isAnalyzing: true,
@@ -28,10 +32,9 @@ export const useComicAnalysis = () => {
 
         console.log("🔍 Starting comic analysis...");
 
-        const analyzer = new ComicAnalyzer();
-        const results = await analyzer.analyzeComics(fileComics);
+        const results = await analyzeComics(fileComics);
 
-        const summary = analyzer.getSummary(results);
+        const summary = getAnalysisSummary(results);
         console.log("🔍 Analysis complete:", summary);
 
         // Log sample results for debugging
@@ -92,7 +95,7 @@ export const useComicAnalysis = () => {
     error: state.error,
 
     // Actions
-    analyzeComics,
+    analyzeComics: analyzeComicsData,
     clearResults,
 
     // Computed properties

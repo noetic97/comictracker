@@ -10,43 +10,47 @@ export interface ApiCallDebugInfo {
   error?: any;
 }
 
-class ApiDebugger {
-  private calls: ApiCallDebugInfo[] = [];
-  private maxCalls: number = 50; // Keep last 50 calls
-  private isEnabled: boolean = false;
+// State management for API debugger
+let calls: ApiCallDebugInfo[] = [];
+const maxCalls: number = 50; // Keep last 50 calls
+let isEnabled: boolean = false;
 
-  constructor() {
-    // Enable debugging in development or when explicitly enabled
-    this.isEnabled =
-      process.env.NODE_ENV === "development" ||
-      localStorage.getItem("apiDebugger") === "enabled";
-  }
+// Initialize debugger state
+const initializeDebugger = () => {
+  isEnabled =
+    process.env.NODE_ENV === "development" ||
+    localStorage.getItem("apiDebugger") === "enabled";
+};
 
+// Initialize on module load
+initializeDebugger();
+
+export const apiDebugger = {
   enable() {
-    this.isEnabled = true;
+    isEnabled = true;
     localStorage.setItem("apiDebugger", "enabled");
     console.log("🔍 API Debugger enabled");
-  }
+  },
 
   disable() {
-    this.isEnabled = false;
+    isEnabled = false;
     localStorage.removeItem("apiDebugger");
     console.log("🔍 API Debugger disabled");
-  }
+  },
 
   logCall(info: Omit<ApiCallDebugInfo, "timestamp">) {
-    if (!this.isEnabled) return;
+    if (!isEnabled) return;
 
     const debugInfo: ApiCallDebugInfo = {
       ...info,
       timestamp: Date.now(),
     };
 
-    this.calls.push(debugInfo);
+    calls.push(debugInfo);
 
     // Keep only the most recent calls
-    if (this.calls.length > this.maxCalls) {
-      this.calls = this.calls.slice(-this.maxCalls);
+    if (calls.length > maxCalls) {
+      calls = calls.slice(-maxCalls);
     }
 
     // Log to console in development
@@ -60,40 +64,40 @@ class ApiDebugger {
       if (info.duration) console.log("Duration:", `${info.duration}ms`);
       console.groupEnd();
     }
-  }
+  },
 
   getRecentCalls(count: number = 10): ApiCallDebugInfo[] {
-    return this.calls.slice(-count);
-  }
+    return calls.slice(-count);
+  },
 
   getAllCalls(): ApiCallDebugInfo[] {
-    return [...this.calls];
-  }
+    return [...calls];
+  },
 
   getFailedCalls(): ApiCallDebugInfo[] {
-    return this.calls.filter(
+    return calls.filter(
       (call) => call.error || (call.status && call.status >= 400)
     );
-  }
+  },
 
   clearCalls() {
-    this.calls = [];
+    calls = [];
     console.log("🔍 API Debug calls cleared");
-  }
+  },
 
   generateDebugReport(): string {
     const report = [
       "API DEBUG REPORT",
       "=".repeat(50),
       `Generated: ${new Date().toISOString()}`,
-      `Total calls: ${this.calls.length}`,
-      `Failed calls: ${this.getFailedCalls().length}`,
+      `Total calls: ${calls.length}`,
+      `Failed calls: ${apiDebugger.getFailedCalls().length}`,
       "",
       "RECENT CALLS:",
       "-".repeat(30),
     ];
 
-    this.getRecentCalls(20).forEach((call, index) => {
+    apiDebugger.getRecentCalls(20).forEach((call, index) => {
       const duration = call.duration ? ` (${call.duration}ms)` : "";
       const status = call.status ? ` [${call.status}]` : "";
       const error = call.error
@@ -109,14 +113,26 @@ class ApiDebugger {
           `   Body: ${JSON.stringify(call.body, null, 2).slice(0, 200)}...`
         );
       }
+
+      if (call.response && Object.keys(call.response).length > 0) {
+        report.push(
+          `   Response: ${JSON.stringify(call.response, null, 2).slice(
+            0,
+            200
+          )}...`
+        );
+      }
+
+      report.push("");
     });
 
-    if (this.getFailedCalls().length > 0) {
-      report.push("");
+    // Add failed calls section if there are any
+    const failedCalls = apiDebugger.getFailedCalls();
+    if (failedCalls.length > 0) {
       report.push("FAILED CALLS DETAILS:");
       report.push("-".repeat(30));
 
-      this.getFailedCalls().forEach((call, index) => {
+      failedCalls.forEach((call, index) => {
         report.push(`${index + 1}. ${call.method} ${call.url}`);
         report.push(`   Status: ${call.status || "N/A"}`);
         report.push(
@@ -128,10 +144,10 @@ class ApiDebugger {
     }
 
     return report.join("\n");
-  }
+  },
 
   downloadDebugReport() {
-    const report = this.generateDebugReport();
+    const report = apiDebugger.generateDebugReport();
     const blob = new Blob([report], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
 
@@ -146,11 +162,8 @@ class ApiDebugger {
     document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
-  }
-}
-
-// Global instance
-export const apiDebugger = new ApiDebugger();
+  },
+};
 
 /**
  * Enhanced fetch wrapper with debugging
@@ -230,6 +243,8 @@ export const debugFetch = async (
   getCalls: () => apiDebugger.getAllCalls(),
   getFailedCalls: () => apiDebugger.getFailedCalls(),
   clear: () => apiDebugger.clearCalls(),
-  report: () => console.log(apiDebugger.generateDebugReport()),
   download: () => apiDebugger.downloadDebugReport(),
+  report: () => {
+    console.log(apiDebugger.generateDebugReport());
+  },
 };

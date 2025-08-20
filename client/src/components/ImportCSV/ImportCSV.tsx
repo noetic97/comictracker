@@ -32,9 +32,10 @@ interface Props {
 
 const ImportCSV: React.FC<Props> = ({ onImport }) => {
   // Custom hooks for modular functionality
-  const csvImport = useCSVImport(() => {
-    console.log("Import completed, refreshing UI...");
-    onImport([]); // Trigger parent refresh
+  const csvImport = useCSVImport((results) => {
+    console.log("Import completed, refreshing UI...", results);
+    // Trigger parent refresh to get updated comics with real IDs from server
+    onImport([]);
   });
 
   const comicAnalysis = useComicAnalysis();

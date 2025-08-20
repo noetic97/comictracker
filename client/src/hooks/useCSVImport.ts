@@ -1,7 +1,10 @@
 import { useState, useCallback } from "react";
 import { parseComicsCSV } from "../utils/csvParser";
 import { validateComicBatch, normalizeComic } from "../utils/comicValidator";
-import { ChunkProcessor, ProcessingResult } from "../utils/chunkProcessor";
+import {
+  processComicsInChunks,
+  ProcessingResult,
+} from "../utils/chunkProcessor";
 import { formatImportStats } from "../utils/formatters";
 
 export interface ImportState {
@@ -138,58 +141,6 @@ export const useCSVImport = (
 
         updateState({ progress: initialProgress });
 
-        // Set up chunk processor
-        const processor = new ChunkProcessor({
-          chunkSize,
-          delayBetweenChunks,
-          onProgress: (chunkProgress) => {
-            const progress: ImportProgress = {
-              total: processedComics.length,
-              processed: chunkProgress.processedItems,
-              chunks: chunkProgress.totalChunks,
-              currentChunk: chunkProgress.currentChunk,
-              created: 0, // Will be updated from chunk results
-              updated: 0,
-              errors: 0,
-              isComplete: false,
-              startTime: chunkProgress.startTime,
-              estimatedTimeRemaining: chunkProgress.estimatedTimeRemaining,
-              rate: Math.round(
-                (chunkProgress.processedItems /
-                  (Date.now() - chunkProgress.startTime)) *
-                  1000
-              ),
-            };
-
-            updateState({ progress });
-          },
-          onChunkComplete: (chunkResult) => {
-            console.log(
-              `✅ Chunk ${chunkResult.chunkIndex + 1} completed:`,
-              chunkResult
-            );
-
-            // Update progress with cumulative results
-            setState((prev) => {
-              if (!prev.progress) return prev;
-
-              const updatedProgress: ImportProgress = {
-                ...prev.progress,
-                currentChunk: chunkResult.chunkIndex + 1,
-                // These will be accumulated from all chunk results
-              };
-
-              return { ...prev, progress: updatedProgress };
-            });
-          },
-          onError: (chunkError) => {
-            console.error(
-              `❌ Chunk ${chunkError.chunkIndex + 1} failed:`,
-              chunkError.error
-            );
-          },
-        });
-
         // Process comics
         console.log(
           `🚀 Starting import of ${
@@ -197,8 +148,59 @@ export const useCSVImport = (
           } comics in ${Math.ceil(processedComics.length / chunkSize)} chunks`
         );
 
-        const processingResult: ProcessingResult =
-          await processor.processComics(processedComics);
+        const processingResult: ProcessingResult = await processComicsInChunks(
+          processedComics,
+          {
+            chunkSize,
+            delayBetweenChunks,
+            onProgress: (chunkProgress) => {
+              const progress: ImportProgress = {
+                total: processedComics.length,
+                processed: chunkProgress.processedItems,
+                chunks: chunkProgress.totalChunks,
+                currentChunk: chunkProgress.currentChunk,
+                created: 0, // Will be updated from chunk results
+                updated: 0,
+                errors: 0,
+                isComplete: false,
+                startTime: chunkProgress.startTime,
+                estimatedTimeRemaining: chunkProgress.estimatedTimeRemaining,
+                rate: Math.round(
+                  (chunkProgress.processedItems /
+                    (Date.now() - chunkProgress.startTime)) *
+                    1000
+                ),
+              };
+
+              updateState({ progress });
+            },
+            onChunkComplete: (chunkResult) => {
+              console.log(
+                `✅ Chunk ${chunkResult.chunkIndex + 1} completed:`,
+                chunkResult
+              );
+
+              // Update progress with cumulative results
+              setState((prev) => {
+                if (!prev.progress) return prev;
+
+                const updatedProgress: ImportProgress = {
+                  ...prev.progress,
+                  currentChunk: chunkResult.chunkIndex + 1,
+                  // These will be accumulated from all chunk results
+                };
+
+                return { ...prev, progress: updatedProgress };
+              });
+            },
+            onError: (chunkError) => {
+              console.error(
+                `❌ Chunk ${chunkError.chunkIndex + 1} failed:`,
+                chunkError.error
+              );
+            },
+          }
+        );
 
         // Finalize progress
         const finalProgress: ImportProgress = {

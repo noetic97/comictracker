@@ -1,5 +1,6 @@
 import React from "react";
 import ImportCSV from "../ImportCSV";
+import ClearDatabase from "../ClearDatabase";
 import { Comic } from "../../types";
 import * as S from "./styles";
 import ThemeSwitcher from "../ThemeSwitcher";
@@ -17,11 +18,17 @@ const HamburgerMenu: React.FC<Props> = ({ isOpen, onImport, onClose }) => {
     <S.MenuContainer data-sc="MenuContainer">
       <S.CloseButton size={24} onClick={onClose} data-sc="CloseButton" />
       <S.MenuTitle data-sc="MenuTitle">Menu</S.MenuTitle>
+
       <S.MenuOption data-sc="MenuOption">
         <ImportCSV onImport={onImport} />
       </S.MenuOption>
+
       <S.MenuOption data-sc="MenuOption">
         <ThemeSwitcher />
+      </S.MenuOption>
+
+      <S.MenuOption data-sc="MenuOption">
+        <ClearDatabase />
       </S.MenuOption>
     </S.MenuContainer>
   );
