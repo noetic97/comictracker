@@ -3,8 +3,9 @@ import { Comic, SortOption, FilterOption, FavoriteSeries } from "./types.ts";
 import { useComicActions } from "./hooks/useComicActions";
 import ComicActionsErrorBoundary from "./components/shared/ComicActionErrorBoundary";
 import ErrorMessage from "./components/shared/ErrorMessage";
+import ImportModal from "./components/ImportModal";
 import { AppContainer, HeaderContainer } from "./styles";
-import { apiService } from "./utils/apiService"; // Changed from db imports
+import { apiService } from "./utils/apiService";
 import {
   ThemeProvider as CustomThemeProvider,
   useTheme,
@@ -22,6 +23,7 @@ const ThemedApp: React.FC = () => {
   const [comics, setComics] = useState<Comic[]>([]);
   const [favoriteSeries, setFavoriteSeries] = useState<FavoriteSeries[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filteredComics, setFilteredComics] = useState<Comic[]>([]);
   const [filter, setFilter] = useState("");
@@ -31,6 +33,10 @@ const ThemedApp: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+
+  // Modal state
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importStatus, setImportStatus] = useState<string>("");
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -65,7 +71,7 @@ const ThemedApp: React.FC = () => {
       );
       setError(`Failed to update ${comic.series} #${comic.issue}: ${error}`);
     },
-    optimisticUpdates: true, // Enable optimistic updates for better UX
+    optimisticUpdates: true,
   });
 
   useEffect(() => {
@@ -75,7 +81,7 @@ const ThemedApp: React.FC = () => {
         console.log("🔄 Loading all comics and favorites...");
 
         const [comicsResponse, favoritesResponse] = await Promise.all([
-          apiService.comics.getAll(), // Remove the { limit: 1000 } parameter to get ALL comics
+          apiService.comics.getAll(),
           apiService.favorites.getAll(),
         ]);
 
@@ -132,10 +138,8 @@ const ThemedApp: React.FC = () => {
 
     try {
       await comicActions.handleCollectedToggle(comic);
-      // Success is handled by the onComicUpdated callback
     } catch (error: any) {
       console.error("Collect toggle failed:", error);
-      // Error is handled by the onError callback
     }
   };
 
@@ -151,10 +155,8 @@ const ThemedApp: React.FC = () => {
 
     try {
       await comicActions.handleGrailToggle(comic);
-      // Success is handled by the onComicUpdated callback
     } catch (error: any) {
       console.error("Grail toggle failed:", error);
-      // Error is handled by the onError callback
     }
   };
 
@@ -192,24 +194,28 @@ const ThemedApp: React.FC = () => {
 
   const handleImport = async (importedComics: Comic[]): Promise<void> => {
     try {
-      setIsLoading(true);
+      setIsRefreshing(true); // Use separate refreshing state
+      setImportStatus("Refreshing...");
 
-      // The actual import is now handled by the ImportCSV component
-      // This is just called to refresh the UI after import
       console.log("🔄 Refreshing comics list after import...");
 
-      const comicsResponse = await apiService.comics.getAll(); // Remove { limit: 1000 }
+      const comicsResponse = await apiService.comics.getAll();
       setComics(comicsResponse.comics);
 
       console.log(
         `✅ Refreshed: Now showing ${comicsResponse.comics.length} total comics`
       );
       setError(null);
+      setImportStatus("Complete! ✅");
+
+      // Keep modal open to show results and analysis options
+      // User can manually close when they're done reviewing
     } catch (err: any) {
       console.error("Failed to refresh comics after import:", err);
       setError("Failed to refresh comics. Please reload the page.");
+      setImportStatus("Error ❌");
     } finally {
-      setIsLoading(false);
+      setIsRefreshing(false); // Clear refreshing state
     }
   };
 
@@ -227,10 +233,15 @@ const ThemedApp: React.FC = () => {
     }
   };
 
-  // Remove sync function since we're using API now
-  // const syncChanges = async () => { ... }
+  const openImportModal = () => {
+    setIsImportModalOpen(true);
+  };
 
-  // Add error display for comic actions
+  const closeImportModal = () => {
+    setIsImportModalOpen(false);
+    setImportStatus(""); // Clear status when manually closing
+  };
+
   const renderComicActionErrors = () => {
     if (!comicActions.hasErrors) return null;
 
@@ -248,7 +259,6 @@ const ThemedApp: React.FC = () => {
     );
   };
 
-  // Show loading state or status
   const renderActionStatus = () => {
     if (comicActions.isUpdating && comicActions.lastOperation) {
       return (
@@ -267,6 +277,42 @@ const ThemedApp: React.FC = () => {
       );
     }
     return null;
+  };
+
+  const renderRefreshIndicator = () => {
+    if (!isRefreshing) return null;
+
+    return (
+      <div
+        style={{
+          position: "fixed",
+          top: "1rem",
+          right: "1rem",
+          backgroundColor: "rgba(66, 165, 245, 0.9)",
+          color: "white",
+          padding: "0.75rem 1rem",
+          borderRadius: "var(--radius)",
+          fontSize: "0.9rem",
+          zIndex: 1001, // Above modals
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+        }}
+      >
+        <div
+          style={{
+            width: "16px",
+            height: "16px",
+            border: "2px solid rgba(255, 255, 255, 0.3)",
+            borderTop: "2px solid white",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+          }}
+        />
+        Updating comic list...
+      </div>
+    );
   };
 
   if (isLoading) return <div>Loading comics...</div>;
@@ -306,7 +352,6 @@ const ThemedApp: React.FC = () => {
             />
           </HeaderContainer>
 
-          {/* Show action status and errors */}
           {renderActionStatus()}
           {renderComicActionErrors()}
 
@@ -325,7 +370,18 @@ const ThemedApp: React.FC = () => {
             isOpen={isMenuOpen}
             onClose={() => setIsMenuOpen(false)}
             onImport={handleImport}
+            onOpenImportModal={openImportModal}
+            importStatus={importStatus}
           />
+
+          <ImportModal
+            isOpen={isImportModalOpen}
+            onClose={closeImportModal}
+            onImport={handleImport}
+          />
+
+          {/* Subtle refresh indicator - appears above everything */}
+          {renderRefreshIndicator()}
         </Suspense>
       </AppContainer>
     </ComicActionsErrorBoundary>

@@ -30,3 +30,11 @@ export const MenuTitle = styled.h2`
 export const MenuOption = styled.div`
   margin-bottom: 15px;
 `;
+
+export const StatusIndicator = styled.span`
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-top: 0.25rem;
+  font-weight: normal;
+`;
