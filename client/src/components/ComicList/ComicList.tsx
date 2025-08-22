@@ -1,17 +1,12 @@
-import React, { useState, useMemo, lazy, Suspense } from "react";
-import {
-  Comic,
-  PublisherGroupedComics,
-  FavoriteSeries,
-  FilterOption,
-  ViewMode,
-} from "../../types";
+import React, { useState, lazy, Suspense } from "react";
+import { Comic, FavoriteSeries, FilterOption, ViewMode } from "../../types";
 import * as S from "./styles";
-import { isValidComic } from "../../utils/validation";
-import { sortSeriesKeysIgnoringArticles } from "../../utils/sortingUtils";
 import ErrorMessage from "../shared/ErrorMessage";
+import ControlsSection from "./ControlsSection";
+import PublisherCard from "./PublisherCard";
+import { useComicGrouping } from "../../hooks/useComicGrouping";
+import { useExpandedState } from "../../hooks/useExpandedState";
 
-const SeriesCard = lazy(() => import("./SeriesCard"));
 const ToTopButton = lazy(() => import("./ToTopButton"));
 const SeriesDetailView = lazy(() => import("../SeriesDetailView"));
 
@@ -40,9 +35,6 @@ const ComicList: React.FC<Props> = ({
   favoriteSeries,
   onToggleFavoriteSeries,
 }) => {
-  const [expandedPublishers, setExpandedPublishers] = useState<string[]>([]);
-  const [expandedSeries, setExpandedSeries] = useState<string[]>([]);
-  const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [currentPages, setCurrentPages] = useState<{ [key: string]: number }>(
     {}
   );
@@ -54,139 +46,25 @@ const ComicList: React.FC<Props> = ({
     volume?: string;
   } | null>(null);
 
-  // Filter comics based on filter option
-  const filteredComics = useMemo(() => {
-    return comics.filter((comic) => {
-      switch (filterOption) {
-        case "favoriteSeriesOnly":
-          return favoriteSeries.some(
-            (fav) =>
-              fav.publisher === comic.publisher &&
-              fav.series === comic.series &&
-              fav.volume === comic.volume
-          );
-        case "grailComicsOnly":
-          return comic.isGrail;
-        case "collected":
-          return comic.collected;
-        case "uncollected":
-          return !comic.collected;
-        default:
-          return true;
-      }
-    });
-  }, [comics, filterOption, favoriteSeries]);
-
-  // Calculate statistics for display
-  const stats = useMemo(() => {
-    const total = comics.length;
-    const filtered = filteredComics.length;
-    const collected = comics.filter((comic) => comic.collected).length;
-    const grails = comics.filter((comic) => comic.isGrail).length;
-    const totalValue = comics.reduce(
-      (sum, comic) => sum + (comic.currentValue ?? 0),
-      0
-    );
-
-    return {
-      total,
-      filtered,
-      collected,
-      grails,
-      totalValue,
-      collectedValue: comics
-        .filter((comic) => comic.collected)
-        .reduce((sum, comic) => sum + (comic.currentValue ?? 0), 0),
-    };
-  }, [comics, filteredComics]);
-
-  const groupedComics = useMemo(() => {
-    try {
-      const grouped = filteredComics.reduce(
-        (acc: PublisherGroupedComics, comic) => {
-          if (!isValidComic(comic)) {
-            console.error("Invalid comic object:", comic);
-            return acc;
-          }
-
-          const publisher = comic.publisher;
-          const seriesKey = comic.volume
-            ? `${comic.series} - ${comic.volume}`
-            : comic.series;
-
-          if (!acc[publisher]) {
-            acc[publisher] = {};
-          }
-          if (!acc[publisher][seriesKey]) {
-            acc[publisher][seriesKey] = [];
-          }
-          acc[publisher][seriesKey].push(comic);
-          return acc;
-        },
-        {}
-      );
-
-      // Sort series within each publisher using the new sorting logic
-      Object.keys(grouped).forEach((publisher) => {
-        const seriesKeys = Object.keys(grouped[publisher]);
-        const sortedKeys = sortSeriesKeysIgnoringArticles(seriesKeys);
-
-        const sortedSeries: { [key: string]: Comic[] } = {};
-        sortedKeys.forEach((key) => {
-          sortedSeries[key] = grouped[publisher][key];
-        });
-
-        grouped[publisher] = sortedSeries;
-      });
-
-      return grouped;
-    } catch (error) {
-      console.error("Error grouping comics:", error);
-      setError(
-        "An error occurred while processing the comics. Some data may not be displayed correctly."
-      );
-      return {};
+  // Use the comic grouping hook for all data processing
+  const { filteredComics, groupedComics, stats } = useComicGrouping(
+    comics,
+    filterOption,
+    favoriteSeries,
+    {
+      onError: (errorMessage) => setError(errorMessage),
     }
-  }, [filteredComics]);
+  );
 
-  const toggleAll = () => {
-    setIsAllExpanded(!isAllExpanded);
-    if (!isAllExpanded) {
-      const allPublishers = Object.keys(groupedComics);
-      const allSeries = allPublishers.flatMap((publisher) =>
-        Object.keys(groupedComics[publisher])
-      );
-      setExpandedPublishers(allPublishers);
-      setExpandedSeries(allSeries);
-    } else {
-      setExpandedPublishers([]);
-      setExpandedSeries([]);
-    }
-  };
-
-  const togglePublisher = (publisher: string) => {
-    setExpandedPublishers((prev) => {
-      if (prev.includes(publisher)) {
-        // If collapsing a publisher, also collapse all its series
-        setExpandedSeries((series) =>
-          series.filter(
-            (s) => !Object.keys(groupedComics[publisher]).includes(s)
-          )
-        );
-        return prev.filter((p) => p !== publisher);
-      } else {
-        return [...prev, publisher];
-      }
-    });
-  };
-
-  const toggleSeries = (seriesKey: string) => {
-    setExpandedSeries((prev) =>
-      prev.includes(seriesKey)
-        ? prev.filter((s) => s !== seriesKey)
-        : [...prev, seriesKey]
-    );
-  };
+  // Use the expanded state hook for all expansion logic
+  const {
+    expandedPublishers,
+    expandedSeries,
+    isAllExpanded,
+    toggleAll,
+    togglePublisher,
+    toggleSeries,
+  } = useExpandedState(groupedComics);
 
   const handlePageChange = (series: string, newPage: number) => {
     setCurrentPages((prev) => ({ ...prev, [series]: newPage }));
@@ -206,19 +84,6 @@ const ComicList: React.FC<Props> = ({
     setSelectedSeries(null);
   };
 
-  const isFavoriteSeries = (
-    publisher: string,
-    series: string,
-    volume: string
-  ) => {
-    return favoriteSeries.some(
-      (fav) =>
-        fav.publisher === publisher &&
-        fav.series === series &&
-        fav.volume === volume
-    );
-  };
-
   const LoadingSpinner = () => <div>Loading...</div>;
 
   // Render series detail view
@@ -230,10 +95,11 @@ const ComicList: React.FC<Props> = ({
         comic.volume === (selectedSeries.volume || "")
     );
 
-    const isFavorite = isFavoriteSeries(
-      selectedSeries.publisher,
-      selectedSeries.series,
-      selectedSeries.volume || ""
+    const isFavorite = favoriteSeries.some(
+      (fav) =>
+        fav.publisher === selectedSeries.publisher &&
+        fav.series === selectedSeries.series &&
+        fav.volume === (selectedSeries.volume || "")
     );
 
     return (
@@ -272,104 +138,36 @@ const ComicList: React.FC<Props> = ({
             onDismiss={() => setError(null)}
           />
         )}
-        <S.ExpandContainer data-sc="ExpandContainer">
-          <S.ControlsRow>
-            <S.ToggleButton onClick={toggleAll} data-sc="ToggleButton">
-              {isAllExpanded ? "Collapse All" : "Expand All"}
-            </S.ToggleButton>
-
-            <S.StatsContainer>
-              <S.StatsBadge>
-                <S.StatsNumber>{stats.total.toLocaleString()}</S.StatsNumber>
-                <S.StatsLabel>Total Comics</S.StatsLabel>
-              </S.StatsBadge>
-
-              {filterOption !== "all" && (
-                <S.StatsBadge variant="filtered">
-                  <S.StatsNumber>
-                    {stats.filtered.toLocaleString()}
-                  </S.StatsNumber>
-                  <S.StatsLabel>Filtered</S.StatsLabel>
-                </S.StatsBadge>
-              )}
-
-              <S.StatsBadge variant="collected">
-                <S.StatsNumber>
-                  {stats.collected.toLocaleString()}
-                </S.StatsNumber>
-                <S.StatsLabel>Collected</S.StatsLabel>
-              </S.StatsBadge>
-
-              {stats.grails > 0 && (
-                <S.StatsBadge variant="grail">
-                  <S.StatsNumber>{stats.grails.toLocaleString()}</S.StatsNumber>
-                  <S.StatsLabel>Grails</S.StatsLabel>
-                </S.StatsBadge>
-              )}
-
-              <S.StatsBadge variant="value">
-                <S.StatsNumber>
-                  ${Math.round(stats.totalValue).toLocaleString()}
-                </S.StatsNumber>
-                <S.StatsLabel>Total Value</S.StatsLabel>
-              </S.StatsBadge>
-            </S.StatsContainer>
-          </S.ControlsRow>
-        </S.ExpandContainer>
+        <ControlsSection
+          isAllExpanded={isAllExpanded}
+          onToggleAll={toggleAll}
+          totalComics={stats.total}
+          filteredComics={stats.filtered}
+          collectedComics={stats.collected}
+          grailComics={stats.grails}
+          totalValue={stats.totalValue}
+          collectedValue={stats.collectedValue}
+          filterOption={filterOption}
+        />
         <S.PublisherGrid data-sc="PublisherGrid">
           {Object.entries(groupedComics).map(([publisher, publisherComics]) => (
-            <S.PublisherCard
+            <PublisherCard
               key={publisher}
-              $isExpanded={expandedPublishers.includes(publisher)}
-              data-sc="PublisherCard"
-            >
-              <S.PublisherButton
-                $isExpanded={expandedPublishers.includes(publisher)}
-                onClick={() => togglePublisher(publisher)}
-              >
-                <S.PublisherName>{publisher}</S.PublisherName>
-                <S.SeriesCount>
-                  {Object.keys(publisherComics).length} series
-                </S.SeriesCount>
-              </S.PublisherButton>
-              <S.SeriesList
-                className={
-                  expandedPublishers.includes(publisher) ? "expanded" : ""
-                }
-              >
-                {Object.entries(publisherComics).map(
-                  ([seriesKey, comicList]) => (
-                    <SeriesCard
-                      key={seriesKey}
-                      seriesKey={seriesKey}
-                      comicList={comicList}
-                      $isExpanded={expandedSeries.includes(seriesKey)}
-                      toggleSeries={toggleSeries}
-                      currentPage={currentPages[seriesKey] || 1}
-                      itemsPerPage={itemsPerPage}
-                      onCollect={onCollect}
-                      onToggleGrail={onToggleGrail}
-                      onPageChange={(newPage) =>
-                        handlePageChange(seriesKey, newPage)
-                      }
-                      onOpenDetailView={handleOpenDetailView}
-                      isFavorite={isFavoriteSeries(
-                        comicList[0].publisher,
-                        comicList[0].series,
-                        comicList[0].volume || ""
-                      )}
-                      onToggleFavorite={() =>
-                        onToggleFavoriteSeries(
-                          comicList[0].publisher,
-                          comicList[0].series,
-                          comicList[0].volume || ""
-                        )
-                      }
-                    />
-                  )
-                )}
-              </S.SeriesList>
-            </S.PublisherCard>
+              publisher={publisher}
+              publisherComics={publisherComics}
+              isExpanded={expandedPublishers.includes(publisher)}
+              expandedSeries={expandedSeries}
+              currentPages={currentPages}
+              itemsPerPage={itemsPerPage}
+              favoriteSeries={favoriteSeries}
+              onTogglePublisher={togglePublisher}
+              onToggleSeries={toggleSeries}
+              onPageChange={handlePageChange}
+              onCollect={onCollect}
+              onToggleGrail={onToggleGrail}
+              onOpenDetailView={handleOpenDetailView}
+              onToggleFavoriteSeries={onToggleFavoriteSeries}
+            />
           ))}
         </S.PublisherGrid>
         <ToTopButton />
