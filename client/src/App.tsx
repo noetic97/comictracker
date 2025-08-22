@@ -4,7 +4,7 @@ import { useComicActions } from "./hooks/useComicActions";
 import ComicActionsErrorBoundary from "./components/shared/ComicActionErrorBoundary";
 import ErrorMessage from "./components/shared/ErrorMessage";
 import ImportModal from "./components/ImportModal";
-import { AppContainer, HeaderContainer } from "./styles";
+import * as S from "./styles";
 import { apiService } from "./utils/apiService";
 import {
   ThemeProvider as CustomThemeProvider,
@@ -113,9 +113,9 @@ const ThemedApp: React.FC = () => {
 
     const sorted = [...filtered].sort((a, b) => {
       if (sortBy === "issueNumber") {
-        return a.issueNumber - b.issueNumber;
+        return (a.issueNumber ?? 0) - (b.issueNumber ?? 0);
       } else if (sortBy === "currentValue") {
-        return a.currentValue - b.currentValue;
+        return (a.currentValue ?? 0) - (b.currentValue ?? 0);
       } else {
         return (a[sortBy] as string).localeCompare(b[sortBy] as string);
       }
@@ -251,29 +251,22 @@ const ThemedApp: React.FC = () => {
       .join(", ")}`;
 
     return (
-      <ErrorMessage
-        message={errorMessage}
-        type="error"
-        onDismiss={comicActions.clearErrors}
-      />
+      <S.FloatingErrorContainer>
+        <ErrorMessage
+          message={errorMessage}
+          type="error"
+          onDismiss={comicActions.clearErrors}
+        />
+      </S.FloatingErrorContainer>
     );
   };
 
   const renderActionStatus = () => {
     if (comicActions.isUpdating && comicActions.lastOperation) {
       return (
-        <div
-          style={{
-            padding: "0.5rem 1rem",
-            backgroundColor: "rgba(66, 165, 245, 0.1)",
-            borderRadius: "4px",
-            margin: "0.5rem 0",
-            fontSize: "0.9rem",
-            color: "#1976d2",
-          }}
-        >
+        <S.FloatingStatusMessage>
           🔄 {comicActions.lastOperation}
-        </div>
+        </S.FloatingStatusMessage>
       );
     }
     return null;
@@ -283,35 +276,10 @@ const ThemedApp: React.FC = () => {
     if (!isRefreshing) return null;
 
     return (
-      <div
-        style={{
-          position: "fixed",
-          top: "1rem",
-          right: "1rem",
-          backgroundColor: "rgba(66, 165, 245, 0.9)",
-          color: "white",
-          padding: "0.75rem 1rem",
-          borderRadius: "var(--radius)",
-          fontSize: "0.9rem",
-          zIndex: 1001, // Above modals
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
-        }}
-      >
-        <div
-          style={{
-            width: "16px",
-            height: "16px",
-            border: "2px solid rgba(255, 255, 255, 0.3)",
-            borderTop: "2px solid white",
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite",
-          }}
-        />
+      <S.RefreshIndicatorContainer>
+        <S.RefreshIndicatorInner />
         Updating comic list...
-      </div>
+      </S.RefreshIndicatorContainer>
     );
   };
 
@@ -329,9 +297,9 @@ const ThemedApp: React.FC = () => {
         );
       }}
     >
-      <AppContainer data-sc="AppContainer">
+      <S.AppContainer data-sc="AppContainer">
         <Suspense fallback={<LoadingSpinner />}>
-          <HeaderContainer data-sc="HeaderContainer">
+          <S.HeaderContainer data-sc="HeaderContainer">
             <Header
               onFilterClick={toggleFilterModal}
               onMenuClick={toggleMenu}
@@ -350,7 +318,7 @@ const ThemedApp: React.FC = () => {
               hideCollected={hideCollected}
               setHideCollected={setHideCollected}
             />
-          </HeaderContainer>
+          </S.HeaderContainer>
 
           {renderActionStatus()}
           {renderComicActionErrors()}
@@ -383,7 +351,7 @@ const ThemedApp: React.FC = () => {
           {/* Subtle refresh indicator - appears above everything */}
           {renderRefreshIndicator()}
         </Suspense>
-      </AppContainer>
+      </S.AppContainer>
     </ComicActionsErrorBoundary>
   );
 };

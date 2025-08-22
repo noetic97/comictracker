@@ -85,6 +85,17 @@ const GlobalStyles = createGlobalStyle`
       transform: rotate(360deg);
     }
   }
+
+  @keyframes slideInFromTop {
+  from {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
 `;
 
 export default GlobalStyles;
