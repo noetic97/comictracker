@@ -4,12 +4,7 @@ import { useComicActions } from "./hooks/useComicActions";
 import ComicActionsErrorBoundary from "./components/shared/ComicActionErrorBoundary";
 import ErrorMessage from "./components/shared/ErrorMessage";
 import ImportModal from "./components/ImportModal";
-import {
-  AppContainer,
-  HeaderContainer,
-  FloatingStatusMessage,
-  FloatingErrorContainer,
-} from "./styles";
+import * as S from "./styles";
 import { apiService } from "./utils/apiService";
 import {
   ThemeProvider as CustomThemeProvider,
@@ -208,7 +203,7 @@ const ThemedAppWithLoading: React.FC = () => {
     }
   };
 
-  const handleImport = async (importedComics: Comic[]): Promise<void> => {
+  const handleImport = async (_importedComics: Comic[]): Promise<void> => {
     try {
       setIsRefreshing(true);
       setImportStatus("Refreshing...");
@@ -278,22 +273,36 @@ const ThemedAppWithLoading: React.FC = () => {
       .join(", ")}`;
 
     return (
-      <FloatingErrorContainer>
+      <S.FloatingErrorContainer>
         <ErrorMessage
           message={errorMessage}
           type="error"
           onDismiss={comicActions.clearErrors}
         />
-      </FloatingErrorContainer>
+      </S.FloatingErrorContainer>
+    );
+  };
+
+  const renderGeneralError = () => {
+    if (!error) return null;
+
+    return (
+      <S.FloatingErrorContainer>
+        <ErrorMessage
+          message={error}
+          type="error"
+          onDismiss={() => setError(null)}
+        />
+      </S.FloatingErrorContainer>
     );
   };
 
   const renderActionStatus = () => {
     if (comicActions.isUpdating && comicActions.lastOperation) {
       return (
-        <FloatingStatusMessage>
+        <S.FloatingStatusMessage>
           🔄 {comicActions.lastOperation}
-        </FloatingStatusMessage>
+        </S.FloatingStatusMessage>
       );
     }
     return null;
@@ -303,35 +312,10 @@ const ThemedAppWithLoading: React.FC = () => {
     if (!isRefreshing) return null;
 
     return (
-      <div
-        style={{
-          position: "fixed",
-          top: "1rem",
-          right: "1rem",
-          backgroundColor: "rgba(66, 165, 245, 0.9)",
-          color: "white",
-          padding: "0.75rem 1rem",
-          borderRadius: "var(--radius)",
-          fontSize: "0.9rem",
-          zIndex: 1001,
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
-        }}
-      >
-        <div
-          style={{
-            width: "16px",
-            height: "16px",
-            border: "2px solid rgba(255, 255, 255, 0.3)",
-            borderTop: "2px solid white",
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite",
-          }}
-        />
+      <S.RefreshIndicatorContainer>
+        <S.RefreshIndicatorInner />
         Updating comic list...
-      </div>
+      </S.RefreshIndicatorContainer>
     );
   };
 
@@ -348,9 +332,9 @@ const ThemedAppWithLoading: React.FC = () => {
         );
       }}
     >
-      <AppContainer data-sc="AppContainer">
+      <S.AppContainer data-sc="AppContainer">
         <Suspense fallback={<LazyFallback />}>
-          <HeaderContainer data-sc="HeaderContainer">
+          <S.HeaderContainer data-sc="S.HeaderContainer">
             <Header
               onFilterClick={toggleFilterModal}
               onMenuClick={toggleMenu}
@@ -369,10 +353,11 @@ const ThemedAppWithLoading: React.FC = () => {
               hideCollected={hideCollected}
               setHideCollected={setHideCollected}
             />
-          </HeaderContainer>
+          </S.HeaderContainer>
 
           {renderActionStatus()}
           {renderComicActionErrors()}
+          {renderGeneralError()}
 
           <ComicList
             comics={filteredComics}
@@ -404,7 +389,7 @@ const ThemedAppWithLoading: React.FC = () => {
 
         {/* Loading spinner overlays everything when active */}
         <ComicLoadingSpinner />
-      </AppContainer>
+      </S.AppContainer>
     </ComicActionsErrorBoundary>
   );
 };
