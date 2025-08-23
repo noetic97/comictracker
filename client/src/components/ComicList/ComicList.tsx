@@ -4,8 +4,7 @@ import * as S from "./styles";
 import ErrorMessage from "../shared/ErrorMessage";
 import ControlsSection from "./ControlsSection";
 import PublisherCard from "./PublisherCard";
-import { useComicGrouping } from "../../hooks/useComicGrouping";
-import { useExpandedState } from "../../hooks/useExpandedState";
+import { useComicGrouping, useExpandedState } from "../../hooks";
 
 const ToTopButton = lazy(() => import("./ToTopButton"));
 const SeriesDetailView = lazy(() => import("../SeriesDetailView"));
@@ -84,7 +83,18 @@ const ComicList: React.FC<Props> = ({
     setSelectedSeries(null);
   };
 
-  const LoadingSpinner = () => <div>Loading...</div>;
+  // Simple loading fallback - no registration needed
+  const LoadingFallback = () => (
+    <div
+      style={{
+        padding: "2rem",
+        textAlign: "center",
+        color: "transparent", // Make it invisible - loading manager handles this
+      }}
+    >
+      Loading...
+    </div>
+  );
 
   // Render series detail view
   if (viewMode === "series-detail" && selectedSeries) {
@@ -103,7 +113,7 @@ const ComicList: React.FC<Props> = ({
     );
 
     return (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<LoadingFallback />}>
         <SeriesDetailView
           comics={seriesComics}
           publisher={selectedSeries.publisher}
@@ -130,7 +140,7 @@ const ComicList: React.FC<Props> = ({
   // Render grid view
   return (
     <S.ComicListContainer data-sc="ComicListContainer">
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<LoadingFallback />}>
         {error && (
           <ErrorMessage
             message={error}
@@ -138,6 +148,7 @@ const ComicList: React.FC<Props> = ({
             onDismiss={() => setError(null)}
           />
         )}
+
         <ControlsSection
           isAllExpanded={isAllExpanded}
           onToggleAll={toggleAll}
@@ -149,6 +160,7 @@ const ComicList: React.FC<Props> = ({
           collectedValue={stats.collectedValue}
           filterOption={filterOption}
         />
+
         <S.PublisherGrid data-sc="PublisherGrid">
           {Object.entries(groupedComics).map(([publisher, publisherComics]) => (
             <PublisherCard
@@ -170,6 +182,7 @@ const ComicList: React.FC<Props> = ({
             />
           ))}
         </S.PublisherGrid>
+
         <ToTopButton />
       </Suspense>
     </S.ComicListContainer>

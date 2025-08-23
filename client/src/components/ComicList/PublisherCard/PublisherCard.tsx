@@ -57,7 +57,15 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
     );
   };
 
-  const LoadingSpinner = () => <div>Loading...</div>;
+  // Simple loading fallback - invisible since loading manager handles main experience
+  const LoadingFallback = () => (
+    <div
+      style={{
+        height: "20px",
+        opacity: 0, // Invisible fallback
+      }}
+    />
+  );
 
   return (
     <S.PublisherCard $isExpanded={isExpanded} data-sc="PublisherCard">
@@ -72,7 +80,7 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
       </S.PublisherButton>
 
       <S.SeriesList className={isExpanded ? "expanded" : ""}>
-        <Suspense fallback={<LoadingSpinner />}>
+        <Suspense fallback={<LoadingFallback />}>
           {Object.entries(publisherComics).map(([seriesKey, comicList]) => (
             <SeriesCard
               key={seriesKey}

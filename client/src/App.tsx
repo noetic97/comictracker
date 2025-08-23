@@ -4,7 +4,12 @@ import { useComicActions } from "./hooks/useComicActions";
 import ComicActionsErrorBoundary from "./components/shared/ComicActionErrorBoundary";
 import ErrorMessage from "./components/shared/ErrorMessage";
 import ImportModal from "./components/ImportModal";
-import * as S from "./styles";
+import {
+  AppContainer,
+  HeaderContainer,
+  FloatingStatusMessage,
+  FloatingErrorContainer,
+} from "./styles";
 import { apiService } from "./utils/apiService";
 import {
   ThemeProvider as CustomThemeProvider,
@@ -12,17 +17,21 @@ import {
 } from "./themes/ThemeContext.tsx";
 import { ThemeProvider } from "styled-components";
 import GlobalStyles from "./GlobalStyles.ts";
+import {
+  LoadingManagerProvider,
+  useLoadingManager,
+} from "./components/shared/LoadingManager";
+import ComicLoadingSpinner from "./components/shared/ComicLoadingSpinner";
 
 const Header = lazy(() => import("./components/Header/index.ts"));
 const FilterSort = lazy(() => import("./components/FilterSort/index.ts"));
 const ComicList = lazy(() => import("./components/ComicList/index.ts"));
 const HamburgerMenu = lazy(() => import("./components/HamburgerMenu/index.ts"));
 
-const ThemedApp: React.FC = () => {
+const ThemedAppWithLoading: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [comics, setComics] = useState<Comic[]>([]);
   const [favoriteSeries, setFavoriteSeries] = useState<FavoriteSeries[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filteredComics, setFilteredComics] = useState<Comic[]>([]);
@@ -37,6 +46,12 @@ const ThemedApp: React.FC = () => {
   // Modal state
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importStatus, setImportStatus] = useState<string>("");
+
+  // Add state to track if we've finished initial loading
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
+
+  // Use loading manager
+  const { setLoadingPhase } = useLoadingManager();
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -77,7 +92,7 @@ const ThemedApp: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsLoading(true);
+        setLoadingPhase("data-loading");
         console.log("🔄 Loading all comics and favorites...");
 
         const [comicsResponse, favoritesResponse] = await Promise.all([
@@ -92,16 +107,23 @@ const ThemedApp: React.FC = () => {
         setComics(comicsResponse.comics);
         setFavoriteSeries(favoritesResponse);
         setError(null);
+
+        // FIXED: Go directly to ready after data loads
+        // Let the lazy components handle their own loading without affecting main loading state
+        setTimeout(() => {
+          setLoadingPhase("ready");
+          setHasInitiallyLoaded(true);
+        }, 300); // Short delay to let state settle
       } catch (err: any) {
         console.error("Failed to load data:", err);
         setError("Failed to load data. Please try again later.");
-      } finally {
-        setIsLoading(false);
+        setLoadingPhase("ready");
+        setHasInitiallyLoaded(true);
       }
     };
 
     fetchData();
-  }, []);
+  }, [setLoadingPhase]);
 
   useEffect(() => {
     const filtered = comics.filter(
@@ -113,9 +135,9 @@ const ThemedApp: React.FC = () => {
 
     const sorted = [...filtered].sort((a, b) => {
       if (sortBy === "issueNumber") {
-        return (a.issueNumber ?? 0) - (b.issueNumber ?? 0);
+        return (a.issueNumber || 0) - (b.issueNumber || 0);
       } else if (sortBy === "currentValue") {
-        return (a.currentValue ?? 0) - (b.currentValue ?? 0);
+        return (a.currentValue || 0) - (b.currentValue || 0);
       } else {
         return (a[sortBy] as string).localeCompare(b[sortBy] as string);
       }
@@ -132,10 +154,6 @@ const ThemedApp: React.FC = () => {
       return;
     }
 
-    console.log(
-      `🔄 Handling collect toggle for ${comic.series} #${comic.issue}`
-    );
-
     try {
       await comicActions.handleCollectedToggle(comic);
     } catch (error: any) {
@@ -150,8 +168,6 @@ const ThemedApp: React.FC = () => {
       setError("Comic not found");
       return;
     }
-
-    console.log(`⭐ Handling grail toggle for ${comic.series} #${comic.issue}`);
 
     try {
       await comicActions.handleGrailToggle(comic);
@@ -194,8 +210,13 @@ const ThemedApp: React.FC = () => {
 
   const handleImport = async (importedComics: Comic[]): Promise<void> => {
     try {
-      setIsRefreshing(true); // Use separate refreshing state
+      setIsRefreshing(true);
       setImportStatus("Refreshing...");
+
+      // Use background-refresh phase for imports after initial load
+      if (hasInitiallyLoaded) {
+        setLoadingPhase("background-refresh");
+      }
 
       console.log("🔄 Refreshing comics list after import...");
 
@@ -208,17 +229,23 @@ const ThemedApp: React.FC = () => {
       setError(null);
       setImportStatus("Complete! ✅");
 
-      // Keep modal open to show results and analysis options
-      // User can manually close when they're done reviewing
+      // Return to ready state
+      if (hasInitiallyLoaded) {
+        setTimeout(() => setLoadingPhase("ready"), 500);
+      }
     } catch (err: any) {
       console.error("Failed to refresh comics after import:", err);
       setError("Failed to refresh comics. Please reload the page.");
       setImportStatus("Error ❌");
+      if (hasInitiallyLoaded) {
+        setLoadingPhase("ready");
+      }
     } finally {
-      setIsRefreshing(false); // Clear refreshing state
+      setIsRefreshing(false);
     }
   };
 
+  // All the handler functions remain the same...
   const toggleFilterModal = () => {
     setIsFilterModalOpen(!isFilterModalOpen);
     if (isMenuOpen) {
@@ -239,7 +266,7 @@ const ThemedApp: React.FC = () => {
 
   const closeImportModal = () => {
     setIsImportModalOpen(false);
-    setImportStatus(""); // Clear status when manually closing
+    setImportStatus("");
   };
 
   const renderComicActionErrors = () => {
@@ -251,22 +278,22 @@ const ThemedApp: React.FC = () => {
       .join(", ")}`;
 
     return (
-      <S.FloatingErrorContainer>
+      <FloatingErrorContainer>
         <ErrorMessage
           message={errorMessage}
           type="error"
           onDismiss={comicActions.clearErrors}
         />
-      </S.FloatingErrorContainer>
+      </FloatingErrorContainer>
     );
   };
 
   const renderActionStatus = () => {
     if (comicActions.isUpdating && comicActions.lastOperation) {
       return (
-        <S.FloatingStatusMessage>
+        <FloatingStatusMessage>
           🔄 {comicActions.lastOperation}
-        </S.FloatingStatusMessage>
+        </FloatingStatusMessage>
       );
     }
     return null;
@@ -276,18 +303,42 @@ const ThemedApp: React.FC = () => {
     if (!isRefreshing) return null;
 
     return (
-      <S.RefreshIndicatorContainer>
-        <S.RefreshIndicatorInner />
+      <div
+        style={{
+          position: "fixed",
+          top: "1rem",
+          right: "1rem",
+          backgroundColor: "rgba(66, 165, 245, 0.9)",
+          color: "white",
+          padding: "0.75rem 1rem",
+          borderRadius: "var(--radius)",
+          fontSize: "0.9rem",
+          zIndex: 1001,
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+        }}
+      >
+        <div
+          style={{
+            width: "16px",
+            height: "16px",
+            border: "2px solid rgba(255, 255, 255, 0.3)",
+            borderTop: "2px solid white",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+          }}
+        />
         Updating comic list...
-      </S.RefreshIndicatorContainer>
+      </div>
     );
   };
 
-  if (isLoading) return <div>Loading comics...</div>;
-  if (error) return <div>{error}</div>;
+  // Invisible fallback for lazy loading - doesn't trigger loading states
+  const LazyFallback = () => null;
 
-  const LoadingSpinner = () => <div>Loading...</div>;
-
+  // Always render app content - ComicLoadingSpinner overlays when needed
   return (
     <ComicActionsErrorBoundary
       onError={(error, errorInfo) => {
@@ -297,9 +348,9 @@ const ThemedApp: React.FC = () => {
         );
       }}
     >
-      <S.AppContainer data-sc="AppContainer">
-        <Suspense fallback={<LoadingSpinner />}>
-          <S.HeaderContainer data-sc="HeaderContainer">
+      <AppContainer data-sc="AppContainer">
+        <Suspense fallback={<LazyFallback />}>
+          <HeaderContainer data-sc="HeaderContainer">
             <Header
               onFilterClick={toggleFilterModal}
               onMenuClick={toggleMenu}
@@ -318,7 +369,7 @@ const ThemedApp: React.FC = () => {
               hideCollected={hideCollected}
               setHideCollected={setHideCollected}
             />
-          </S.HeaderContainer>
+          </HeaderContainer>
 
           {renderActionStatus()}
           {renderComicActionErrors()}
@@ -348,20 +399,23 @@ const ThemedApp: React.FC = () => {
             onImport={handleImport}
           />
 
-          {/* Subtle refresh indicator - appears above everything */}
           {renderRefreshIndicator()}
         </Suspense>
-      </S.AppContainer>
+
+        {/* Loading spinner overlays everything when active */}
+        <ComicLoadingSpinner />
+      </AppContainer>
     </ComicActionsErrorBoundary>
   );
 };
 
+// Keep the rest of the component structure the same
 const ThemeWrapper: React.FC = () => {
   const { theme } = useTheme();
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyles />
-      <ThemedApp />
+      <ThemedAppWithLoading />
     </ThemeProvider>
   );
 };
@@ -369,7 +423,9 @@ const ThemeWrapper: React.FC = () => {
 const App: React.FC = () => {
   return (
     <CustomThemeProvider>
-      <ThemeWrapper />
+      <LoadingManagerProvider>
+        <ThemeWrapper />
+      </LoadingManagerProvider>
     </CustomThemeProvider>
   );
 };
