@@ -1,7 +1,7 @@
 # netlify.toml
 [build]
   base = "client"
-  publish = "client/dist"
+  publish = "dist"
   command = "npm run build"
 
 [build.environment]
@@ -15,7 +15,7 @@
   command = "cd client && npm run dev"
   port = 8888
   targetPort = 3000
-  publish = "client/dist"
+  publish = "dist"
 
 # Redirect all API calls to functions
 [[redirects]]
