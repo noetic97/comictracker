@@ -1,15 +1,15 @@
 # netlify.toml
 [build]
-  base = "client"
-  publish = "dist"
-  command = "npm run build"
+  publish = "client/dist"
+  command = "npm run build:staging"
 
 [build.environment]
+  NODE_ENV="production"
   NODE_VERSION = "22"
 
 [functions]
   node_bundler = "esbuild"
-  directory = "../functions"
+  directory = "functions"
 
 [dev]
   command = "cd client && npm run dev"

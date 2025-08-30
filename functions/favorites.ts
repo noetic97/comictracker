@@ -2,6 +2,29 @@ import { Handler } from "@netlify/functions";
 import { withPrisma } from "./utils/prisma";
 import { handleCors, createResponse, createErrorResponse } from "./utils/cors";
 
+// Simple runtime validation (no external deps)
+const validateFavoriteInput = (data: any) => {
+  const errors: string[] = [];
+  if (!data || typeof data !== "object") {
+    errors.push("Body must be a JSON object");
+    return errors;
+  }
+  if (
+    !data.publisher ||
+    typeof data.publisher !== "string" ||
+    !data.publisher.trim()
+  ) {
+    errors.push("'publisher' is required and must be a non-empty string");
+  }
+  if (!data.series || typeof data.series !== "string" || !data.series.trim()) {
+    errors.push("'series' is required and must be a non-empty string");
+  }
+  if (data.volume !== undefined && typeof data.volume !== "string") {
+    errors.push("'volume' must be a string if provided");
+  }
+  return errors;
+};
+
 export const handler: Handler = async (event) => {
   const corsResponse = handleCors(event);
   if (corsResponse) return corsResponse;
@@ -55,17 +78,25 @@ export const handler: Handler = async (event) => {
 
         case "POST":
           // Add new favorite series
-          const {
+          let parsedBody: any = {};
+          try {
+            parsedBody = event.body ? JSON.parse(event.body) : {};
+          } catch {
+            return createErrorResponse(400, "Invalid JSON body");
+          }
+
+          const { publisher, series, volume = "" } = parsedBody;
+
+          const favoriteErrors = validateFavoriteInput({
             publisher,
             series,
-            volume = "",
-          } = JSON.parse(event.body || "{}");
-
-          if (!publisher || !series) {
-            return createErrorResponse(
-              400,
-              "Missing required fields: publisher, series"
-            );
+            volume,
+          });
+          if (favoriteErrors.length) {
+            return createResponse(422, {
+              error: "Validation failed",
+              errors: favoriteErrors,
+            });
           }
 
           // Check if already exists

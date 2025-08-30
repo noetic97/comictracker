@@ -2,6 +2,110 @@ import { Handler } from "@netlify/functions";
 import { withPrisma } from "./utils/prisma";
 import { handleCors, createResponse, createErrorResponse } from "./utils/cors";
 
+// --- Validators for comic input ---
+type NewComicInput = {
+  publisher: string;
+  series: string;
+  issue: string;
+  issueNumber?: string | number;
+  currentValue?: string | number;
+  volume?: string;
+  years?: string;
+  type?: string;
+};
+
+const isNonEmptyString = (v: any) =>
+  typeof v === "string" && v.trim().length > 0;
+
+const validateNewComic = (data: any) => {
+  const errors: string[] = [];
+  if (!data || typeof data !== "object") {
+    return ["Body must be a JSON object"];
+  }
+  if (!isNonEmptyString(data.publisher))
+    errors.push("'publisher' is required and must be a non-empty string");
+  if (!isNonEmptyString(data.series))
+    errors.push("'series' is required and must be a non-empty string");
+  if (!isNonEmptyString(data.issue))
+    errors.push("'issue' is required and must be a non-empty string");
+  if (data.volume !== undefined && typeof data.volume !== "string")
+    errors.push("'volume' must be a string if provided");
+  if (data.years !== undefined && typeof data.years !== "string")
+    errors.push("'years' must be a string if provided");
+  if (data.type !== undefined && typeof data.type !== "string")
+    errors.push("'type' must be a string if provided");
+  if (
+    data.issueNumber !== undefined &&
+    !(
+      typeof data.issueNumber === "string" ||
+      typeof data.issueNumber === "number"
+    )
+  )
+    errors.push("'issueNumber' must be a string or number if provided");
+  if (
+    data.currentValue !== undefined &&
+    !(
+      typeof data.currentValue === "string" ||
+      typeof data.currentValue === "number"
+    )
+  )
+    errors.push("'currentValue' must be a string or number if provided");
+  return errors;
+};
+
+const validateComicUpdate = (data: any) => {
+  if (!data || typeof data !== "object") return ["Body must be a JSON object"];
+  const allowed = [
+    "publisher",
+    "series",
+    "issue",
+    "issueNumber",
+    "currentValue",
+    "volume",
+    "years",
+    "type",
+    "collected",
+    "isGrail",
+  ];
+  const errors: string[] = [];
+  Object.keys(data).forEach((k) => {
+    if (!allowed.includes(k)) errors.push(`Unknown field: ${k}`);
+  });
+  if (data.publisher !== undefined && !isNonEmptyString(data.publisher))
+    errors.push("'publisher' must be a non-empty string");
+  if (data.series !== undefined && !isNonEmptyString(data.series))
+    errors.push("'series' must be a non-empty string");
+  if (data.issue !== undefined && !isNonEmptyString(data.issue))
+    errors.push("'issue' must be a non-empty string");
+  if (data.volume !== undefined && typeof data.volume !== "string")
+    errors.push("'volume' must be a string");
+  if (data.years !== undefined && typeof data.years !== "string")
+    errors.push("'years' must be a string");
+  if (data.type !== undefined && typeof data.type !== "string")
+    errors.push("'type' must be a string");
+  if (
+    data.issueNumber !== undefined &&
+    !(
+      typeof data.issueNumber === "string" ||
+      typeof data.issueNumber === "number"
+    )
+  )
+    errors.push("'issueNumber' must be a string or number");
+  if (
+    data.currentValue !== undefined &&
+    !(
+      typeof data.currentValue === "string" ||
+      typeof data.currentValue === "number"
+    )
+  )
+    errors.push("'currentValue' must be a string or number");
+  if (data.collected !== undefined && typeof data.collected !== "boolean")
+    errors.push("'collected' must be a boolean");
+  if (data.isGrail !== undefined && typeof data.isGrail !== "boolean")
+    errors.push("'isGrail' must be a boolean");
+  return errors;
+};
+
 export const handler: Handler = async (event) => {
   const corsResponse = handleCors(event);
   if (corsResponse) return corsResponse;
@@ -39,8 +143,8 @@ export const handler: Handler = async (event) => {
             limit = "25",
           } = event.queryStringParameters || {};
 
-          const pageNum = parseInt(page);
-          const limitNum = parseInt(limit);
+          const pageNum = parseInt(page, 10);
+          const limitNum = parseInt(limit, 10);
           const skip = (pageNum - 1) * limitNum;
 
           const where: any = {};
@@ -81,7 +185,12 @@ export const handler: Handler = async (event) => {
 
         case "POST":
           // Handle both single and bulk creation
-          const body = JSON.parse(event.body || "{}");
+          let body: any = {};
+          try {
+            body = event.body ? JSON.parse(event.body) : {};
+          } catch {
+            return createErrorResponse(400, "Invalid JSON body");
+          }
 
           // Check if this is a bulk operation
           if (path?.includes("/bulk") || body.comics) {
@@ -124,15 +233,15 @@ export const handler: Handler = async (event) => {
             );
             console.log(`⏱️  Max processing time: ${MAX_PROCESSING_TIME}ms`);
 
-            // Quick validation pass
+            // Quick validation pass using lightweight runtime checks
             const validComics: any[] = [];
             const validationErrors: string[] = [];
 
             for (let i = 0; i < comicsToCreate.length; i++) {
               const comic = comicsToCreate[i];
-
-              if (!comic.publisher || !comic.series || !comic.issue) {
-                validationErrors.push(`Index ${i}: Missing required fields`);
+              const errs = validateNewComic(comic);
+              if (errs.length) {
+                validationErrors.push(`Index ${i}: ${errs.join(", ")}`);
                 continue;
               }
 
@@ -146,17 +255,16 @@ export const handler: Handler = async (event) => {
                 issueNumber:
                   parseInt(comic.issueNumber) || parseInt(comic.issue) || 1,
                 currentValue: parseFloat(comic.currentValue) || 0,
-                collected: false, // Default to false for bulk imports
-                isGrail: false, // Default to false for bulk imports
+                collected: false,
+                isGrail: false,
               });
             }
 
-            console.log(
-              `✅ Validated ${validComics.length} comics, ${validationErrors.length} validation errors`
-            );
-
-            if (validComics.length === 0) {
-              return createErrorResponse(400, "No valid comics to import");
+            if (validationErrors.length && validComics.length === 0) {
+              return createResponse(422, {
+                error: "Validation failed",
+                errors: validationErrors.slice(0, 50),
+              });
             }
 
             // High-performance bulk processing
@@ -384,11 +492,21 @@ export const handler: Handler = async (event) => {
             type,
           } = body;
 
-          if (!newPublisher || !newSeries || !issue) {
-            return createErrorResponse(
-              400,
-              "Missing required fields: publisher, series, issue"
-            );
+          const createErrors = validateNewComic({
+            publisher: newPublisher,
+            series: newSeries,
+            issue,
+            issueNumber,
+            currentValue,
+            volume,
+            years,
+            type,
+          });
+          if (createErrors.length) {
+            return createResponse(422, {
+              error: "Validation failed",
+              errors: createErrors,
+            });
           }
 
           const newComic = await prisma.comic.create({
@@ -470,7 +588,19 @@ export const handler: Handler = async (event) => {
             );
           }
 
-          const updateBody = JSON.parse(event.body || "{}");
+          let updateBody: any = {};
+          try {
+            updateBody = event.body ? JSON.parse(event.body) : {};
+          } catch {
+            return createErrorResponse(400, "Invalid JSON body");
+          }
+          const updateErrors = validateComicUpdate(updateBody);
+          if (updateErrors.length) {
+            return createResponse(422, {
+              error: "Validation failed",
+              errors: updateErrors,
+            });
+          }
           const updatedComicPut = await prisma.comic.update({
             where: { id: comicId },
             data: updateBody,
