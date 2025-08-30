@@ -1,33 +1,31 @@
 import { PrismaClient } from "@prisma/client";
 
-// Create a completely fresh client for each request to avoid prepared statement conflicts
-export const withPrisma = async <T>(
-  callback: (prisma: PrismaClient) => Promise<T>
-): Promise<T> => {
-  const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
-    // Disable prepared statements to avoid race conditions
-    log: ["error"],
+declare global {
+  // eslint-disable-next-line no-var
+  var __PRISMA__: PrismaClient | undefined;
+}
+
+// Reuse a single client across warm invocations
+const prisma =
+  globalThis.__PRISMA__ ??
+  new PrismaClient({
+    datasources: { db: { url: process.env.DATABASE_URL } },
+    log: process.env.DEPLOY_ENV === "local" ? ["error", "warn"] : ["error"],
     errorFormat: "minimal",
   });
 
+if (process.env.NODE_ENV !== "production") {
+  globalThis.__PRISMA__ = prisma;
+}
+
+// Wrap business logic; do NOT disconnect on every request — let Lambda reuse the connection
+export const withPrisma = async <T>(
+  callback: (p: PrismaClient) => Promise<T>
+): Promise<T> => {
   try {
-    // Don't call $connect() explicitly - let Prisma handle it
-    const result = await callback(prisma);
-    return result;
-  } catch (error) {
-    console.error("Prisma error:", error);
-    throw error;
-  } finally {
-    // Always disconnect to clean up
-    try {
-      await prisma.$disconnect();
-    } catch (disconnectError) {
-      console.error("Error disconnecting:", disconnectError);
-    }
+    return await callback(prisma);
+  } catch (err) {
+    console.error("Prisma error:", err);
+    throw err;
   }
 };
