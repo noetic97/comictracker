@@ -84,10 +84,12 @@ const ImportCSV: React.FC<Props> = ({ onImport }) => {
       />
 
       {/* Import Progress */}
-      <ImportProgressDisplay
-        progress={csvImport.progress}
-        percentComplete={csvImport.percentComplete}
-      />
+      {csvImport.progress && (
+        <ImportProgressDisplay
+          progress={csvImport.progress}
+          percentComplete={csvImport.percentComplete}
+        />
+      )}
 
       {/* Import Results */}
       {csvImport.results && (

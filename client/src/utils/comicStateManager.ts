@@ -9,7 +9,6 @@ export interface StateChangeResult {
 }
 
 export interface StateChangeOptions {
-  optimisticUpdate?: boolean;
   retryCount?: number;
   onProgress?: (status: string) => void;
 }
@@ -21,7 +20,7 @@ export const toggleComicCollected = async (
   comic: Comic,
   options: StateChangeOptions = {}
 ): Promise<StateChangeResult> => {
-  const { optimisticUpdate = true, retryCount = 2, onProgress } = options;
+  const { retryCount = 2, onProgress } = options;
 
   try {
     onProgress?.(`Updating ${comic.series} #${comic.issue}...`);
@@ -102,7 +101,7 @@ export const toggleComicGrail = async (
   comic: Comic,
   options: StateChangeOptions = {}
 ): Promise<StateChangeResult> => {
-  const { optimisticUpdate = true, retryCount = 2, onProgress } = options;
+  const { retryCount = 2, onProgress } = options;
 
   try {
     onProgress?.(

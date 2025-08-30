@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { vi } from "vitest";
+import { vi, Mock } from "vitest";
 import ThemeSwitcher from "./ThemeSwitcher";
 import { ThemeProvider, useTheme } from "../../themes/ThemeContext";
 import { Theme } from "../../themes/types";
@@ -51,7 +51,7 @@ describe("ThemeSwitcher Component", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useTheme as jest.Mock).mockReturnValue({
+    (useTheme as Mock).mockReturnValue({
       theme: mockThemes[0],
       setTheme: mockSetTheme,
       availableThemes: mockThemes,
@@ -116,7 +116,7 @@ describe("ThemeSwitcher Component", () => {
     );
 
     // Act
-    (useTheme as jest.Mock).mockReturnValue({
+    (useTheme as Mock).mockReturnValue({
       theme: mockThemes[1],
       setTheme: mockSetTheme,
       availableThemes: mockThemes,

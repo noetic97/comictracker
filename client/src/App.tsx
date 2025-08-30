@@ -269,7 +269,7 @@ const ThemedAppWithLoading: React.FC = () => {
 
     const errors = comicActions.getAllErrors();
     const errorMessage = `Comic update errors: ${errors
-      .map(([id, error]) => error)
+      .map(([_id, error]) => error)
       .join(", ")}`;
 
     return (

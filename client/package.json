@@ -9,7 +9,8 @@
   "scripts": {
     "start": "vite",
     "dev": "vite --host --port 3000 --no-open",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
+    "type-check": "tsc -p tsconfig.build.json",
     "lint": "eslint . --ext .ts,.tsx --fix",
     "lint:check": "eslint . --ext .ts,.tsx",
     "preview": "vite preview",
