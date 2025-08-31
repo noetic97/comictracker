@@ -9,6 +9,7 @@ import { useCSVImport } from "../../hooks/useCSVImport";
 import { useComicAnalysis } from "../../hooks/useComicAnalysis";
 import { usePersistence } from "../../hooks/usePersistence";
 import { Comic } from "../../types";
+import { parseComicsCSV } from "../../utils/csvParser";
 import * as S from "./styles";
 
 interface Props {
@@ -31,9 +32,7 @@ const ImportCSV: React.FC<Props> = ({ onImport }) => {
   const handleFileSelect = async (file: File) => {
     // Parse and persist for later analysis
     try {
-      const { validComics, invalidRows } = await import(
-        "../../utils/csvParser"
-      ).then((module) => module.parseComicsCSV(file));
+      const { validComics, invalidRows } = await parseComicsCSV(file);
 
       const allParsedComics = [...validComics, ...invalidRows];
       persistence.persistData(allParsedComics);
