@@ -1,13 +1,12 @@
-import React, { useState, lazy, Suspense } from "react";
+import React, { useState } from "react";
 import { Comic, FavoriteSeries, FilterOption, ViewMode } from "../../types";
 import * as S from "./styles";
 import ErrorMessage from "../shared/ErrorMessage";
 import ControlsSection from "./ControlsSection";
 import PublisherCard from "./PublisherCard";
+import ToTopButton from "./ToTopButton";
+import SeriesDetailView from "../SeriesDetailView";
 import { useComicGrouping, useExpandedState } from "../../hooks";
-
-const ToTopButton = lazy(() => import("./ToTopButton"));
-const SeriesDetailView = lazy(() => import("../SeriesDetailView"));
 
 interface Props {
   comics: Comic[];
@@ -83,19 +82,6 @@ const ComicList: React.FC<Props> = ({
     setSelectedSeries(null);
   };
 
-  // Simple loading fallback - no registration needed
-  const LoadingFallback = () => (
-    <div
-      style={{
-        padding: "2rem",
-        textAlign: "center",
-        color: "transparent", // Make it invisible - loading manager handles this
-      }}
-    >
-      Loading...
-    </div>
-  );
-
   // Render series detail view
   if (viewMode === "series-detail" && selectedSeries) {
     const seriesComics = filteredComics.filter(
@@ -113,78 +99,74 @@ const ComicList: React.FC<Props> = ({
     );
 
     return (
-      <Suspense fallback={<LoadingFallback />}>
-        <SeriesDetailView
-          comics={seriesComics}
-          publisher={selectedSeries.publisher}
-          series={selectedSeries.series}
-          volume={selectedSeries.volume}
-          onCollect={onCollect}
-          onToggleGrail={onToggleGrail}
-          onBack={handleBackToGrid}
-          itemsPerPage={itemsPerPage}
-          setItemsPerPage={setItemsPerPage}
-          isFavorite={isFavorite}
-          onToggleFavorite={() =>
-            onToggleFavoriteSeries(
-              selectedSeries.publisher,
-              selectedSeries.series,
-              selectedSeries.volume || ""
-            )
-          }
-        />
-      </Suspense>
+      <SeriesDetailView
+        comics={seriesComics}
+        publisher={selectedSeries.publisher}
+        series={selectedSeries.series}
+        volume={selectedSeries.volume}
+        onCollect={onCollect}
+        onToggleGrail={onToggleGrail}
+        onBack={handleBackToGrid}
+        itemsPerPage={itemsPerPage}
+        setItemsPerPage={setItemsPerPage}
+        isFavorite={isFavorite}
+        onToggleFavorite={() =>
+          onToggleFavoriteSeries(
+            selectedSeries.publisher,
+            selectedSeries.series,
+            selectedSeries.volume || ""
+          )
+        }
+      />
     );
   }
 
   // Render grid view
   return (
     <S.ComicListContainer data-sc="ComicListContainer">
-      <Suspense fallback={<LoadingFallback />}>
-        {error && (
-          <ErrorMessage
-            message={error}
-            type="error"
-            onDismiss={() => setError(null)}
-          />
-        )}
-
-        <ControlsSection
-          isAllExpanded={isAllExpanded}
-          onToggleAll={toggleAll}
-          totalComics={stats.total}
-          filteredComics={stats.filtered}
-          collectedComics={stats.collected}
-          grailComics={stats.grails}
-          totalValue={stats.totalValue}
-          collectedValue={stats.collectedValue}
-          filterOption={filterOption}
+      {error && (
+        <ErrorMessage
+          message={error}
+          type="error"
+          onDismiss={() => setError(null)}
         />
+      )}
 
-        <S.PublisherGrid data-sc="PublisherGrid">
-          {Object.entries(groupedComics).map(([publisher, publisherComics]) => (
-            <PublisherCard
-              key={publisher}
-              publisher={publisher}
-              publisherComics={publisherComics}
-              isExpanded={expandedPublishers.includes(publisher)}
-              expandedSeries={expandedSeries}
-              currentPages={currentPages}
-              itemsPerPage={itemsPerPage}
-              favoriteSeries={favoriteSeries}
-              onTogglePublisher={togglePublisher}
-              onToggleSeries={toggleSeries}
-              onPageChange={handlePageChange}
-              onCollect={onCollect}
-              onToggleGrail={onToggleGrail}
-              onOpenDetailView={handleOpenDetailView}
-              onToggleFavoriteSeries={onToggleFavoriteSeries}
-            />
-          ))}
-        </S.PublisherGrid>
+      <ControlsSection
+        isAllExpanded={isAllExpanded}
+        onToggleAll={toggleAll}
+        totalComics={stats.total}
+        filteredComics={stats.filtered}
+        collectedComics={stats.collected}
+        grailComics={stats.grails}
+        totalValue={stats.totalValue}
+        collectedValue={stats.collectedValue}
+        filterOption={filterOption}
+      />
 
-        <ToTopButton />
-      </Suspense>
+      <S.PublisherGrid data-sc="PublisherGrid">
+        {Object.entries(groupedComics).map(([publisher, publisherComics]) => (
+          <PublisherCard
+            key={publisher}
+            publisher={publisher}
+            publisherComics={publisherComics}
+            isExpanded={expandedPublishers.includes(publisher)}
+            expandedSeries={expandedSeries}
+            currentPages={currentPages}
+            itemsPerPage={itemsPerPage}
+            favoriteSeries={favoriteSeries}
+            onTogglePublisher={togglePublisher}
+            onToggleSeries={toggleSeries}
+            onPageChange={handlePageChange}
+            onCollect={onCollect}
+            onToggleGrail={onToggleGrail}
+            onOpenDetailView={handleOpenDetailView}
+            onToggleFavoriteSeries={onToggleFavoriteSeries}
+          />
+        ))}
+      </S.PublisherGrid>
+
+      <ToTopButton />
     </S.ComicListContainer>
   );
 };

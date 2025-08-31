@@ -1,9 +1,13 @@
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, { useState, useEffect } from "react";
 import { Comic, SortOption, FilterOption, FavoriteSeries } from "./types.ts";
 import { useComicActions } from "./hooks/useComicActions";
 import ComicActionsErrorBoundary from "./components/shared/ComicActionErrorBoundary";
 import ErrorMessage from "./components/shared/ErrorMessage";
 import ImportModal from "./components/ImportModal";
+import Header from "./components/Header/index.ts";
+import FilterSort from "./components/FilterSort/index.ts";
+import ComicList from "./components/ComicList/index.ts";
+import HamburgerMenu from "./components/HamburgerMenu/index.ts";
 import * as S from "./styles";
 import { apiService } from "./utils/apiService";
 import {
@@ -17,11 +21,6 @@ import {
   useLoadingManager,
 } from "./components/shared/LoadingManager";
 import ComicLoadingSpinner from "./components/shared/ComicLoadingSpinner";
-
-const Header = lazy(() => import("./components/Header/index.ts"));
-const FilterSort = lazy(() => import("./components/FilterSort/index.ts"));
-const ComicList = lazy(() => import("./components/ComicList/index.ts"));
-const HamburgerMenu = lazy(() => import("./components/HamburgerMenu/index.ts"));
 
 const ThemedAppWithLoading: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -319,9 +318,6 @@ const ThemedAppWithLoading: React.FC = () => {
     );
   };
 
-  // Invisible fallback for lazy loading - doesn't trigger loading states
-  const LazyFallback = () => null;
-
   // Always render app content - ComicLoadingSpinner overlays when needed
   return (
     <ComicActionsErrorBoundary
@@ -333,59 +329,54 @@ const ThemedAppWithLoading: React.FC = () => {
       }}
     >
       <S.AppContainer data-sc="AppContainer">
-        <Suspense fallback={<LazyFallback />}>
-          <S.HeaderContainer data-sc="S.HeaderContainer">
-            <Header
-              onFilterClick={toggleFilterModal}
-              onMenuClick={toggleMenu}
-            />
-            <FilterSort
-              filter={filter}
-              setFilter={setFilter}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
-              filterOption={filterOption}
-              setFilterOption={setFilterOption}
-              itemsPerPage={itemsPerPage}
-              setItemsPerPage={setItemsPerPage}
-              isOpen={isFilterModalOpen}
-              onClose={() => setIsFilterModalOpen(false)}
-              hideCollected={hideCollected}
-              setHideCollected={setHideCollected}
-            />
-          </S.HeaderContainer>
-
-          {renderActionStatus()}
-          {renderComicActionErrors()}
-          {renderGeneralError()}
-
-          <ComicList
-            comics={filteredComics}
-            onCollect={handleCollect}
-            onToggleGrail={handleToggleGrail}
+        <S.HeaderContainer data-sc="S.HeaderContainer">
+          <Header onFilterClick={toggleFilterModal} onMenuClick={toggleMenu} />
+          <FilterSort
+            filter={filter}
+            setFilter={setFilter}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            filterOption={filterOption}
+            setFilterOption={setFilterOption}
             itemsPerPage={itemsPerPage}
             setItemsPerPage={setItemsPerPage}
-            filterOption={filterOption}
-            favoriteSeries={favoriteSeries}
-            onToggleFavoriteSeries={handleToggleFavoriteSeries}
+            isOpen={isFilterModalOpen}
+            onClose={() => setIsFilterModalOpen(false)}
+            hideCollected={hideCollected}
+            setHideCollected={setHideCollected}
           />
+        </S.HeaderContainer>
 
-          <HamburgerMenu
-            isOpen={isMenuOpen}
-            onClose={() => setIsMenuOpen(false)}
-            onImport={handleImport}
-            onOpenImportModal={openImportModal}
-            importStatus={importStatus}
-          />
+        {renderActionStatus()}
+        {renderComicActionErrors()}
+        {renderGeneralError()}
 
-          <ImportModal
-            isOpen={isImportModalOpen}
-            onClose={closeImportModal}
-            onImport={handleImport}
-          />
+        <ComicList
+          comics={filteredComics}
+          onCollect={handleCollect}
+          onToggleGrail={handleToggleGrail}
+          itemsPerPage={itemsPerPage}
+          setItemsPerPage={setItemsPerPage}
+          filterOption={filterOption}
+          favoriteSeries={favoriteSeries}
+          onToggleFavoriteSeries={handleToggleFavoriteSeries}
+        />
 
-          {renderRefreshIndicator()}
-        </Suspense>
+        <HamburgerMenu
+          isOpen={isMenuOpen}
+          onClose={() => setIsMenuOpen(false)}
+          onImport={handleImport}
+          onOpenImportModal={openImportModal}
+          importStatus={importStatus}
+        />
+
+        <ImportModal
+          isOpen={isImportModalOpen}
+          onClose={closeImportModal}
+          onImport={handleImport}
+        />
+
+        {renderRefreshIndicator()}
 
         {/* Loading spinner overlays everything when active */}
         <ComicLoadingSpinner />
