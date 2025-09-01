@@ -3,7 +3,7 @@ import { withPrisma } from "./utils/prisma";
 import { handleCors, createResponse, createErrorResponse } from "./utils/cors";
 import { ComicGrade } from "@prisma/client";
 
-// --- Enhanced validators for extended comic input ---
+// Enhanced validators for extended comic input
 type ExtendedComicInput = {
   // Core fields (required)
   publisher: string;
@@ -54,21 +54,17 @@ const isNonEmptyString = (v: any): boolean =>
   typeof v === "string" && v.trim().length > 0;
 
 const isValidGrade = (grade: any): boolean => {
-  if (!grade) return true; // Optional field
-
-  // Check if it's a valid ComicGrade enum value
+  if (!grade) return true;
   return Object.values(ComicGrade).includes(grade as ComicGrade);
 };
 
 const isValidDate = (date: any): boolean => {
-  if (!date) return true; // Optional field
-
+  if (!date) return true;
   if (date instanceof Date) return !isNaN(date.getTime());
   if (typeof date === "string") {
     const parsed = new Date(date);
     return !isNaN(parsed.getTime());
   }
-
   return false;
 };
 
@@ -96,9 +92,6 @@ const parseDateField = (value: any): Date | null => {
   return isNaN(parsed.getTime()) ? null : parsed;
 };
 
-/**
- * Enhanced validation for new comic input with all extended fields
- */
 const validateExtendedComic = (data: any): string[] => {
   const errors: string[] = [];
 
@@ -203,9 +196,6 @@ const validateExtendedComic = (data: any): string[] => {
   return errors;
 };
 
-/**
- * Enhanced validation for comic updates (all fields optional except ID)
- */
 const validateExtendedComicUpdate = (data: any): string[] => {
   if (!data || typeof data !== "object") return ["Body must be a JSON object"];
 
@@ -261,7 +251,6 @@ const validateExtendedComicUpdate = (data: any): string[] => {
   if (data.issue !== undefined && !isNonEmptyString(data.issue))
     errors.push("'issue' must be a non-empty string");
 
-  // Apply same validation logic as create, but everything is optional
   const stringFields = [
     "volume",
     "years",
@@ -293,7 +282,6 @@ const validateExtendedComicUpdate = (data: any): string[] => {
     errors.push("'grade' must be a valid ComicGrade enum value if provided");
   }
 
-  // Numeric fields
   const numericFields = ["issueNumber", "currentValue", "pricePaid"];
   numericFields.forEach((field) => {
     if (
@@ -304,7 +292,6 @@ const validateExtendedComicUpdate = (data: any): string[] => {
     }
   });
 
-  // Boolean fields
   const booleanFields = ["collected", "isGrail"];
   booleanFields.forEach((field) => {
     if (data[field] !== undefined && typeof data[field] !== "boolean") {
@@ -319,7 +306,6 @@ const validateExtendedComicUpdate = (data: any): string[] => {
     errors.push("'signed' must be a boolean or string if provided");
   }
 
-  // Date fields
   const dateFields = ["dateAdded", "datePurchased"];
   dateFields.forEach((field) => {
     if (data[field] !== undefined && !isValidDate(data[field])) {
@@ -330,9 +316,6 @@ const validateExtendedComicUpdate = (data: any): string[] => {
   return errors;
 };
 
-/**
- * Transform and normalize comic data for database storage
- */
 const transformComicForDatabase = (comic: ExtendedComicInput): any => {
   return {
     // Core fields
@@ -382,8 +365,8 @@ const transformComicForDatabase = (comic: ExtendedComicInput): any => {
   };
 };
 
-// Export the enhanced handler that will replace the existing comics.ts
-export const enhancedComicsHandler: Handler = async (event) => {
+// Main handler function - THIS IS THE KEY EXPORT FOR NETLIFY
+export const handler: Handler = async (event) => {
   const corsResponse = handleCors(event);
   if (corsResponse) return corsResponse;
 
@@ -789,7 +772,7 @@ export const enhancedComicsHandler: Handler = async (event) => {
           return createResponse(201, newComic);
 
         case "PATCH":
-          // Handle toggle operations (unchanged logic, but works with enhanced fields)
+          // Handle toggle operations
           if (!comicId) {
             return createErrorResponse(
               400,
@@ -870,7 +853,7 @@ export const enhancedComicsHandler: Handler = async (event) => {
           return createResponse(200, updatedComicPut);
 
         case "DELETE":
-          // Delete comic (unchanged)
+          // Delete comic
           if (!comicId) {
             return createErrorResponse(
               400,
