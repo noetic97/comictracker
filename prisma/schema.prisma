@@ -10,6 +10,8 @@ datasource db {
 
 model Comic {
   id           String   @id @default(cuid())
+  
+  // Core identification (existing)
   publisher    String
   series       String
   volume       String   @default("")
@@ -17,21 +19,60 @@ model Comic {
   type         String   @default("")
   issue        String
   issueNumber  Int
-  currentValue Float
+  
+  // Financial data (extended)
+  currentValue Float                    // Market value
+  pricePaid    Float?                   // What user paid (null = want list item)
+  
+  // Physical/ownership data (simplified)
+  grade        String?                  // SIMPLIFIED: Any string grade (9.8, NM, CGC 9.8 SS, etc.)
+  gradeDetails String?                  // Special designations (Signature Series, Restored, etc.)
+  storageLocation String?               // Where comic is physically stored
+  notes        String?                  // User notes
+  cert         String?                  // Certificate number (CGC/CBCS)
+  signed       Boolean  @default(false) // Is it signed?
+  variantDetails String?               // Variant information (retailer exclusive, etc.)
+  
+  // Dates (new)
+  dateAdded    DateTime?                // When added to collection
+  issueDate    String?                  // Publication date (often just month/year)
+  datePurchased DateTime?               // When purchased
+  
+  // Creative team (new)
+  storyTitle   String?                  // Story title
+  description  String?                  // Story description  
+  writer       String?                  // Writer(s)
+  artist       String?                  // Artist(s)
+  coverArtist  String?                  // Cover artist
+  letterer     String?                  // Letterer
+  firstAppearance String?               // Notable first appearances
+  coverImageUrl String?                 // URL to cover image
+  
+  // User state (existing)
   collected    Boolean  @default(false)
   isGrail      Boolean  @default(false)
+  
+  // Optional certification details
+  certificationCompany String?          // CGC, CBCS, PGX, etc.
+  
+  // System fields (existing)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // Indexes for performance
+  // Enhanced indexes for new query patterns
   @@index([publisher, series, issue])
   @@index([series])
   @@index([collected])
   @@index([isGrail])
   @@index([publisher])
   @@index([issueNumber])
+  @@index([grade])                     // Now indexes string grades
+  @@index([signed])                    // New: Query signed comics
+  @@index([pricePaid])                 // New: Query by price ranges
+  @@index([dateAdded])                 // New: Query by add date
+  @@index([storageLocation])           // New: Find comics by location
   
-  // Composite unique constraint to prevent exact duplicates (including type)
+  // Composite unique constraint (updated to include type)
   @@unique([publisher, series, volume, issue, type], name: "publisher_series_volume_issue_type")
   @@map("comics")
 }
@@ -45,8 +86,7 @@ model FavoriteSeries {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Ensure no duplicate favorite series
-  @@unique([publisher, series, volume], name: "publisher_series_volume")
+  @@unique([publisher, series, volume], name: "publisher_series_volume_volume")
   @@index([publisher, series])
   @@map("favorite_series")
 }
