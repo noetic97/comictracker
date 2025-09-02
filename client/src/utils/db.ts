@@ -1,7 +1,7 @@
 import { openDB, DBSchema, IDBPDatabase } from "idb";
 import { Comic, FavoriteSeries } from "../types";
 import { isValidComic } from "./validation";
-import { generateFavoriteSeriesId } from "./comicValidator";
+import { generateFavoriteSeriesId } from "./comicValidator.ts";
 
 interface MyDB extends DBSchema {
   comics: {

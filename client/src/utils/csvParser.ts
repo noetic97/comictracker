@@ -5,7 +5,7 @@ import {
   normalizeCSVRow,
   CSVFormat,
 } from "./csvFormatDetection";
-import { validateComicBatch } from "./csvValidation";
+import { validateComicBatch } from "./csvValidation.ts";
 
 // Enhanced parse result with detailed reporting
 export interface EnhancedParseResult {

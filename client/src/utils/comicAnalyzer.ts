@@ -1,6 +1,6 @@
 import { Comic } from "../types";
 import { apiService } from "./apiService";
-import { createComicKey } from "./comicValidator";
+import { createComicKey } from "./comicValidator.ts";
 
 export interface AnalysisResult {
   totalInFile: number;

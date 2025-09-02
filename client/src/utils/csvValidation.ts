@@ -1,4 +1,4 @@
-import { normalizeComicFields } from "./gradeNormalization";
+import { validateComicFields } from "./simpleFieldValidator";
 
 // Validation result types
 export interface FieldValidationResult {
@@ -40,7 +40,7 @@ export const validateComicRecord = (
   const skippedFields: string[] = [];
 
   // Use the comprehensive normalization from gradeNormalization.ts
-  const normalizationResult = normalizeComicFields(rawData);
+  const normalizationResult = validateComicFields(rawData);
 
   // Add row context to warnings and errors
   const contextualWarnings = normalizationResult.warnings.map(

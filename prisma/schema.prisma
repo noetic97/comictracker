@@ -8,68 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Unified grade enum covering CGC/CBCS numeric and string grades
-enum ComicGrade {
-  // Numeric Grades (CGC/CBCS compatible)
-  GRADE_10_0  // 10.0 - Gem Mint
-  GRADE_9_9   // 9.9 - Mint
-  GRADE_9_8   // 9.8 - Near Mint/Mint
-  GRADE_9_6   // 9.6 - Near Mint+
-  GRADE_9_4   // 9.4 - Near Mint
-  GRADE_9_2   // 9.2 - Near Mint-
-  GRADE_9_0   // 9.0 - Very Fine/Near Mint
-  GRADE_8_5   // 8.5 - Very Fine+
-  GRADE_8_0   // 8.0 - Very Fine
-  GRADE_7_5   // 7.5 - Very Fine-
-  GRADE_7_0   // 7.0 - Fine/Very Fine
-  GRADE_6_5   // 6.5 - Fine+
-  GRADE_6_0   // 6.0 - Fine
-  GRADE_5_5   // 5.5 - Fine-
-  GRADE_5_0   // 5.0 - Very Good/Fine
-  GRADE_4_5   // 4.5 - Very Good+
-  GRADE_4_0   // 4.0 - Very Good
-  GRADE_3_5   // 3.5 - Very Good-
-  GRADE_3_0   // 3.0 - Good/Very Good
-  GRADE_2_5   // 2.5 - Good+
-  GRADE_2_0   // 2.0 - Good
-  GRADE_1_8   // 1.8 - Good-
-  GRADE_1_5   // 1.5 - Fair/Good
-  GRADE_1_0   // 1.0 - Fair
-  GRADE_0_5   // 0.5 - Poor
-  
-  // String-based grades
-  GMT         // Gem Mint
-  MT          // Mint
-  NM_M        // Near Mint/Mint
-  NM_PLUS     // Near Mint+
-  NM          // Near Mint
-  NM_MINUS    // Near Mint-
-  VF_NM       // Very Fine/Near Mint
-  VF_PLUS     // Very Fine+
-  VF          // Very Fine
-  VF_MINUS    // Very Fine-
-  F_VF        // Fine/Very Fine
-  FN_PLUS     // Fine+
-  FN          // Fine
-  FN_MINUS    // Fine-
-  VG_F        // Very Good/Fine
-  VG_PLUS     // Very Good+
-  VG          // Very Good
-  VG_MINUS    // Very Good-
-  GD_VG       // Good/Very Good
-  GD_PLUS     // Good+
-  GD          // Good
-  GD_MINUS    // Good-
-  FR_GD       // Fair/Good
-  FR          // Fair
-  PR          // Poor
-  
-  // Special conditions
-  UNGRADED    // Not professionally graded
-  RESTORED    // Has restoration
-  QUALIFIED   // Qualified grade (defects noted)
-}
-
 model Comic {
   id           String   @id @default(cuid())
   
@@ -86,8 +24,8 @@ model Comic {
   currentValue Float                    // Market value
   pricePaid    Float?                   // What user paid (null = want list item)
   
-  // Physical/ownership data (new)
-  grade        ComicGrade?              // Comic condition grade
+  // Physical/ownership data (simplified)
+  grade        String?                  // SIMPLIFIED: Any string grade (9.8, NM, CGC 9.8 SS, etc.)
   gradeDetails String?                  // Special designations (Signature Series, Restored, etc.)
   storageLocation String?               // Where comic is physically stored
   notes        String?                  // User notes
@@ -128,7 +66,7 @@ model Comic {
   @@index([isGrail])
   @@index([publisher])
   @@index([issueNumber])
-  @@index([grade])                     // New: Query by grade
+  @@index([grade])                     // Now indexes string grades
   @@index([signed])                    // New: Query signed comics
   @@index([pricePaid])                 // New: Query by price ranges
   @@index([dateAdded])                 // New: Query by add date
@@ -148,7 +86,7 @@ model FavoriteSeries {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([publisher, series, volume], name: "publisher_series_volume")
+  @@unique([publisher, series, volume], name: "publisher_series_volume_volume")
   @@index([publisher, series])
   @@map("favorite_series")
 }
