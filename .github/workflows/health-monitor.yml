@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Health Monitor
 
 on:
@@ -5,6 +6,8 @@ on:
     # Run every hour (can adjust later)
     - cron: "0 * * * *"
   workflow_dispatch: # Allow manual trigger
+  push:
+    branches: [dev, main] # Also run after deployments
 
 env:
   STAGING_HEALTH_URL: ${{ secrets.STAGING_HEALTH_URL }}
