@@ -102,7 +102,7 @@ export const handler: Handler = async (event) => {
           // Check if already exists
           const existingFavorite = await prisma.favoriteSeries.findUnique({
             where: {
-              publisher_series_volume: {
+              publisher_series_volume_volume: {
                 publisher,
                 series,
                 volume,

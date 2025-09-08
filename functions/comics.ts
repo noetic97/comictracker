@@ -1,7 +1,6 @@
 import { Handler } from "@netlify/functions";
 import { withPrisma } from "./utils/prisma";
 import { handleCors, createResponse, createErrorResponse } from "./utils/cors";
-import { ComicGrade } from "@prisma/client";
 
 // Enhanced validators for extended comic input
 type ExtendedComicInput = {
@@ -21,7 +20,7 @@ type ExtendedComicInput = {
   pricePaid?: string | number;
 
   // Extended physical/ownership fields
-  grade?: ComicGrade | string;
+  grade?: string;
   gradeDetails?: string;
   storageLocation?: string;
   notes?: string;
@@ -55,7 +54,7 @@ const isNonEmptyString = (v: any): boolean =>
 
 const isValidGrade = (grade: any): boolean => {
   if (!grade) return true;
-  return Object.values(ComicGrade).includes(grade as ComicGrade);
+  return typeof grade === "string" && grade.trim().length > 0;
 };
 
 const isValidDate = (date: any): boolean => {
@@ -165,7 +164,7 @@ const validateExtendedComic = (data: any): string[] => {
 
   // Grade validation
   if (data.grade !== undefined && !isValidGrade(data.grade)) {
-    errors.push(`'grade' must be a valid ComicGrade enum value if provided`);
+    errors.push(`'grade' must be a non-empty string if provided`);
   }
 
   // Boolean fields validation
@@ -279,7 +278,7 @@ const validateExtendedComicUpdate = (data: any): string[] => {
   });
 
   if (data.grade !== undefined && !isValidGrade(data.grade)) {
-    errors.push("'grade' must be a valid ComicGrade enum value if provided");
+    errors.push("'grade' must be a non-empty string if provided");
   }
 
   const numericFields = ["issueNumber", "currentValue", "pricePaid"];
@@ -332,7 +331,7 @@ const transformComicForDatabase = (comic: ExtendedComicInput): any => {
     pricePaid: parseNumericField(comic.pricePaid),
 
     // Physical/ownership fields
-    grade: (comic.grade as ComicGrade) || null,
+    grade: comic.grade?.trim() || null,
     gradeDetails: comic.gradeDetails?.trim() || null,
     storageLocation: comic.storageLocation?.trim() || null,
     notes: comic.notes?.trim() || null,
@@ -419,7 +418,7 @@ export const handler: Handler = async (event) => {
 
           // New filters
           if (signed === "true") where.signed = true;
-          if (grade) where.grade = grade as ComicGrade;
+          if (grade) where.grade = grade;
           if (storageLocation)
             where.storageLocation = {
               contains: storageLocation,

@@ -90,3 +90,24 @@ model FavoriteSeries {
   @@index([publisher, series])
   @@map("favorite_series")
 }
+
+model AlertLog {
+  id        String   @id @default(cuid())
+  message   String
+  severity  String   // "warning" | "error" | "critical"
+  source    String   // e.g., "github-actions-staging"
+  metadata  Json?    // Store additional context
+  
+  // Alert delivery tracking
+  telegramSent Boolean @default(false)
+  emailSent    Boolean @default(false)
+  
+  // Timestamps
+  sentAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+  
+  @@index([severity])
+  @@index([source])
+  @@index([sentAt])
+  @@map("alert_logs")
+}
