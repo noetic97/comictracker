@@ -16,7 +16,7 @@ const ViewControls: React.FC<ViewControlsProps> = ({
   onItemsPerPageChange,
   onCurrentPageReset,
 }) => {
-  const itemsPerPageOptions = [10, 25, 50, 100];
+  const itemsPerPageOptions = [10, 25, 50, 100, "All"];
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     onItemsPerPageChange(newItemsPerPage);
