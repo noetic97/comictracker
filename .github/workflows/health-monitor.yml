@@ -47,7 +47,7 @@ jobs:
           set -euo pipefail
           echo "🏥 Checking health for ${{ matrix.environment }}..."
           BODY_FILE=$(mktemp)
-          CODE_TIME=$(curl -sS -m 30 -o "$BODY_FILE" -w "%{http_code} %{time_total}" "${{ env.HEALTH_URL }}" || echo "000 30.0")
+          CODE_TIME=$(curl -sS -m 30 -o "$BODY_FILE" -w "%{http_code} %{time_total}" "$HEALTH_URL" || echo "000 30.0")
           http_code=$(echo "$CODE_TIME" | awk '{print $1}')
           response_time=$(echo "$CODE_TIME" | awk '{print $2}')
           response_body=$(cat "$BODY_FILE" 2>/dev/null || echo "")
@@ -115,7 +115,7 @@ jobs:
           fi
 
           # Send alert
-          curl -X POST "${{ env.ALERT_URL }}" \
+          curl -X POST "$ALERT_URL" \
             -H "Content-Type: application/json" \
             -d "{
               \"message\": \"$message\",
@@ -135,7 +135,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "🔄 Primary health check failed, trying Supabase direct heartbeat..."
-          if [ -z "${{ env.SUPABASE_HEARTBEAT_URL }}" ] || [ -z "${{ env.SUPABASE_ANON_KEY }}" ]; then
+          if [ -z "$SUPABASE_HEARTBEAT_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
             echo "⚠️ Supabase heartbeat not configured; skipping."
             echo "supabase_ok=false" >> $GITHUB_OUTPUT
             echo "supabase_reason=not_configured" >> $GITHUB_OUTPUT
@@ -143,12 +143,12 @@ jobs:
           fi
           BODY=$(mktemp)
           CODE_TIME=$(curl -sS -m 30 -o "$BODY" -w "%{http_code} %{time_total}" \
-            -H "apikey: ${{ env.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ env.SUPABASE_ANON_KEY }}" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
             -H "content-type: application/json" \
             -X POST \
             -d '{}' \
-            "${{ env.SUPABASE_HEARTBEAT_URL }}")
+            "$SUPABASE_HEARTBEAT_URL")
           sup_code=$(echo "$CODE_TIME" | awk '{print $1}')
           sup_time=$(echo "$CODE_TIME" | awk '{print $2}')
           sup_body=$(cat "$BODY" 2>/dev/null || echo "")
@@ -194,7 +194,7 @@ jobs:
             root_cause="complete_failure"
           fi
 
-          curl -X POST "${{ env.ALERT_URL }}" \
+          curl -X POST "$ALERT_URL" \
             -H "Content-Type: application/json" \
             -d "{
               \"message\": \"$message\",
@@ -237,7 +237,7 @@ jobs:
           fi
 
           # Send alert
-          curl -X POST "${{ env.ALERT_URL }}" \
+          curl -X POST "$ALERT_URL" \
             -H "Content-Type: application/json" \
             -d "{
               \"message\": \"$message\",
@@ -259,7 +259,7 @@ jobs:
         run: |
           echo "⚠️ Performance degradation detected for ${{ matrix.environment }}"
 
-          curl -X POST "${{ env.ALERT_URL }}" \
+          curl -X POST "$ALERT_URL" \
             -H "Content-Type: application/json" \
             -d "{
               \"message\": \"Service is responding slowly (DB latency: ${{ steps.parse_health.outputs.db_latency }}ms)\",
