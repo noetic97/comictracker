@@ -35,8 +35,11 @@ server/.env*
 !server/.env.example
 
 unused-exports.txt
+
 # Local Netlify folder
 .netlify
+#local Supabase temp files
+supabase/.temp
 
 # test results folder
 client/coverage

@@ -1,4 +1,3 @@
-# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Health Monitor
 
 on:
@@ -6,8 +5,6 @@ on:
     # Run every hour (can adjust later)
     - cron: "0 * * * *"
   workflow_dispatch: # Allow manual trigger
-  push:
-    branches: [dev, main] # Also run after deployments
 
 env:
   STAGING_HEALTH_URL: ${{ secrets.STAGING_HEALTH_URL }}
@@ -139,15 +136,22 @@ jobs:
             exit 0
           fi
 
-          # Try Supabase direct connection
-          supabase_response=$(curl -s -w "%{http_code}|%{time_total}" -m 30 "${{ env.SUPABASE_HEARTBEAT_URL }}" || echo "000|30.0")
+          # Try Supabase direct connection with proper parsing
+          temp_file=$(mktemp)
+          supabase_http_code=$(curl -s -w "%{http_code}" -m 30 -o "$temp_file" \
+            -H "Authorization: Bearer ${{ secrets.STAGING_SUPABASE_ANON_KEY }}" \
+            "${{ env.SUPABASE_HEARTBEAT_URL }}" || echo "000")
+          supabase_response_body=$(cat "$temp_file" 2>/dev/null || echo "")
+          supabase_response_time=$(curl -s -w "%{time_total}" -m 30 -o /dev/null \
+            -H "Authorization: Bearer ${{ secrets.STAGING_SUPABASE_ANON_KEY }}" \
+            "${{ env.SUPABASE_HEARTBEAT_URL }}" 2>/dev/null || echo "30.0")
 
-          supabase_http_code=$(echo "$supabase_response" | tail -1 | cut -d'|' -f1)
-          supabase_response_time=$(echo "$supabase_response" | tail -1 | cut -d'|' -f2)
-          supabase_response_body=$(echo "$supabase_response" | head -n -1)
+          # Clean up temp file
+          rm -f "$temp_file"
 
           echo "Supabase HTTP Code: $supabase_http_code"
           echo "Supabase Response Time: ${supabase_response_time}s"
+          echo "Supabase Response: $supabase_response_body"
 
           if [ "$supabase_http_code" = "200" ]; then
             # Parse Supabase response
