@@ -1,4 +1,11 @@
-// Supabase Edge Function
+// Supabase Edge Function: heartbeat
+// Purpose: lightweight health probe that keeps the project warm and verifies DB reachability.
+// Notes:
+// - Uses SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY provided by Supabase.
+// - Prefers an RPC endpoint `public.heartbeat()` (POST /rest/v1/rpc/heartbeat).
+// - Falls back to a minimal table query if RPC is missing.
+// - Always returns 200; callers should interpret `ok`.
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -15,126 +22,112 @@ interface HeartbeatResponse {
   database: {
     connected: boolean;
     latencyMs: number;
-    recordCount?: number;
+    method: "rpc" | "table";
     error?: string;
   };
-  supabase: {
-    region: string;
-    version: string;
-  };
+  source: "supabase-edge";
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const startTime = Date.now();
+  const t0 = Date.now();
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-  try {
-    // Get Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Missing Supabase configuration");
-    }
-
-    // Simple database health check - use a public endpoint or basic query
-    const dbStartTime = Date.now();
-    let dbResult = {
-      connected: false,
-      latencyMs: 0,
-      recordCount: undefined as number | undefined,
-      error: undefined as string | undefined,
-    };
-
-    try {
-      // Use a simpler approach - just test if we can connect to the database
-      // This uses the service role key to bypass RLS
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/comics?select=count&limit=1`,
-        {
-          method: "GET",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (response.ok) {
-        dbResult.connected = true;
-        dbResult.latencyMs = Date.now() - dbStartTime;
-
-        // Try to get record count from response
-        try {
-          const data = await response.json();
-          if (Array.isArray(data)) {
-            dbResult.recordCount = data.length;
-          }
-        } catch {
-          // Count failed but connection worked
-          dbResult.recordCount = -1;
-        }
-      } else {
-        const errorText = await response.text();
-        throw new Error(
-          `Database query failed: ${response.status} ${response.statusText} - ${errorText}`
-        );
-      }
-    } catch (error: any) {
-      dbResult.connected = false;
-      dbResult.latencyMs = Date.now() - dbStartTime;
-      dbResult.error = error.message;
-    }
-
-    const totalLatency = Date.now() - startTime;
-
-    const heartbeatResponse: HeartbeatResponse = {
-      ok: dbResult.connected,
-      timestamp: new Date().toISOString(),
-      latencyMs: totalLatency,
-      database: dbResult,
-      supabase: {
-        region: Deno.env.get("SUPABASE_REGION") || "unknown",
-        version: "1.0.0",
-      },
-    };
-
-    return new Response(JSON.stringify(heartbeatResponse, null, 2), {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-      },
-      status: 200, // Always return 200, let caller check the 'ok' field
-    });
-  } catch (error: any) {
-    console.error("Heartbeat error:", error);
-
-    const errorResponse: HeartbeatResponse = {
+  if (!supabaseUrl || !serviceKey) {
+    const resp: HeartbeatResponse = {
       ok: false,
       timestamp: new Date().toISOString(),
-      latencyMs: Date.now() - startTime,
+      latencyMs: Date.now() - t0,
       database: {
         connected: false,
         latencyMs: 0,
-        error: error.message,
+        method: "rpc",
+        error: "Missing SUPABASE_URL or SERVICE_ROLE_KEY",
       },
-      supabase: {
-        region: Deno.env.get("SUPABASE_REGION") || "unknown",
-        version: "1.0.0",
-      },
+      source: "supabase-edge",
     };
-
-    return new Response(JSON.stringify(errorResponse, null, 2), {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-      },
-      status: 200, // Still return 200 with error details
+    return new Response(JSON.stringify(resp, null, 2), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
     });
   }
+
+  // Helper to call RPC heartbeat
+  const callRpc = async () => {
+    const start = Date.now();
+    const r = await fetch(`${supabaseUrl}/rest/v1/rpc/heartbeat`, {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    });
+    const latency = Date.now() - start;
+    if (!r.ok)
+      throw new Error(`RPC heartbeat failed: ${r.status} ${r.statusText}`);
+    return { latency };
+  };
+
+  // Fallback to tiny table query if RPC not present
+  const callTable = async () => {
+    const start = Date.now();
+    const r = await fetch(`${supabaseUrl}/rest/v1/comics?select=id&limit=1`, {
+      method: "GET",
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+      },
+    });
+    const latency = Date.now() - start;
+    if (!r.ok)
+      throw new Error(`Table probe failed: ${r.status} ${r.statusText}`);
+    return { latency };
+  };
+
+  let ok = false;
+  let method: "rpc" | "table" = "rpc";
+  let dbLatency = 0;
+  let error: string | undefined;
+
+  try {
+    try {
+      const { latency } = await callRpc();
+      ok = true;
+      dbLatency = latency;
+      method = "rpc";
+    } catch (e) {
+      // Try fallback only if RPC missing/blocked
+      const { latency } = await callTable();
+      ok = true;
+      dbLatency = latency;
+      method = "table";
+    }
+  } catch (e) {
+    ok = false;
+    error = (e as Error).message;
+  }
+
+  const resp: HeartbeatResponse = {
+    ok,
+    timestamp: new Date().toISOString(),
+    latencyMs: Date.now() - t0,
+    database: {
+      connected: ok,
+      latencyMs: dbLatency,
+      method,
+      ...(error ? { error } : {}),
+    },
+    source: "supabase-edge",
+  };
+
+  return new Response(JSON.stringify(resp, null, 2), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status: 200,
+  });
 });
