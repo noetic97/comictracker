@@ -26,6 +26,7 @@
     "@types/node": "^22.0.2",
     "concurrently": "^8.2.2",
     "netlify-cli": "^17.10.1",
+    "supabase": "^2.40.7",
     "typescript": "^5.5.4"
   },
   "dependencies": {
