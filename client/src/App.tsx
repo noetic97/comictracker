@@ -90,7 +90,7 @@ const ThemedAppWithLoading: React.FC = () => {
         console.log("🔄 Loading all comics and favorites...");
 
         const [comicsResponse, favoritesResponse] = await Promise.all([
-          apiService.comics.getAll(),
+          apiService.comics.getAll({ limit: 5000 }),
           apiService.favorites.getAll(),
         ]);
 

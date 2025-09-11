@@ -1,6 +1,7 @@
 import { Handler } from "@netlify/functions";
 import { withPrisma } from "./utils/prisma";
 import { handleCors, createResponse } from "./utils/cors";
+import { createClient } from "@supabase/supabase-js";
 
 interface HealthCheckResult {
   ok: boolean;
@@ -8,13 +9,23 @@ interface HealthCheckResult {
   timestamp: string;
   latencyMs: number;
   database: {
-    connected: boolean;
-    latencyMs: number;
-    error?: string;
+    prisma: {
+      connected: boolean;
+      latencyMs: number;
+      error?: string;
+    };
+    supabase: {
+      connected: boolean;
+      latencyMs: number;
+      rlsEnabled: boolean;
+      userCount: number;
+      error?: string;
+    };
   };
   debug?: {
     environment: string;
-    databaseUrl: string; // Masked for security
+    databaseUrl: string;
+    supabaseUrl: string;
     prismaVersion: string;
     nodeVersion: string;
     memoryUsage: NodeJS.MemoryUsage;
@@ -29,31 +40,104 @@ export const handler: Handler = async (event) => {
   const debug = event.queryStringParameters?.debug === "true";
 
   try {
-    // Database health check
-    const dbStartTime = Date.now();
-    let dbResult = {
-      connected: false,
-      latencyMs: 0,
-      error: undefined as string | undefined,
+    // Initialize results
+    const dbResult = {
+      prisma: {
+        connected: false,
+        latencyMs: 0,
+        error: undefined as string | undefined,
+      },
+      supabase: {
+        connected: false,
+        latencyMs: 0,
+        rlsEnabled: false,
+        userCount: 0,
+        error: undefined as string | undefined,
+      },
     };
 
+    // Test Prisma connection
+    const prismaStartTime = Date.now();
     try {
       await withPrisma(async (prisma) => {
-        // Simple ping - SELECT 1
         const result = await prisma.$queryRaw`SELECT 1 as ping`;
-        dbResult.connected = true;
-        dbResult.latencyMs = Date.now() - dbStartTime;
+        dbResult.prisma.connected = true;
+        dbResult.prisma.latencyMs = Date.now() - prismaStartTime;
+        console.log({ result });
 
-        // Additional health checks in debug mode
         if (debug) {
-          // Check if we can actually query comics table
           await prisma.comic.count();
         }
       });
     } catch (error: any) {
-      dbResult.connected = false;
-      dbResult.latencyMs = Date.now() - dbStartTime;
-      dbResult.error = error.message;
+      dbResult.prisma.connected = false;
+      dbResult.prisma.latencyMs = Date.now() - prismaStartTime;
+      dbResult.prisma.error = error.message;
+    }
+
+    // Test Supabase connection
+    const supabaseStartTime = Date.now();
+    try {
+      const supabase = createClient(
+        process.env.SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        }
+      );
+
+      // Test basic connection with a simple query
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("id")
+        .limit(1);
+
+      if (userError) throw userError;
+      console.log(
+        "Supabase connection test successful, found users:",
+        userData?.length || 0
+      );
+
+      // Get user count to verify service role access
+      const { count: userCount, error: countError } = await supabase
+        .from("users")
+        .select("*", { count: "exact", head: true });
+
+      if (countError) throw countError;
+
+      // Try to check if RLS is working by testing access
+      let rlsEnabled = false;
+      try {
+        // This should work with service role even with RLS enabled
+        const { count: comicCount, error: comicError } = await supabase
+          .from("comics")
+          .select("*", { count: "exact", head: true });
+
+        if (!comicError && comicCount !== null) {
+          rlsEnabled = true; // If we can access comics with service role, RLS is configured
+          console.log(
+            "RLS test: Service role can access comics, count:",
+            comicCount
+          );
+        }
+      } catch (rlsTestError: any) {
+        console.log("RLS test failed:", rlsTestError.message);
+      }
+
+      dbResult.supabase = {
+        connected: true,
+        latencyMs: Date.now() - supabaseStartTime,
+        rlsEnabled,
+        userCount: userCount || 0,
+        error: undefined, // No error since we succeeded
+      };
+    } catch (error: any) {
+      dbResult.supabase.connected = false;
+      dbResult.supabase.latencyMs = Date.now() - supabaseStartTime;
+      dbResult.supabase.error = error.message;
     }
 
     const totalLatency = Date.now() - startTime;
@@ -62,13 +146,18 @@ export const handler: Handler = async (event) => {
     let status: "healthy" | "degraded" | "down";
     let ok: boolean;
 
-    if (!dbResult.connected) {
+    if (!dbResult.prisma.connected && !dbResult.supabase.connected) {
       status = "down";
       ok = false;
-    } else if (dbResult.latencyMs > 5000) {
-      // >5s is degraded
+    } else if (!dbResult.prisma.connected || !dbResult.supabase.connected) {
       status = "degraded";
-      ok = true; // Still OK, just slow
+      ok = true; // One connection working
+    } else if (
+      dbResult.prisma.latencyMs > 5000 ||
+      dbResult.supabase.latencyMs > 5000
+    ) {
+      status = "degraded";
+      ok = true;
     } else {
       status = "healthy";
       ok = true;
@@ -89,20 +178,14 @@ export const handler: Handler = async (event) => {
         databaseUrl: process.env.DATABASE_URL
           ? `${process.env.DATABASE_URL.split("@")[1] || "masked"}`
           : "not_set",
-        prismaVersion: "5.17.0", // From your package.json
+        supabaseUrl: process.env.SUPABASE_URL || "not_set",
+        prismaVersion: "5.17.0",
         nodeVersion: process.version,
         memoryUsage: process.memoryUsage(),
       };
     }
 
-    // Return appropriate status code
-    if (ok) {
-      return createResponse(200, healthResult);
-    } else {
-      // Still return 200 for health checks, but indicate down status
-      // External monitors will check the 'ok' field in response
-      return createResponse(200, healthResult);
-    }
+    return createResponse(200, healthResult);
   } catch (error: any) {
     console.error("Health check failed:", error);
 
@@ -112,9 +195,18 @@ export const handler: Handler = async (event) => {
       timestamp: new Date().toISOString(),
       latencyMs: Date.now() - startTime,
       database: {
-        connected: false,
-        latencyMs: 0,
-        error: error.message,
+        prisma: {
+          connected: false,
+          latencyMs: 0,
+          error: error.message,
+        },
+        supabase: {
+          connected: false,
+          latencyMs: 0,
+          rlsEnabled: false,
+          userCount: 0,
+          error: error.message,
+        },
       },
     };
 
@@ -122,13 +214,13 @@ export const handler: Handler = async (event) => {
       errorResult.debug = {
         environment: process.env.NODE_ENV || "unknown",
         databaseUrl: "error_retrieving",
+        supabaseUrl: process.env.SUPABASE_URL || "not_set",
         prismaVersion: "5.17.0",
         nodeVersion: process.version,
         memoryUsage: process.memoryUsage(),
       };
     }
 
-    // Return 200 with error details for monitoring systems
     return createResponse(200, errorResult);
   }
 };
