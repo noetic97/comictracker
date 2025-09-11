@@ -95,6 +95,8 @@ export const apiService = {
 
       console.log(`🔍 Fetching comics: ${url}`);
       const response = await debugFetch(url);
+      console.log({ response });
+
       return handleResponse(response);
     },
 

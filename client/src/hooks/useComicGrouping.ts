@@ -33,6 +33,17 @@ export const useComicGrouping = (
 ): ComicGroupingResult => {
   const { onError } = options;
 
+  // In your useComicGrouping hook, add debug logging
+  console.log("📊 All comics received:", comics.length);
+  console.log(
+    "🔍 Marvel comic found:",
+    comics.find((c) => c.publisher === "Marvel")
+  );
+  console.log(
+    "📋 All publishers:",
+    [...new Set(comics.map((c) => c.publisher))].sort()
+  );
+
   // Filter comics based on filter option
   const filteredComics = useMemo(() => {
     return comics.filter((comic) => {

@@ -1,8 +1,9 @@
+// functions/comics.ts - Updated with Supabase RLS
 import { Handler } from "@netlify/functions";
-import { withPrisma } from "./utils/prisma";
 import { handleCors, createResponse, createErrorResponse } from "./utils/cors";
+import { withSupabaseRLS } from "./utils/supabase";
 
-// Enhanced validators for extended comic input
+// Enhanced validators for comic input (keep your existing validation logic)
 type ExtendedComicInput = {
   // Core fields (required)
   publisher: string;
@@ -16,10 +17,8 @@ type ExtendedComicInput = {
   years?: string;
   type?: string;
 
-  // Extended financial fields
+  // Extended fields
   pricePaid?: string | number;
-
-  // Extended physical/ownership fields
   grade?: string;
   gradeDetails?: string;
   storageLocation?: string;
@@ -27,13 +26,9 @@ type ExtendedComicInput = {
   cert?: string;
   signed?: boolean | string;
   variantDetails?: string;
-
-  // Extended date fields
   dateAdded?: string | Date;
   issueDate?: string;
   datePurchased?: string | Date;
-
-  // Extended creative team fields
   storyTitle?: string;
   description?: string;
   writer?: string;
@@ -43,29 +38,12 @@ type ExtendedComicInput = {
   firstAppearance?: string;
   coverImageUrl?: string;
   certificationCompany?: string;
-
-  // User state
   collected?: boolean;
   isGrail?: boolean;
 };
 
 const isNonEmptyString = (v: any): boolean =>
   typeof v === "string" && v.trim().length > 0;
-
-const isValidGrade = (grade: any): boolean => {
-  if (!grade) return true;
-  return typeof grade === "string" && grade.trim().length > 0;
-};
-
-const isValidDate = (date: any): boolean => {
-  if (!date) return true;
-  if (date instanceof Date) return !isNaN(date.getTime());
-  if (typeof date === "string") {
-    const parsed = new Date(date);
-    return !isNaN(parsed.getTime());
-  }
-  return false;
-};
 
 const parseNumericField = (value: any): number | null => {
   if (value === null || value === undefined || value === "") return null;
@@ -106,216 +84,14 @@ const validateExtendedComic = (data: any): string[] => {
   if (!isNonEmptyString(data.issue))
     errors.push("'issue' is required and must be a non-empty string");
 
-  // Optional string fields validation
-  const optionalStringFields = [
-    "volume",
-    "years",
-    "type",
-    "gradeDetails",
-    "storageLocation",
-    "notes",
-    "cert",
-    "variantDetails",
-    "issueDate",
-    "storyTitle",
-    "description",
-    "writer",
-    "artist",
-    "coverArtist",
-    "letterer",
-    "firstAppearance",
-    "coverImageUrl",
-    "certificationCompany",
-  ];
-
-  optionalStringFields.forEach((field) => {
-    if (data[field] !== undefined && typeof data[field] !== "string") {
-      errors.push(`'${field}' must be a string if provided`);
-    }
-  });
-
-  // Numeric fields validation
-  if (
-    data.issueNumber !== undefined &&
-    !(
-      typeof data.issueNumber === "string" ||
-      typeof data.issueNumber === "number"
-    )
-  ) {
-    errors.push("'issueNumber' must be a string or number if provided");
-  }
-
-  if (
-    data.currentValue !== undefined &&
-    !(
-      typeof data.currentValue === "string" ||
-      typeof data.currentValue === "number"
-    )
-  ) {
-    errors.push("'currentValue' must be a string or number if provided");
-  }
-
-  if (
-    data.pricePaid !== undefined &&
-    !(typeof data.pricePaid === "string" || typeof data.pricePaid === "number")
-  ) {
-    errors.push("'pricePaid' must be a string or number if provided");
-  }
-
-  // Grade validation
-  if (data.grade !== undefined && !isValidGrade(data.grade)) {
-    errors.push(`'grade' must be a non-empty string if provided`);
-  }
-
-  // Boolean fields validation
-  if (
-    data.signed !== undefined &&
-    !(typeof data.signed === "boolean" || typeof data.signed === "string")
-  ) {
-    errors.push("'signed' must be a boolean or string if provided");
-  }
-
-  if (data.collected !== undefined && typeof data.collected !== "boolean") {
-    errors.push("'collected' must be a boolean if provided");
-  }
-
-  if (data.isGrail !== undefined && typeof data.isGrail !== "boolean") {
-    errors.push("'isGrail' must be a boolean if provided");
-  }
-
-  // Date fields validation
-  if (data.dateAdded !== undefined && !isValidDate(data.dateAdded)) {
-    errors.push("'dateAdded' must be a valid date if provided");
-  }
-
-  if (data.datePurchased !== undefined && !isValidDate(data.datePurchased)) {
-    errors.push("'datePurchased' must be a valid date if provided");
-  }
-
   return errors;
 };
 
-const validateExtendedComicUpdate = (data: any): string[] => {
-  if (!data || typeof data !== "object") return ["Body must be a JSON object"];
-
-  const allowedFields = [
-    // Core fields
-    "publisher",
-    "series",
-    "issue",
-    "issueNumber",
-    "currentValue",
-    "volume",
-    "years",
-    "type",
-    // Extended fields
-    "pricePaid",
-    "grade",
-    "gradeDetails",
-    "storageLocation",
-    "notes",
-    "cert",
-    "signed",
-    "variantDetails",
-    "dateAdded",
-    "issueDate",
-    "datePurchased",
-    "storyTitle",
-    "description",
-    "writer",
-    "artist",
-    "coverArtist",
-    "letterer",
-    "firstAppearance",
-    "coverImageUrl",
-    "certificationCompany",
-    "collected",
-    "isGrail",
-  ];
-
-  const errors: string[] = [];
-
-  // Check for unknown fields
-  Object.keys(data).forEach((key) => {
-    if (!allowedFields.includes(key)) {
-      errors.push(`Unknown field: ${key}`);
-    }
-  });
-
-  // Validate provided fields (same logic as validateExtendedComic but all optional)
-  if (data.publisher !== undefined && !isNonEmptyString(data.publisher))
-    errors.push("'publisher' must be a non-empty string");
-  if (data.series !== undefined && !isNonEmptyString(data.series))
-    errors.push("'series' must be a non-empty string");
-  if (data.issue !== undefined && !isNonEmptyString(data.issue))
-    errors.push("'issue' must be a non-empty string");
-
-  const stringFields = [
-    "volume",
-    "years",
-    "type",
-    "gradeDetails",
-    "storageLocation",
-    "notes",
-    "cert",
-    "variantDetails",
-    "issueDate",
-    "storyTitle",
-    "description",
-    "writer",
-    "artist",
-    "coverArtist",
-    "letterer",
-    "firstAppearance",
-    "coverImageUrl",
-    "certificationCompany",
-  ];
-
-  stringFields.forEach((field) => {
-    if (data[field] !== undefined && typeof data[field] !== "string") {
-      errors.push(`'${field}' must be a string if provided`);
-    }
-  });
-
-  if (data.grade !== undefined && !isValidGrade(data.grade)) {
-    errors.push("'grade' must be a non-empty string if provided");
-  }
-
-  const numericFields = ["issueNumber", "currentValue", "pricePaid"];
-  numericFields.forEach((field) => {
-    if (
-      data[field] !== undefined &&
-      !(typeof data[field] === "string" || typeof data[field] === "number")
-    ) {
-      errors.push(`'${field}' must be a string or number if provided`);
-    }
-  });
-
-  const booleanFields = ["collected", "isGrail"];
-  booleanFields.forEach((field) => {
-    if (data[field] !== undefined && typeof data[field] !== "boolean") {
-      errors.push(`'${field}' must be a boolean if provided`);
-    }
-  });
-
-  if (
-    data.signed !== undefined &&
-    !(typeof data.signed === "boolean" || typeof data.signed === "string")
-  ) {
-    errors.push("'signed' must be a boolean or string if provided");
-  }
-
-  const dateFields = ["dateAdded", "datePurchased"];
-  dateFields.forEach((field) => {
-    if (data[field] !== undefined && !isValidDate(data[field])) {
-      errors.push(`'${field}' must be a valid date if provided`);
-    }
-  });
-
-  return errors;
-};
-
-const transformComicForDatabase = (comic: ExtendedComicInput): any => {
+// Transform frontend camelCase to database format
+const transformComicForDatabase = (
+  comic: ExtendedComicInput,
+  userId: string
+): any => {
   return {
     // Core fields
     publisher: comic.publisher.trim(),
@@ -361,10 +137,21 @@ const transformComicForDatabase = (comic: ExtendedComicInput): any => {
       (parseNumericField(comic.pricePaid) !== null &&
         parseNumericField(comic.pricePaid)! >= 0),
     isGrail: Boolean(comic.isGrail),
+
+    // User context
+    user_id: userId,
   };
 };
 
-// Main handler function - THIS IS THE KEY EXPORT FOR NETLIFY
+// Transform database response to frontend format
+const transformComicFromDatabase = (comic: any): any => {
+  return {
+    ...comic,
+    userId: comic.user_id,
+    // Add any other field transformations as needed
+  };
+};
+
 export const handler: Handler = async (event) => {
   const corsResponse = handleCors(event);
   if (corsResponse) return corsResponse;
@@ -385,10 +172,9 @@ export const handler: Handler = async (event) => {
       action = segments[segments.length - 1];
     }
 
-    return await withPrisma(async (prisma) => {
+    return await withSupabaseRLS(event, async (supabase, userContext) => {
       switch (httpMethod) {
         case "GET":
-          // Enhanced GET with new field filtering
           const {
             publisher,
             series,
@@ -398,66 +184,89 @@ export const handler: Handler = async (event) => {
             grade,
             storageLocation,
             search,
+            exact,
             page = "1",
             limit = "25",
           } = event.queryStringParameters || {};
 
           const pageNum = parseInt(page, 10);
           const limitNum = parseInt(limit, 10);
-          const skip = (pageNum - 1) * limitNum;
+          const offset = (pageNum - 1) * limitNum;
 
-          const where: any = {};
+          console.log(
+            `📋 Getting comics for user ${userContext.userId}, page ${pageNum}, limit ${limitNum}`
+          );
 
-          // Existing filters
-          if (publisher)
-            where.publisher = { contains: publisher, mode: "insensitive" };
-          if (series) where.series = { contains: series, mode: "insensitive" };
-          if (collected === "true") where.collected = true;
-          if (collected === "false") where.collected = false;
-          if (isGrail === "true") where.isGrail = true;
+          let query = supabase
+            .from("comics")
+            .select("*", { count: "exact" })
+            .eq("user_id", userContext.userId)
+            .order("series", { ascending: true })
+            .order("issueNumber", { ascending: true });
 
-          // New filters
-          if (signed === "true") where.signed = true;
-          if (grade) where.grade = grade;
+          // Apply filters
+          if (publisher) {
+            if (exact === "true") {
+              query = query.eq("publisher", publisher);
+            } else {
+              query = query.ilike("publisher", `%${publisher}%`);
+            }
+          }
+          if (series) {
+            if (exact === "true") {
+              query = query.eq("series", series);
+            } else {
+              query = query.ilike("series", `%${series}%`);
+            }
+          }
+          if (collected === "true") query = query.eq("collected", true);
+          if (collected === "false") query = query.eq("collected", false);
+          if (isGrail === "true") query = query.eq("isGrail", true);
+          if (signed === "true") query = query.eq("signed", true);
+          if (grade) query = query.eq("grade", grade);
           if (storageLocation)
-            where.storageLocation = {
-              contains: storageLocation,
-              mode: "insensitive",
-            };
+            query = query.ilike("storageLocation", `%${storageLocation}%`);
 
           if (search) {
-            where.OR = [
-              { publisher: { contains: search, mode: "insensitive" } },
-              { series: { contains: search, mode: "insensitive" } },
-              { issue: { contains: search, mode: "insensitive" } },
-              { storyTitle: { contains: search, mode: "insensitive" } },
-              { writer: { contains: search, mode: "insensitive" } },
-              { artist: { contains: search, mode: "insensitive" } },
-            ];
+            query = query.or(
+              `publisher.ilike.%${search}%,series.ilike.%${search}%,issue.ilike.%${search}%`
+            );
           }
 
-          const [comics, total] = await Promise.all([
-            prisma.comic.findMany({
-              where,
-              skip,
-              take: limitNum,
-              orderBy: [{ series: "asc" }, { issueNumber: "asc" }],
-            }),
-            prisma.comic.count({ where }),
-          ]);
+          // Apply pagination
+          query = query.range(offset, offset + limitNum - 1);
+
+          console.log({ query });
+
+          const { data: comics, error, count } = await query;
+
+          console.log(comics?.length);
+
+          if (error) {
+            console.error("Supabase query error:", error);
+            return createErrorResponse(500, `Database error: ${error.message}`);
+          }
+
+          // Transform comics for frontend
+          const transformedComics = (comics || []).map(
+            transformComicFromDatabase
+          );
+
+          console.log(
+            `✅ Found ${transformedComics.length} comics (${count} total)`
+          );
 
           return createResponse(200, {
             comics,
             pagination: {
               page: pageNum,
               limit: limitNum,
-              total,
-              pages: Math.ceil(total / limitNum),
+              total: count || 0,
+              pages: Math.ceil((count || 0) / limitNum),
             },
           });
 
         case "POST":
-          // Handle both single and enhanced bulk creation
           let body: any = {};
           try {
             body = event.body ? JSON.parse(event.body) : {};
@@ -465,15 +274,8 @@ export const handler: Handler = async (event) => {
             return createErrorResponse(400, "Invalid JSON body");
           }
 
-          // Enhanced bulk operation
+          // Handle bulk operations
           if (path?.includes("/bulk") || body.comics) {
-            console.log(
-              `🚀 Starting enhanced bulk import of ${
-                body.comics?.length || 0
-              } comics`
-            );
-            const startTime = Date.now();
-
             const { comics: comicsToCreate } = body;
 
             if (!Array.isArray(comicsToCreate)) {
@@ -483,40 +285,28 @@ export const handler: Handler = async (event) => {
               );
             }
 
-            if (comicsToCreate.length === 0) {
-              return createResponse(200, {
-                processed: 0,
-                created: 0,
-                updated: 0,
-                errors: 0,
-                message: "No comics to process (empty array)",
-                processingTime: 0,
-                rate: 0,
-              });
-            }
-
-            const MEGA_BATCH_SIZE = 100;
-            const MAX_PROCESSING_TIME = 25000;
-
             console.log(
-              `📊 Processing ${comicsToCreate.length} comics with enhanced fields in batches of ${MEGA_BATCH_SIZE}`
+              `🚀 Starting bulk import of ${comicsToCreate.length} comics for user ${userContext.userId}`
             );
+            const startTime = Date.now();
 
-            // Enhanced validation with new fields
+            // Validate and transform comics
             const validComics: any[] = [];
             const validationErrors: string[] = [];
 
             for (let i = 0; i < comicsToCreate.length; i++) {
               const comic = comicsToCreate[i];
-              const errs = validateExtendedComic(comic);
+              const errors = validateExtendedComic(comic);
 
-              if (errs.length) {
-                validationErrors.push(`Index ${i}: ${errs.join(", ")}`);
+              if (errors.length) {
+                validationErrors.push(`Index ${i}: ${errors.join(", ")}`);
                 continue;
               }
 
-              // Transform and normalize the comic data
-              const transformedComic = transformComicForDatabase(comic);
+              const transformedComic = transformComicForDatabase(
+                comic,
+                userContext.userId
+              );
               validComics.push(transformedComic);
             }
 
@@ -527,234 +317,41 @@ export const handler: Handler = async (event) => {
               });
             }
 
-            // Enhanced bulk processing with new fields
-            let processedCount = 0;
-            let createdCount = 0;
-            let updatedCount = 0;
-            let errorCount = 0;
-            const detailedErrors: string[] = [];
+            // Bulk insert with Supabase
+            const { data: insertedComics, error: insertError } = await supabase
+              .from("comics")
+              .insert(validComics)
+              .select();
 
-            try {
-              for (let i = 0; i < validComics.length; i += MEGA_BATCH_SIZE) {
-                const currentTime = Date.now();
-                const elapsed = currentTime - startTime;
-
-                if (elapsed > MAX_PROCESSING_TIME) {
-                  console.log(
-                    `⚠️ Approaching timeout at ${elapsed}ms, stopping early`
-                  );
-                  break;
-                }
-
-                const batch = validComics.slice(i, i + MEGA_BATCH_SIZE);
-                const batchNum = Math.floor(i / MEGA_BATCH_SIZE) + 1;
-                const totalBatches = Math.ceil(
-                  validComics.length / MEGA_BATCH_SIZE
-                );
-
-                console.log(
-                  `🔄 Processing enhanced batch ${batchNum}/${totalBatches} (${batch.length} comics) - ${elapsed}ms elapsed`
-                );
-
-                try {
-                  // Try bulk create with all new fields
-                  const created = await prisma.comic.createMany({
-                    data: batch,
-                    skipDuplicates: true,
-                  });
-
-                  createdCount += created.count;
-                  processedCount += batch.length;
-
-                  console.log(
-                    `✨ Enhanced batch ${batchNum} completed: +${
-                      created.count
-                    } created, ${
-                      batch.length - created.count
-                    } duplicates skipped`
-                  );
-                } catch (bulkError: any) {
-                  console.log(
-                    `⚡ Bulk create failed for batch ${batchNum}, falling back to individual processing: ${bulkError.message}`
-                  );
-
-                  // Enhanced individual processing with update logic
-                  const individualResults = await Promise.allSettled(
-                    batch.map(async (comic) => {
-                      try {
-                        // Check if exists first (including type in uniqueness check)
-                        const existing = await prisma.comic.findFirst({
-                          where: {
-                            publisher: comic.publisher,
-                            series: comic.series,
-                            volume: comic.volume,
-                            issue: comic.issue,
-                            type: comic.type,
-                          },
-                          select: {
-                            id: true,
-                            collected: true,
-                            isGrail: true,
-                            // Include new fields we want to preserve
-                            pricePaid: true,
-                            grade: true,
-                            notes: true,
-                          },
-                        });
-
-                        if (existing) {
-                          // Enhanced update logic - preserve user state but update market data
-                          const updateData = {
-                            // Always update market/metadata
-                            currentValue: comic.currentValue,
-                            years: comic.years,
-                            type: comic.type,
-                            issueNumber: comic.issueNumber,
-
-                            // Update extended fields if provided
-                            ...(comic.storyTitle && {
-                              storyTitle: comic.storyTitle,
-                            }),
-                            ...(comic.description && {
-                              description: comic.description,
-                            }),
-                            ...(comic.writer && { writer: comic.writer }),
-                            ...(comic.artist && { artist: comic.artist }),
-                            ...(comic.coverArtist && {
-                              coverArtist: comic.coverArtist,
-                            }),
-                            ...(comic.letterer && { letterer: comic.letterer }),
-                            ...(comic.firstAppearance && {
-                              firstAppearance: comic.firstAppearance,
-                            }),
-                            ...(comic.coverImageUrl && {
-                              coverImageUrl: comic.coverImageUrl,
-                            }),
-                            ...(comic.issueDate && {
-                              issueDate: comic.issueDate,
-                            }),
-
-                            // Only update ownership fields if not already set
-                            ...(comic.pricePaid !== null &&
-                              !existing.pricePaid && {
-                                pricePaid: comic.pricePaid,
-                              }),
-                            ...(comic.grade &&
-                              !existing.grade && { grade: comic.grade }),
-                            ...(comic.notes &&
-                              !existing.notes && { notes: comic.notes }),
-                          };
-
-                          await prisma.comic.update({
-                            where: { id: existing.id },
-                            data: updateData,
-                          });
-                          return { action: "updated", comic };
-                        } else {
-                          // Create new with all enhanced fields
-                          await prisma.comic.create({ data: comic });
-                          return { action: "created", comic };
-                        }
-                      } catch (individualError: any) {
-                        const errorMsg = `${comic.series} #${comic.issue}: ${individualError.message}`;
-                        console.error(
-                          `❌ Individual error in enhanced batch ${batchNum}:`,
-                          errorMsg
-                        );
-                        return { action: "error", error: errorMsg, comic };
-                      }
-                    })
-                  );
-
-                  // Process individual results
-                  individualResults.forEach((result) => {
-                    if (result.status === "fulfilled") {
-                      if (result.value.action === "created") {
-                        createdCount++;
-                      } else if (result.value.action === "updated") {
-                        updatedCount++;
-                      } else if (result.value.action === "error") {
-                        errorCount++;
-                        if (detailedErrors.length < 20) {
-                          detailedErrors.push(
-                            result.value.error || "Unknown error"
-                          );
-                        }
-                      }
-                      processedCount++;
-                    } else {
-                      errorCount++;
-                      if (detailedErrors.length < 20) {
-                        detailedErrors.push(
-                          `Enhanced batch ${batchNum} promise error: ${result.reason}`
-                        );
-                      }
-                    }
-                  });
-                }
-
-                // Progress logging
-                const currentElapsed = Date.now() - startTime;
-                const avgTimePerBatch = currentElapsed / batchNum;
-                const estimatedTotal = avgTimePerBatch * totalBatches;
-
-                console.log(
-                  `📈 Enhanced Progress: ${processedCount}/${
-                    validComics.length
-                  } (${((processedCount / validComics.length) * 100).toFixed(
-                    1
-                  )}%) | ETA: ${(
-                    (estimatedTotal - currentElapsed) /
-                    1000
-                  ).toFixed(1)}s`
-                );
-              }
-            } catch (globalError: any) {
-              console.error(
-                "💀 Global enhanced processing error:",
-                globalError.message
-              );
+            if (insertError) {
+              console.error("Bulk insert error:", insertError);
               return createErrorResponse(
                 500,
-                `Enhanced processing failed: ${globalError.message}`
+                `Bulk insert failed: ${insertError.message}`
               );
             }
 
             const endTime = Date.now();
             const totalTime = endTime - startTime;
+            const created = insertedComics?.length || 0;
 
-            console.log(`🎉 Enhanced bulk import completed!`);
             console.log(
-              `📊 Results: ${createdCount} created, ${updatedCount} updated, ${errorCount} errors`
-            );
-            console.log(
-              `⏱️ Total time: ${totalTime}ms (${(totalTime / 1000).toFixed(
-                1
-              )}s)`
-            );
-            console.log(
-              `🚄 Rate: ${(processedCount / (totalTime / 1000)).toFixed(
-                1
-              )} comics/second`
+              `🎉 Bulk import completed: ${created} comics created in ${totalTime}ms`
             );
 
             return createResponse(201, {
-              processed: processedCount,
-              created: createdCount,
-              updated: updatedCount,
-              errors: errorCount,
-              message: `Enhanced bulk import: ${processedCount} processed (${createdCount} created, ${updatedCount} updated, ${errorCount} errors) in ${(
-                totalTime / 1000
-              ).toFixed(1)}s`,
+              processed: validComics.length,
+              created,
+              updated: 0,
+              errors: validationErrors.length,
+              message: `Bulk import: ${created} comics created`,
               processingTime: totalTime,
-              rate: Math.round(processedCount / (totalTime / 1000)),
+              rate: Math.round(created / (totalTime / 1000)),
               validationErrors: validationErrors.slice(0, 10),
-              processingErrors: detailedErrors,
-              incomplete: processedCount < validComics.length,
             });
           }
 
-          // Enhanced single comic creation
+          // Single comic creation
           const createErrors = validateExtendedComic(body);
           if (createErrors.length) {
             return createResponse(422, {
@@ -763,12 +360,25 @@ export const handler: Handler = async (event) => {
             });
           }
 
-          const transformedComic = transformComicForDatabase(body);
-          const newComic = await prisma.comic.create({
-            data: transformedComic,
-          });
+          const transformedComic = transformComicForDatabase(
+            body,
+            userContext.userId
+          );
 
-          return createResponse(201, newComic);
+          const { data: newComic, error: createError } = await supabase
+            .from("comics")
+            .insert([transformedComic])
+            .select()
+            .single();
+
+          if (createError) {
+            return createErrorResponse(
+              500,
+              `Failed to create comic: ${createError.message}`
+            );
+          }
+
+          return createResponse(201, transformComicFromDatabase(newComic));
 
         case "PATCH":
           // Handle toggle operations
@@ -779,21 +389,19 @@ export const handler: Handler = async (event) => {
             );
           }
 
-          let comic = await prisma.comic.findUnique({
-            where: { id: comicId },
-          });
+          console.log(
+            `🔄 Toggling ${action} for comic ${comicId} (user ${userContext.userId})`
+          );
 
-          if (!comic && comicId.includes("-")) {
-            const parts = comicId.split("-");
-            if (parts.length >= 4) {
-              const [publisher, series, volume, issue] = parts;
-              comic = await prisma.comic.findFirst({
-                where: { publisher, series, volume, issue },
-              });
-            }
-          }
+          // Get the comic first
+          const { data: comic, error: fetchError } = await supabase
+            .from("comics")
+            .select("*")
+            .eq("id", comicId)
+            .eq("user_id", userContext.userId)
+            .single();
 
-          if (!comic) {
+          if (fetchError || !comic) {
             return createErrorResponse(404, "Comic not found");
           }
 
@@ -810,15 +418,25 @@ export const handler: Handler = async (event) => {
             );
           }
 
-          const updatedComic = await prisma.comic.update({
-            where: { id: comic.id },
-            data: updateData,
-          });
+          const { data: updatedComic, error: updateError } = await supabase
+            .from("comics")
+            .update(updateData)
+            .eq("id", comicId)
+            .eq("user_id", userContext.userId)
+            .select()
+            .single();
 
-          return createResponse(200, updatedComic);
+          if (updateError) {
+            return createErrorResponse(
+              500,
+              `Failed to update comic: ${updateError.message}`
+            );
+          }
+
+          return createResponse(200, transformComicFromDatabase(updatedComic));
 
         case "PUT":
-          // Enhanced comic update with new fields
+          // Update comic
           if (!comicId) {
             return createErrorResponse(
               400,
@@ -833,23 +451,25 @@ export const handler: Handler = async (event) => {
             return createErrorResponse(400, "Invalid JSON body");
           }
 
-          const updateErrors = validateExtendedComicUpdate(updateBody);
-          if (updateErrors.length) {
-            return createResponse(422, {
-              error: "Validation failed",
-              errors: updateErrors,
-            });
+          const { data: updatedComicPut, error: putError } = await supabase
+            .from("comics")
+            .update(updateBody)
+            .eq("id", comicId)
+            .eq("user_id", userContext.userId)
+            .select()
+            .single();
+
+          if (putError) {
+            return createErrorResponse(
+              500,
+              `Failed to update comic: ${putError.message}`
+            );
           }
 
-          // Transform update data
-          const transformedUpdate = transformComicForDatabase(updateBody);
-
-          const updatedComicPut = await prisma.comic.update({
-            where: { id: comicId },
-            data: transformedUpdate,
-          });
-
-          return createResponse(200, updatedComicPut);
+          return createResponse(
+            200,
+            transformComicFromDatabase(updatedComicPut)
+          );
 
         case "DELETE":
           // Delete comic
@@ -860,9 +480,18 @@ export const handler: Handler = async (event) => {
             );
           }
 
-          await prisma.comic.delete({
-            where: { id: comicId },
-          });
+          const { error: deleteError } = await supabase
+            .from("comics")
+            .delete()
+            .eq("id", comicId)
+            .eq("user_id", userContext.userId);
+
+          if (deleteError) {
+            return createErrorResponse(
+              500,
+              `Failed to delete comic: ${deleteError.message}`
+            );
+          }
 
           return createResponse(204, null);
 
@@ -871,7 +500,7 @@ export const handler: Handler = async (event) => {
       }
     });
   } catch (error: any) {
-    console.error("Enhanced comics function error:", error);
+    console.error("Comics function error:", error);
     return createErrorResponse(500, `Internal server error: ${error.message}`);
   }
 };
