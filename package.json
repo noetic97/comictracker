@@ -19,7 +19,12 @@
     "db:studio": "npx prisma studio",
     "netlify:dev": "npx netlify dev",
     "netlify:build": "npx netlify build",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:api": "npm run test:api:health",
+    "test:api:health": "curl -s http://localhost:9999/.netlify/functions/health | jq",
+    "test:api:comics": "curl -s http://localhost:9999/.netlify/functions/comics?limit=5 | jq",
+    "test:api:favorites": "curl -s http://localhost:9999/.netlify/functions/favorites | jq",
+    "docs:rls": "echo 'See docs/rls-documentation.md for RLS setup instructions'"
   },
   "devDependencies": {
     "@netlify/functions": "^2.4.1",

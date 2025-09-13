@@ -1,5 +1,5 @@
 import { Handler } from "@netlify/functions";
-import { withPrisma } from "./utils/prisma";
+import { withSupabaseRLS } from "./utils/supabase";
 import { handleCors, createResponse, createErrorResponse } from "./utils/cors";
 
 interface AlertRequest {
@@ -8,17 +8,6 @@ interface AlertRequest {
   source: string;
   timestamp?: string;
   metadata?: Record<string, any>;
-}
-
-interface AlertLog {
-  id: string;
-  message: string;
-  severity: string;
-  source: string;
-  sentAt: Date;
-  telegramSent: boolean;
-  emailSent: boolean;
-  error?: string;
 }
 
 // Rate limiting - store in memory (could be moved to DB for persistence)
@@ -68,9 +57,10 @@ export const handler: Handler = async (event) => {
       });
     }
 
-    // Prepare alert message
-    const timestamp = alertData.timestamp || new Date().toISOString();
-    const fullMessage = `🚨 Comic Tracker Alert
+    return await withSupabaseRLS(event, async (supabase, userContext) => {
+      // Prepare alert message
+      const timestamp = alertData.timestamp || new Date().toISOString();
+      const fullMessage = `🚨 Comic Tracker Alert
 
 Severity: ${alertData.severity.toUpperCase()}
 Source: ${alertData.source}
@@ -84,69 +74,99 @@ ${
     : ""
 }`;
 
-    let telegramSent = false;
-    let emailSent = false;
-    let alertError: string | undefined;
+      let telegramSent = false;
+      let emailSent = false;
+      let alertError: string | undefined;
 
-    // Send Telegram alert
-    if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
-      try {
-        await sendTelegramAlert(fullMessage);
-        telegramSent = true;
-        console.log("✅ Telegram alert sent successfully");
-      } catch (error: any) {
-        console.error("❌ Telegram alert failed:", error.message);
-        alertError = `Telegram: ${error.message}`;
+      // Send Telegram alert
+      if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
+        try {
+          await sendTelegramAlert(fullMessage);
+          telegramSent = true;
+          console.log("✅ Telegram alert sent successfully");
+        } catch (error: any) {
+          console.error("❌ Telegram alert failed:", error.message);
+          alertError = `Telegram: ${error.message}`;
+        }
+      } else {
+        console.log("⚠️ Telegram not configured - skipping");
+        alertError = "Telegram: not configured";
       }
-    } else {
-      console.log("⚠️ Telegram not configured - skipping");
-      alertError = "Telegram: not configured";
-    }
 
-    // Send Email alert
-    if (process.env.SENDGRID_API_KEY && process.env.ALERT_EMAIL_TO) {
-      try {
-        await sendEmailAlert(
-          alertData.message,
-          fullMessage,
-          alertData.severity
-        );
-        emailSent = true;
-        console.log("✅ Email alert sent successfully");
-      } catch (error: any) {
-        console.error("❌ Email alert failed:", error.message);
+      // Send Email alert
+      if (process.env.SENDGRID_API_KEY && process.env.ALERT_EMAIL_TO) {
+        try {
+          await sendEmailAlert(
+            alertData.message,
+            fullMessage,
+            alertData.severity
+          );
+          emailSent = true;
+          console.log("✅ Email alert sent successfully");
+        } catch (error: any) {
+          console.error("❌ Email alert failed:", error.message);
+          alertError = alertError
+            ? `${alertError}; Email: ${error.message}`
+            : `Email: ${error.message}`;
+        }
+      } else {
+        console.log("⚠️ Email not configured - skipping");
         alertError = alertError
-          ? `${alertError}; Email: ${error.message}`
-          : `Email: ${error.message}`;
+          ? `${alertError}; Email: not configured`
+          : "Email: not configured";
       }
-    } else {
-      console.log("⚠️ Email not configured - skipping");
-      alertError = alertError
-        ? `${alertError}; Email: not configured`
-        : "Email: not configured";
-    }
 
-    console.log("📝 Alert processed:", {
-      message: alertData.message,
-      severity: alertData.severity,
-      source: alertData.source,
-      telegramSent,
-      emailSent,
-      error: alertError,
-      timestamp,
-    });
+      // Store alert in database using correct column names
+      try {
+        const alertRecord = {
+          message: alertData.message,
+          severity: alertData.severity,
+          source: alertData.source,
+          metadata: alertData.metadata || null,
+          telegramSent, // DB column is "telegramSent" (camelCase)
+          emailSent, // DB column is "emailSent" (camelCase)
+          sentAt: new Date().toISOString(), // DB column is "sentAt" (camelCase)
+          user_id: userContext.isAdmin ? null : userContext.userId, // System alerts have null user_id
+        };
 
-    // Update rate limiting
-    if (telegramSent || emailSent) {
-      alertHistory.set(alertKey, now);
-    }
+        const { error: insertError } = await supabase
+          .from("alert_logs")
+          .insert([alertRecord]);
 
-    return createResponse(200, {
-      message: "Alert processed",
-      telegramSent,
-      emailSent,
-      rateLimited: false,
-      error: alertError,
+        if (insertError) {
+          console.error("Failed to store alert in database:", insertError);
+          // Don't fail the whole operation if DB storage fails
+        } else {
+          console.log("📝 Alert stored in database");
+        }
+      } catch (dbError: any) {
+        console.error("Database storage error:", dbError);
+        // Continue with the response even if DB storage fails
+      }
+
+      console.log("📝 Alert processed:", {
+        message: alertData.message,
+        severity: alertData.severity,
+        source: alertData.source,
+        telegramSent,
+        emailSent,
+        error: alertError,
+        timestamp,
+      });
+
+      // Update rate limiting
+      if (telegramSent || emailSent) {
+        alertHistory.set(alertKey, now);
+      }
+
+      return createResponse(200, {
+        message: "Alert processed",
+        telegramSent,
+        emailSent,
+        rateLimited: false,
+        error: alertError,
+        stored: true, // Indicates if alert was stored in DB
+      });
     });
   } catch (error: any) {
     console.error("Alert system error:", error);

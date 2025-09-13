@@ -1,4 +1,3 @@
-// functions/favorites.ts - Updated with Supabase RLS
 import { Handler } from "@netlify/functions";
 import { handleCors, createResponse, createErrorResponse } from "./utils/cors";
 import {
