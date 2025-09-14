@@ -1,5 +1,3 @@
-import { createErrorResponse } from "../utils/cors";
-
 export interface ExtendedComicInput {
   // Core fields (required)
   publisher: string;
@@ -162,36 +160,36 @@ export const transformComicInput = (comic: ExtendedComicInput): any => {
     years: (comic.years || "").trim(),
     type: (comic.type || "").trim(),
     issue: comic.issue.trim(),
-    issue_number: parseNumericField(comic.issueNumber || comic.issue) || 1,
+    issueNumber: parseNumericField(comic.issueNumber || comic.issue) || 1,
 
     // Financial fields
-    current_value: parseNumericField(comic.currentValue) || 0,
-    price_paid: parseNumericField(comic.pricePaid),
+    currentValue: parseNumericField(comic.currentValue) || 0,
+    pricePaid: parseNumericField(comic.pricePaid),
 
     // Physical/ownership fields
     grade: comic.grade?.trim() || null,
-    grade_details: comic.gradeDetails?.trim() || null,
-    storage_location: comic.storageLocation?.trim() || null,
+    gradeDetails: comic.gradeDetails?.trim() || null,
+    storageLocation: comic.storageLocation?.trim() || null,
     notes: comic.notes?.trim() || null,
     cert: comic.cert?.trim() || null,
     signed: parseBooleanField(comic.signed),
-    variant_details: comic.variantDetails?.trim() || null,
+    variantDetails: comic.variantDetails?.trim() || null,
 
     // Date fields
-    date_added: parseDateField(comic.dateAdded),
-    issue_date: comic.issueDate?.trim() || null,
-    date_purchased: parseDateField(comic.datePurchased),
+    dateAdded: parseDateField(comic.dateAdded),
+    issueDate: comic.issueDate?.trim() || null,
+    datePurchased: parseDateField(comic.datePurchased),
 
     // Creative team fields
-    story_title: comic.storyTitle?.trim() || null,
+    storyTitle: comic.storyTitle?.trim() || null,
     description: comic.description?.trim() || null,
     writer: comic.writer?.trim() || null,
     artist: comic.artist?.trim() || null,
-    cover_artist: comic.coverArtist?.trim() || null,
+    coverArtist: comic.coverArtist?.trim() || null,
     letterer: comic.letterer?.trim() || null,
-    first_appearance: comic.firstAppearance?.trim() || null,
-    cover_image_url: comic.coverImageUrl?.trim() || null,
-    certification_company: comic.certificationCompany?.trim() || null,
+    firstAppearance: comic.firstAppearance?.trim() || null,
+    coverImage_url: comic.coverImageUrl?.trim() || null,
+    certificationCompany: comic.certificationCompany?.trim() || null,
 
     // User state - auto-determine collected based on pricePaid
     collected:

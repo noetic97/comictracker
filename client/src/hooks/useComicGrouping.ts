@@ -78,6 +78,8 @@ export const useComicGrouping = (
       0
     );
 
+    console.log({ comics });
+
     return {
       total,
       filtered,
