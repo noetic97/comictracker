@@ -16,8 +16,6 @@ export interface PublisherCardProps {
   filterOption: FilterOption;
   onTogglePublisher: (publisher: string) => void;
   onToggleSeries: (seriesKey: string) => void;
-  onCollect: (id: string) => void;
-  onToggleGrail: (id: string) => void;
   onOpenDetailView: (
     publisher: string,
     series: string,
@@ -39,8 +37,6 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
   filterOption,
   onTogglePublisher,
   onToggleSeries,
-  onCollect,
-  onToggleGrail,
   onOpenDetailView,
   onToggleFavoriteSeries,
 }) => {
@@ -111,11 +107,9 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
                     seriesSummary={seriesSummary}
                     $isExpanded={expandedSeries.includes(seriesKey)}
                     toggleSeries={onToggleSeries}
-                    currentPage={1} // We'll handle pagination later
+                    currentPage={1} // We'll handle pagination later in Phase 2
                     itemsPerPage={itemsPerPage}
-                    onCollect={onCollect}
-                    onToggleGrail={onToggleGrail}
-                    onPageChange={() => {}} // Handle later
+                    onPageChange={() => {}} // We'll handle pagination later in Phase 2
                     onOpenDetailView={onOpenDetailView}
                     isFavorite={isFavoriteSeries(
                       seriesSummary.publisher,

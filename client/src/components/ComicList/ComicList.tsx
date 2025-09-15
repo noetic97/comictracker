@@ -10,8 +10,6 @@ import ToTopButton from "./ToTopButton";
 import SeriesDetailView from "../SeriesDetailView";
 
 interface Props {
-  onCollect: (id: string) => void;
-  onToggleGrail: (id: string) => void;
   itemsPerPage: number;
   setItemsPerPage: (count: number) => void;
   filterOption: FilterOption;
@@ -24,8 +22,6 @@ interface Props {
 }
 
 const ComicList: React.FC<Props> = ({
-  onCollect,
-  onToggleGrail,
   itemsPerPage,
   setItemsPerPage,
   filterOption,
@@ -82,19 +78,15 @@ const ComicList: React.FC<Props> = ({
 
   // Render series detail view
   if (viewMode === "series-detail" && selectedSeries) {
-    // For now, we'll need to keep the existing SeriesDetailView
-    // We can update this later to use the new progressive loading
     return (
       <SeriesDetailView
-        comics={[]} // Will need to fetch these
         publisher={selectedSeries.publisher}
         series={selectedSeries.series}
         volume={selectedSeries.volume}
-        onCollect={onCollect}
-        onToggleGrail={onToggleGrail}
         onBack={handleBackToGrid}
         itemsPerPage={itemsPerPage}
         setItemsPerPage={setItemsPerPage}
+        filterOption={filterOption} // Pass global filter state
         isFavorite={favoriteSeries.some(
           (fav) =>
             fav.publisher === selectedSeries.publisher &&
@@ -146,8 +138,6 @@ const ComicList: React.FC<Props> = ({
               filterOption={filterOption}
               onTogglePublisher={togglePublisher}
               onToggleSeries={toggleSeries}
-              onCollect={onCollect}
-              onToggleGrail={onToggleGrail}
               onOpenDetailView={handleOpenDetailView}
               onToggleFavoriteSeries={onToggleFavoriteSeries}
             />

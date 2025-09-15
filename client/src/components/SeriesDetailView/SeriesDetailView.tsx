@@ -1,5 +1,10 @@
-import React, { useState, useMemo } from "react";
-import { Comic } from "../../types";
+import React, { useState, useMemo, useCallback } from "react";
+import { FilterOption, Comic } from "../../types";
+import {
+  useSeriesComics,
+  useComicStats,
+} from "../../hooks/useComicAggregations";
+import { useComicActions } from "../../hooks/useComicActions";
 import PaginationControls from "../ComicList/PaginationControls";
 import SeriesHeader from "./SeriesHeader";
 import CollapsibleStatsSection from "./CollapsibleStatsSection";
@@ -8,60 +13,159 @@ import ComicsGrid from "./ComicsGrid";
 import * as S from "./styles";
 
 interface SeriesDetailViewProps {
-  comics: Comic[];
   publisher: string;
   series: string;
   volume?: string;
-  onCollect: (id: string) => void;
-  onToggleGrail: (id: string) => void;
   onBack: () => void;
   itemsPerPage: number;
   setItemsPerPage: (count: number) => void;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  filterOption: FilterOption; // Pass global filter state
 }
 
 const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
-  comics,
   publisher,
   series,
   volume,
-  onCollect,
-  onToggleGrail,
   onBack,
   itemsPerPage,
   setItemsPerPage,
   isFavorite,
   onToggleFavorite,
+  filterOption,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isStatsCollapsed, setIsStatsCollapsed] = useState(false);
 
+  // Use hooks to fetch series-specific data
+  const {
+    comics,
+    loading: comicsLoading,
+    error: comicsError,
+    refetch: refetchComics,
+  } = useSeriesComics(
+    publisher,
+    series,
+    volume || null,
+    currentPage,
+    itemsPerPage,
+    true, // always enabled for detail view
+    { filterOption } // pass global filters
+  );
+
+  // Fetch series-specific stats using the same filters
+  const {
+    stats,
+    loading: statsLoading,
+    error: statsError,
+    refetch: refetchStats,
+  } = useComicStats({
+    publisher,
+    series,
+    filterOption,
+  });
+
+  // Handle comic actions internally
+  const comicActions = useComicActions({
+    onComicUpdated: useCallback(
+      (updatedComic: Comic) => {
+        console.log("Comic updated in SeriesDetailView:", updatedComic);
+        // Refetch both comics and stats after successful update
+        refetchComics();
+        refetchStats();
+      },
+      [refetchComics, refetchStats]
+    ),
+    onError: useCallback((error: string, comic: Comic) => {
+      console.error("Comic action failed:", error, comic);
+      // Could show toast/notification here in the future
+    }, []),
+    optimisticUpdates: true,
+  });
+
+  // Internal action handlers
+  const handleCollect = useCallback(
+    async (id: string) => {
+      const comic = comics.find((c) => c.id === id);
+      if (!comic) {
+        console.error("Comic not found in current page:", id);
+        return;
+      }
+      await comicActions.handleCollectedToggle(comic);
+    },
+    [comics, comicActions]
+  );
+
+  const handleToggleGrail = useCallback(
+    async (id: string) => {
+      const comic = comics.find((c) => c.id === id);
+      if (!comic) {
+        console.error("Comic not found in current page:", id);
+        return;
+      }
+      await comicActions.handleGrailToggle(comic);
+    },
+    [comics, comicActions]
+  );
+
+  // Sort comics (keep existing sorting logic)
   const sortedComics = useMemo(() => {
     return [...comics].sort((a, b) => {
-      const comparison = (a.issueNumber ?? 0) - (b.issueNumber ?? 0);
+      const aNum = parseFloat(a.issue) || 0;
+      const bNum = parseFloat(b.issue) || 0;
+      const comparison = aNum - bNum;
       return sortOrder === "asc" ? comparison : -comparison;
     });
   }, [comics, sortOrder]);
 
-  const totalPages = Math.ceil(sortedComics.length / itemsPerPage);
-  const paginatedComics = sortedComics.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  // Calculate total pages from stats (total count) rather than current page data
+  const totalPages = stats
+    ? Math.ceil(stats.total / itemsPerPage)
+    : Math.ceil(comics.length / itemsPerPage);
 
-  const totalValue = comics.reduce(
-    (sum, comic) => sum + (comic.currentValue ?? 0),
-    0
-  );
-  const collectedCount = comics.filter((comic) => comic.collected).length;
-  const grailCount = comics.filter((comic) => comic.isGrail).length;
+  // Handle loading states
+  if (comicsLoading || statsLoading) {
+    return (
+      <S.SeriesDetailContainer data-sc="SeriesDetailContainer">
+        <S.CompactHeader data-sc="CompactHeader">
+          <SeriesHeader
+            publisher={publisher}
+            series={series}
+            volume={volume}
+            isFavorite={isFavorite}
+            onToggleFavorite={onToggleFavorite}
+            onBack={onBack}
+          />
+        </S.CompactHeader>
+        <div style={{ padding: "2rem", textAlign: "center" }}>
+          Loading series data...
+        </div>
+      </S.SeriesDetailContainer>
+    );
+  }
 
-  // Calculate the value of collected comics - NEW METRIC!
-  const collectedValue = comics
-    .filter((comic) => comic.collected)
-    .reduce((sum, comic) => sum + (comic.currentValue ?? 0), 0);
+  // Handle error states
+  if (comicsError || statsError) {
+    return (
+      <S.SeriesDetailContainer data-sc="SeriesDetailContainer">
+        <S.CompactHeader data-sc="CompactHeader">
+          <SeriesHeader
+            publisher={publisher}
+            series={series}
+            volume={volume}
+            isFavorite={isFavorite}
+            onToggleFavorite={onToggleFavorite}
+            onBack={onBack}
+          />
+        </S.CompactHeader>
+        <div style={{ padding: "2rem", textAlign: "center", color: "#ff6b6b" }}>
+          Error loading series data: {comicsError || statsError}
+        </div>
+      </S.SeriesDetailContainer>
+    );
+  }
 
   return (
     <S.SeriesDetailContainer data-sc="SeriesDetailContainer">
@@ -76,11 +180,11 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
         />
 
         <CollapsibleStatsSection
-          totalIssues={comics.length}
-          collectedCount={collectedCount}
-          grailCount={grailCount}
-          totalValue={totalValue}
-          collectedValue={collectedValue}
+          totalIssues={stats?.total || 0}
+          collectedCount={stats?.collected || 0}
+          grailCount={stats?.grails || 0}
+          totalValue={stats?.totalValue || 0}
+          collectedValue={stats?.collectedValue || 0}
           isCollapsed={isStatsCollapsed}
           onToggle={() => setIsStatsCollapsed(!isStatsCollapsed)}
         />
@@ -95,9 +199,9 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
       </S.CompactHeader>
 
       <ComicsGrid
-        comics={paginatedComics}
-        onCollect={onCollect}
-        onToggleGrail={onToggleGrail}
+        comics={sortedComics}
+        onCollect={handleCollect}
+        onToggleGrail={handleToggleGrail}
       />
 
       <S.StickyFooter data-sc="StickyFooter">

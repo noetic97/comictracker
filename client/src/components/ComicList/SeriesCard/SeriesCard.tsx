@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { ExternalLink, Heart, Star, Check } from "lucide-react";
 import { SeriesSummary } from "../../../hooks/useComicAggregations";
 import { useSeriesComics } from "../../../hooks/useComicAggregations";
+import { useComicActions } from "../../../hooks/useComicActions";
+import { Comic } from "../../../types";
 import PaginationControls from "../PaginationControls";
 import Button from "../../shared/Button";
 import * as S from "./styles";
@@ -13,8 +15,6 @@ interface SeriesCardProps {
   toggleSeries: (series: string) => void;
   currentPage: number;
   itemsPerPage: number;
-  onCollect: (id: string) => void;
-  onToggleGrail: (id: string) => void;
   onPageChange: (page: number) => void;
   onOpenDetailView: (
     publisher: string,
@@ -35,8 +35,6 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
   onToggleFavorite,
   currentPage,
   itemsPerPage,
-  onCollect,
-  onToggleGrail,
   onPageChange,
 }) => {
   const handleDetailView = () => {
@@ -51,14 +49,6 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
   const displayTitle = seriesSummary.volume
     ? `${seriesSummary.series} - ${seriesSummary.volume}`
     : seriesSummary.series;
-
-  // derive total pages from aggregation (issueCount is total issues in the series)
-  const totalPages = Math.max(
-    1,
-    Math.ceil(
-      seriesSummary.issueCount / /* fallback */ (seriesSummary.issueCount || 1)
-    )
-  );
 
   return (
     <S.SeriesCard data-sc="SeriesCard">
@@ -127,8 +117,6 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
             volume={seriesSummary.volume}
             currentPage={currentPage}
             itemsPerPage={itemsPerPage}
-            onCollect={onCollect}
-            onToggleGrail={onToggleGrail}
             onPageChange={onPageChange}
             totalIssues={seriesSummary.issueCount}
           />
@@ -138,16 +126,12 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
   );
 };
 
-export default SeriesCard;
-
 interface SeriesComicsListProps {
   publisher: string;
   series: string;
   volume?: string;
   currentPage: number;
   itemsPerPage: number;
-  onCollect: (id: string) => void;
-  onToggleGrail: (id: string) => void;
   onPageChange: (page: number) => void;
   totalIssues: number;
 }
@@ -158,18 +142,62 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
   volume,
   currentPage,
   itemsPerPage,
-  onCollect,
-  onToggleGrail,
   onPageChange,
   totalIssues,
 }) => {
-  const { comics, loading, error } = useSeriesComics(
+  const {
+    comics,
+    loading,
+    error,
+    refetch: refetchComics,
+  } = useSeriesComics(
     publisher,
     series,
     volume || null,
     currentPage,
     itemsPerPage,
     true
+  );
+
+  // Handle comic actions internally
+  const comicActions = useComicActions({
+    onComicUpdated: useCallback(
+      (updatedComic: Comic) => {
+        console.log("Comic updated in SeriesCard:", updatedComic);
+        // Refetch comics after successful update
+        refetchComics();
+      },
+      [refetchComics]
+    ),
+    onError: useCallback((error: string, comic: Comic) => {
+      console.error("Comic action failed in SeriesCard:", error, comic);
+    }, []),
+    optimisticUpdates: true,
+  });
+
+  // Internal action handlers
+  const handleCollect = useCallback(
+    async (id: string) => {
+      const comic = comics.find((c) => c.id === id);
+      if (!comic) {
+        console.error("Comic not found in current page:", id);
+        return;
+      }
+      await comicActions.handleCollectedToggle(comic);
+    },
+    [comics, comicActions]
+  );
+
+  const handleToggleGrail = useCallback(
+    async (id: string) => {
+      const comic = comics.find((c) => c.id === id);
+      if (!comic) {
+        console.error("Comic not found in current page:", id);
+        return;
+      }
+      await comicActions.handleGrailToggle(comic);
+    },
+    [comics, comicActions]
   );
 
   const totalPages = Math.max(1, Math.ceil(totalIssues / itemsPerPage));
@@ -208,14 +236,14 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
           </S.ComicInfo>
           <S.ComicActions>
             <S.ActionButton
-              onClick={() => onToggleGrail(comic.id)}
+              onClick={() => handleToggleGrail(comic.id)}
               $isActive={comic.isGrail}
               title={comic.isGrail ? "Remove from grails" : "Mark as grail"}
             >
               <Star size={16} fill={comic.isGrail ? "currentColor" : "none"} />
             </S.ActionButton>
             <S.ActionButton
-              onClick={() => onCollect(comic.id)}
+              onClick={() => handleCollect(comic.id)}
               $isActive={comic.collected}
               title={
                 comic.collected ? "Mark as uncollected" : "Mark as collected"
@@ -236,3 +264,5 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
     </>
   );
 };
+
+export default SeriesCard;
