@@ -1,28 +1,17 @@
 import React from "react";
 import StatsDisplay from "../StatsDisplay";
+import { FilterOption } from "../../../types";
 import * as S from "./styles";
 
 export interface ControlsSectionProps {
   isAllExpanded: boolean;
   onToggleAll: () => void;
-  totalComics: number;
-  filteredComics: number;
-  collectedComics: number;
-  grailComics: number;
-  totalValue: number;
-  collectedValue: number;
-  filterOption: string;
+  filterOption: FilterOption;
 }
 
 const ControlsSection: React.FC<ControlsSectionProps> = ({
   isAllExpanded,
   onToggleAll,
-  totalComics,
-  filteredComics,
-  collectedComics,
-  grailComics,
-  totalValue,
-  collectedValue,
   filterOption,
 }) => {
   return (
@@ -32,15 +21,7 @@ const ControlsSection: React.FC<ControlsSectionProps> = ({
           {isAllExpanded ? "Collapse All" : "Expand All"}
         </S.ToggleButton>
 
-        <StatsDisplay
-          totalComics={totalComics}
-          filteredComics={filteredComics}
-          collectedComics={collectedComics}
-          grailComics={grailComics}
-          totalValue={totalValue}
-          collectedValue={collectedValue}
-          filterOption={filterOption}
-        />
+        <StatsDisplay filterOption={filterOption} />
       </S.ControlsRow>
     </S.ControlsContainer>
   );

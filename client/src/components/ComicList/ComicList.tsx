@@ -1,15 +1,15 @@
 import React, { useState } from "react";
-import { Comic, FavoriteSeries, FilterOption, ViewMode } from "../../types";
+import { FavoriteSeries, FilterOption, ViewMode } from "../../types";
+import { usePublisherSummaries } from "../../hooks/useComicAggregations";
+import { useExpandedState } from "../../hooks";
 import * as S from "./styles";
 import ErrorMessage from "../shared/ErrorMessage";
 import ControlsSection from "./ControlsSection";
 import PublisherCard from "./PublisherCard";
 import ToTopButton from "./ToTopButton";
 import SeriesDetailView from "../SeriesDetailView";
-import { useComicGrouping, useExpandedState } from "../../hooks";
 
 interface Props {
-  comics: Comic[];
   onCollect: (id: string) => void;
   onToggleGrail: (id: string) => void;
   itemsPerPage: number;
@@ -24,7 +24,6 @@ interface Props {
 }
 
 const ComicList: React.FC<Props> = ({
-  comics,
   onCollect,
   onToggleGrail,
   itemsPerPage,
@@ -33,9 +32,6 @@ const ComicList: React.FC<Props> = ({
   favoriteSeries,
   onToggleFavoriteSeries,
 }) => {
-  const [currentPages, setCurrentPages] = useState<{ [key: string]: number }>(
-    {}
-  );
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [selectedSeries, setSelectedSeries] = useState<{
@@ -44,17 +40,20 @@ const ComicList: React.FC<Props> = ({
     volume?: string;
   } | null>(null);
 
-  // Use the comic grouping hook for all data processing
-  const { filteredComics, groupedComics, stats } = useComicGrouping(
-    comics,
-    filterOption,
-    favoriteSeries,
-    {
-      onError: (errorMessage) => setError(errorMessage),
-    }
-  );
+  // Use our new hook to fetch publisher summaries
+  const {
+    publishers,
+    loading: publishersLoading,
+    error: publishersError,
+  } = usePublisherSummaries({ filterOption });
 
-  // Use the expanded state hook for all expansion logic
+  // Convert publishers array to the grouped format expected by existing components
+  const groupedComics = publishers.reduce((acc, pub) => {
+    acc[pub.publisher] = {}; // We'll load series data when publisher is expanded
+    return acc;
+  }, {} as { [publisher: string]: any });
+
+  // Use the expanded state hook
   const {
     expandedPublishers,
     expandedSeries,
@@ -63,10 +62,6 @@ const ComicList: React.FC<Props> = ({
     togglePublisher,
     toggleSeries,
   } = useExpandedState(groupedComics);
-
-  const handlePageChange = (series: string, newPage: number) => {
-    setCurrentPages((prev) => ({ ...prev, [series]: newPage }));
-  };
 
   const handleOpenDetailView = (
     publisher: string,
@@ -82,25 +77,16 @@ const ComicList: React.FC<Props> = ({
     setSelectedSeries(null);
   };
 
+  // Handle errors
+  const combinedError = error || publishersError;
+
   // Render series detail view
   if (viewMode === "series-detail" && selectedSeries) {
-    const seriesComics = filteredComics.filter(
-      (comic) =>
-        comic.publisher === selectedSeries.publisher &&
-        comic.series === selectedSeries.series &&
-        comic.volume === (selectedSeries.volume || "")
-    );
-
-    const isFavorite = favoriteSeries.some(
-      (fav) =>
-        fav.publisher === selectedSeries.publisher &&
-        fav.series === selectedSeries.series &&
-        fav.volume === (selectedSeries.volume || "")
-    );
-
+    // For now, we'll need to keep the existing SeriesDetailView
+    // We can update this later to use the new progressive loading
     return (
       <SeriesDetailView
-        comics={seriesComics}
+        comics={[]} // Will need to fetch these
         publisher={selectedSeries.publisher}
         series={selectedSeries.series}
         volume={selectedSeries.volume}
@@ -109,7 +95,12 @@ const ComicList: React.FC<Props> = ({
         onBack={handleBackToGrid}
         itemsPerPage={itemsPerPage}
         setItemsPerPage={setItemsPerPage}
-        isFavorite={isFavorite}
+        isFavorite={favoriteSeries.some(
+          (fav) =>
+            fav.publisher === selectedSeries.publisher &&
+            fav.series === selectedSeries.series &&
+            fav.volume === (selectedSeries.volume || "")
+        )}
         onToggleFavorite={() =>
           onToggleFavoriteSeries(
             selectedSeries.publisher,
@@ -124,9 +115,9 @@ const ComicList: React.FC<Props> = ({
   // Render grid view
   return (
     <S.ComicListContainer data-sc="ComicListContainer">
-      {error && (
+      {combinedError && (
         <ErrorMessage
-          message={error}
+          message={combinedError}
           type="error"
           onDismiss={() => setError(null)}
         />
@@ -135,36 +126,34 @@ const ComicList: React.FC<Props> = ({
       <ControlsSection
         isAllExpanded={isAllExpanded}
         onToggleAll={toggleAll}
-        totalComics={stats.total}
-        filteredComics={stats.filtered}
-        collectedComics={stats.collected}
-        grailComics={stats.grails}
-        totalValue={stats.totalValue}
-        collectedValue={stats.collectedValue}
         filterOption={filterOption}
       />
 
-      <S.PublisherGrid data-sc="PublisherGrid">
-        {Object.entries(groupedComics).map(([publisher, publisherComics]) => (
-          <PublisherCard
-            key={publisher}
-            publisher={publisher}
-            publisherComics={publisherComics}
-            isExpanded={expandedPublishers.includes(publisher)}
-            expandedSeries={expandedSeries}
-            currentPages={currentPages}
-            itemsPerPage={itemsPerPage}
-            favoriteSeries={favoriteSeries}
-            onTogglePublisher={togglePublisher}
-            onToggleSeries={toggleSeries}
-            onPageChange={handlePageChange}
-            onCollect={onCollect}
-            onToggleGrail={onToggleGrail}
-            onOpenDetailView={handleOpenDetailView}
-            onToggleFavoriteSeries={onToggleFavoriteSeries}
-          />
-        ))}
-      </S.PublisherGrid>
+      {publishersLoading ? (
+        <div>Loading publishers...</div>
+      ) : (
+        <S.PublisherGrid data-sc="PublisherGrid">
+          {publishers.map((publisherSummary) => (
+            <PublisherCard
+              key={publisherSummary.publisher}
+              publisherSummary={publisherSummary}
+              isExpanded={expandedPublishers.includes(
+                publisherSummary.publisher
+              )}
+              expandedSeries={expandedSeries}
+              itemsPerPage={itemsPerPage}
+              favoriteSeries={favoriteSeries}
+              filterOption={filterOption}
+              onTogglePublisher={togglePublisher}
+              onToggleSeries={toggleSeries}
+              onCollect={onCollect}
+              onToggleGrail={onToggleGrail}
+              onOpenDetailView={handleOpenDetailView}
+              onToggleFavoriteSeries={onToggleFavoriteSeries}
+            />
+          ))}
+        </S.PublisherGrid>
+      )}
 
       <ToTopButton />
     </S.ComicListContainer>

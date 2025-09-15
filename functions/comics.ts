@@ -1,6 +1,11 @@
 import { Handler } from "@netlify/functions";
 import { handleCors, createResponse, createErrorResponse } from "./utils/cors";
 import { withSupabaseRLS } from "./utils/supabase";
+import {
+  handleGetStats,
+  handleGetPublishers,
+  handleGetSeries,
+} from "./comics/aggregations";
 import { handleBulkImport } from "./comics/bulkOperations";
 import { validateComic, transformComicOutput } from "./comics/validation";
 
@@ -11,10 +16,25 @@ const parseComicRoute = (path: string) => {
   const segments = path?.split("/").filter(Boolean) || [];
 
   // Handle different URL patterns:
+  // /api/comics/stats
+  // /api/comics/publishers
+  // /api/comics/series
+  // /api/comics/bulk
   // /api/comics/123
   // /api/comics/123/collect
   // /api/comics/123/grail
-  // /api/comics/bulk
+
+  if (segments.includes("stats")) {
+    return { isStats: true };
+  }
+
+  if (segments.includes("publishers")) {
+    return { isPublishers: true };
+  }
+
+  if (segments.includes("series")) {
+    return { isSeries: true };
+  }
 
   if (segments.includes("bulk")) {
     return { isBulk: true };
@@ -43,6 +63,7 @@ const handleGetComics = async (
   const {
     publisher,
     series,
+    volume,
     collected,
     isGrail,
     signed,
@@ -52,11 +73,16 @@ const handleGetComics = async (
     exact,
     page = "1",
     limit = "25",
+    offset,
+    order,
   } = queryParams || {};
 
   const pageNum = parseInt(page, 10);
   const limitNum = parseInt(limit, 10);
-  const offset = (pageNum - 1) * limitNum;
+  const offsetNum =
+    offset !== undefined
+      ? parseInt(offset as string, 10)
+      : (pageNum - 1) * limitNum;
 
   console.log(
     `📋 Getting comics for user ${userId}, page ${pageNum}, limit ${limitNum}`
@@ -66,9 +92,30 @@ const handleGetComics = async (
   let query = supabase
     .from("comics")
     .select("*", { count: "exact" })
-    .eq("user_id", userId) // user_id is snake_case in DB
-    .order("series", { ascending: true })
-    .order("issueNumber", { ascending: true }); // CORRECTED: issueNumber is camelCase in DB
+    .eq("user_id", userId);
+
+  const applyOrder = (ord?: string) => {
+    const whitelist = new Set(["series", "issueNumber", "id"]);
+    if (!ord) {
+      query = query
+        .order("series", { ascending: true })
+        .order("issueNumber", { ascending: true })
+        .order("id", { ascending: true });
+      return;
+    }
+    const parts = ord.split(",").map((s) => s.trim());
+    for (const p of parts) {
+      const [col, dir] = p.split("."); // e.g., series.asc
+      if (whitelist.has(col)) {
+        query = query.order(col, {
+          ascending: (dir ?? "asc").toLowerCase() !== "desc",
+        });
+      }
+    }
+    // Ensure deterministic tiebreaker
+    query = query.order("id", { ascending: true });
+  };
+  applyOrder(order as string | undefined);
 
   // Apply filters using CORRECT database column names
   if (publisher) {
@@ -83,6 +130,13 @@ const handleGetComics = async (
       query = query.eq("series", series);
     } else {
       query = query.ilike("series", `%${series}%`);
+    }
+  }
+  if (volume) {
+    if (exact === "true") {
+      query = query.eq("volume", volume);
+    } else {
+      query = query.ilike("volume", `%${volume}%`);
     }
   }
   if (collected === "true") query = query.eq("collected", true);
@@ -101,7 +155,7 @@ const handleGetComics = async (
   }
 
   // Apply pagination
-  query = query.range(offset, offset + limitNum - 1);
+  query = query.range(offsetNum, offsetNum + limitNum - 1);
 
   const { data: comics, error, count } = await query;
 
@@ -283,6 +337,30 @@ export const handler: Handler = async (event) => {
     console.log(`📡 Comics API: ${httpMethod} ${path}`);
 
     return await withSupabaseRLS(event, async (supabase, userContext) => {
+      // Handle aggregation endpoints
+      if (route.isStats && httpMethod === "GET") {
+        return await handleGetStats(
+          supabase,
+          userContext.userId,
+          event.queryStringParameters
+        );
+      }
+
+      if (route.isPublishers && httpMethod === "GET") {
+        return await handleGetPublishers(
+          supabase,
+          userContext.userId,
+          event.queryStringParameters
+        );
+      }
+
+      if (route.isSeries && httpMethod === "GET") {
+        return await handleGetSeries(
+          supabase,
+          userContext.userId,
+          event.queryStringParameters
+        );
+      }
       // Handle bulk operations
       if (route.isBulk && httpMethod === "POST") {
         let body: any = {};
