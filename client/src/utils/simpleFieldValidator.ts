@@ -139,7 +139,7 @@ const parseDate = (input: any): Date | null => {
 };
 
 /**
- * Main validation function - fast and simple
+ * Main validation function - FIXED to use correct database field names
  * This replaces the complex normalizeComicFields function
  */
 export const validateComicFields = (rawData: any): ValidationResult => {
@@ -162,18 +162,18 @@ export const validateComicFields = (rawData: any): ValidationResult => {
     return { isValid: false, data: {}, errors, warnings };
   }
 
-  // Optional text fields - simple assignment
+  // Optional text fields - using EXACT database column names (camelCase)
   data.volume = parseText(rawData.Volume) || "";
   data.years = parseText(rawData.Years) || "";
   data.type = parseText(rawData.Type) || "";
   data.notes = parseText(rawData.Notes);
   data.cert = parseText(rawData.CERT);
-  data.storageLocation = parseText(rawData.storageLocation || rawData.Pile);
+  data.storageLocation = parseText(rawData.storageLocation || rawData.Pile); // camelCase
 
-  // Numeric fields
-  data.currentValue = parseNumeric(rawData["Current Value"], 0);
-  data.pricePaid = parseNumeric(rawData["Price Paid"]);
-  data.issueNumber = parseNumeric(rawData.Issue, 1);
+  // Numeric fields - using EXACT database column names (camelCase)
+  data.currentValue = parseNumeric(rawData["Current Value"], 0); // camelCase
+  data.pricePaid = parseNumeric(rawData["Price Paid"]); // camelCase
+  data.issueNumber = parseNumeric(rawData.Issue, 1); // camelCase
 
   // Grade - accept any string
   const gradeResult = validateGrade(rawData.Grade);
@@ -185,20 +185,29 @@ export const validateComicFields = (rawData: any): ValidationResult => {
   // Boolean fields
   data.signed = parseBoolean(rawData.Signed);
 
-  // Dates - simple parsing only
-  data.dateAdded = parseDate(rawData["Date Added"]);
-  data.datePurchased = parseDate(rawData["Date Purchased"]);
+  // Date fields - using EXACT database column names (camelCase)
+  data.dateAdded = parseDate(rawData["Date Added"]); // camelCase
+  data.datePurchased = parseDate(rawData["Date Purchased"]); // camelCase
 
   // Auto-determine collected status
   data.collected = data.pricePaid !== null && data.pricePaid >= 0;
-  data.isGrail = false;
+  data.isGrail = false; // camelCase
 
-  // Creative team fields (if present)
-  data.storyTitle = parseText(rawData["Story Title"]);
+  // Creative team fields (if present) - using EXACT database column names (camelCase)
+  data.storyTitle = parseText(rawData["Story Title"]); // camelCase
   data.writer = parseText(rawData.Writer);
   data.artist = parseText(rawData.Artist);
-  data.coverArtist = parseText(rawData["Cover Artist"]);
+  data.coverArtist = parseText(rawData["Cover Artist"]); // camelCase
   data.description = parseText(rawData.Description);
+
+  // Additional fields - using EXACT database column names (camelCase)
+  data.gradeDetails = parseText(rawData["Grade Details"]); // camelCase
+  data.variantDetails = parseText(rawData["Variant Details"]); // camelCase
+  data.issueDate = parseText(rawData["Issue Date"]); // camelCase
+  data.letterer = parseText(rawData.Letterer);
+  data.firstAppearance = parseText(rawData["First Appearance"]); // camelCase
+  data.coverImageUrl = parseText(rawData["Cover Image URL"]); // camelCase
+  data.certificationCompany = parseText(rawData["Certification Company"]); // camelCase
 
   return {
     isValid: true,

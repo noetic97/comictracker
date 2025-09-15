@@ -174,124 +174,87 @@ export const withSupabaseRLS = async <T>(
 
 /**
  * Type definitions for database operations
- * These will help with TypeScript autocomplete
+ * These match the ACTUAL database schema (camelCase for most fields)
  */
 export interface DatabaseComic {
   id: string;
-  user_id: string;
+  user_id: string; // Only user_id is snake_case
   publisher: string;
   series: string;
   volume: string;
   years: string;
   type: string;
   issue: string;
-  issue_number: number;
-  current_value: number;
-  price_paid: number | null;
+  issueNumber: number; // camelCase in database
+  currentValue: number; // camelCase in database
+  pricePaid: number | null; // camelCase in database
   grade: string | null;
-  grade_details: string | null;
-  storage_location: string | null;
+  gradeDetails: string | null; // camelCase in database
+  storageLocation: string | null; // camelCase in database
   notes: string | null;
   cert: string | null;
   signed: boolean;
-  variant_details: string | null;
-  date_added: string | null;
-  issue_date: string | null;
-  date_purchased: string | null;
-  story_title: string | null;
+  variantDetails: string | null; // camelCase in database
+  dateAdded: string | null; // camelCase in database
+  issueDate: string | null; // camelCase in database
+  datePurchased: string | null; // camelCase in database
+  storyTitle: string | null; // camelCase in database
   description: string | null;
   writer: string | null;
   artist: string | null;
-  cover_artist: string | null;
+  coverArtist: string | null; // camelCase in database
   letterer: string | null;
-  first_appearance: string | null;
-  cover_image_url: string | null;
-  certification_company: string | null;
+  firstAppearance: string | null; // camelCase in database
+  coverImageUrl: string | null; // camelCase in database
+  certificationCompany: string | null; // camelCase in database
   collected: boolean;
-  is_grail: boolean;
-  created_at: string;
-  updated_at: string;
+  isGrail: boolean; // camelCase in database
+  createdAt: string; // camelCase in database
+  updatedAt: string; // camelCase in database
 }
 
 export interface DatabaseFavoriteSeries {
   id: string;
-  user_id: string;
+  user_id: string; // Only user_id is snake_case
   publisher: string;
   series: string;
   volume: string;
-  date_added: string;
-  created_at: string;
-  updated_at: string;
+  dateAdded: string; // camelCase in database
+  createdAt: string; // camelCase in database
+  updatedAt: string; // camelCase in database
 }
 
 /**
- * Transform camelCase fields to snake_case for database
+ * REMOVED: Incorrect transformation functions
+ * The database uses camelCase for most fields, so no transformation needed
+ * Only user_id is snake_case, which we handle in transformComicOutput
  */
-export const transformToDatabase = (data: any): any => {
-  const transformed: any = {};
 
-  // Field mapping from frontend camelCase to database snake_case
-  const fieldMapping: Record<string, string> = {
-    issueNumber: "issue_number",
-    currentValue: "current_value",
-    pricePaid: "price_paid",
-    gradeDetails: "grade_details",
-    storageLocation: "storage_location",
-    variantDetails: "variant_details",
-    dateAdded: "date_added",
-    issueDate: "issue_date",
-    datePurchased: "date_purchased",
-    storyTitle: "story_title",
-    coverArtist: "cover_artist",
-    firstAppearance: "first_appearance",
-    coverImageUrl: "cover_image_url",
-    certificationCompany: "certification_company",
-    isGrail: "is_grail",
-    userId: "user_id",
-    createdAt: "created_at",
-    updatedAt: "updated_at",
-  };
-
-  Object.entries(data).forEach(([key, value]) => {
-    const dbKey = fieldMapping[key] || key;
-    transformed[dbKey] = value;
-  });
-
-  return transformed;
+/**
+ * SIMPLIFIED: No field transformations needed except user_id
+ * The database uses camelCase, so we pass data through as-is
+ */
+export const transformFromDatabase = (data: any): any => {
+  if (data.user_id) {
+    return {
+      ...data,
+      userId: data.user_id,
+    };
+  }
+  return data;
 };
 
 /**
- * Transform snake_case fields from database to camelCase for frontend
+ * SIMPLIFIED: No field transformations needed except userId -> user_id
+ * The database uses camelCase, so we pass data through as-is
  */
-export const transformFromDatabase = (data: any): any => {
-  const transformed: any = {};
-
-  // Reverse mapping from database snake_case to frontend camelCase
-  const fieldMapping: Record<string, string> = {
-    issue_number: "issueNumber",
-    current_value: "currentValue",
-    price_paid: "pricePaid",
-    grade_details: "gradeDetails",
-    storage_location: "storageLocation",
-    variant_details: "variantDetails",
-    date_added: "dateAdded",
-    issue_date: "issueDate",
-    date_purchased: "datePurchased",
-    story_title: "storyTitle",
-    cover_artist: "coverArtist",
-    first_appearance: "firstAppearance",
-    cover_image_url: "coverImageUrl",
-    certification_company: "certificationCompany",
-    is_grail: "isGrail",
-    user_id: "userId",
-    created_at: "createdAt",
-    updated_at: "updatedAt",
-  };
-
-  Object.entries(data).forEach(([key, value]) => {
-    const frontendKey = fieldMapping[key] || key;
-    transformed[frontendKey] = value;
-  });
-
-  return transformed;
+export const transformToDatabase = (data: any): any => {
+  if (data.userId) {
+    const { userId, ...rest } = data;
+    return {
+      ...rest,
+      user_id: userId,
+    };
+  }
+  return data;
 };

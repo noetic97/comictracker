@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x", "rhel-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
 }
 
@@ -8,104 +8,144 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Comic {
-  id           String   @id @default(cuid())
-  
-  // Core identification (existing)
-  publisher    String
-  series       String
-  volume       String   @default("")
-  years        String   @default("")
-  type         String   @default("")
-  issue        String
-  issueNumber  Int
-  
-  // Financial data (extended)
-  currentValue Float                    // Market value
-  pricePaid    Float?                   // What user paid (null = want list item)
-  
-  // Physical/ownership data (simplified)
-  grade        String?                  // SIMPLIFIED: Any string grade (9.8, NM, CGC 9.8 SS, etc.)
-  gradeDetails String?                  // Special designations (Signature Series, Restored, etc.)
-  storageLocation String?               // Where comic is physically stored
-  notes        String?                  // User notes
-  cert         String?                  // Certificate number (CGC/CBCS)
-  signed       Boolean  @default(false) // Is it signed?
-  variantDetails String?               // Variant information (retailer exclusive, etc.)
-  
-  // Dates (new)
-  dateAdded    DateTime?                // When added to collection
-  issueDate    String?                  // Publication date (often just month/year)
-  datePurchased DateTime?               // When purchased
-  
-  // Creative team (new)
-  storyTitle   String?                  // Story title
-  description  String?                  // Story description  
-  writer       String?                  // Writer(s)
-  artist       String?                  // Artist(s)
-  coverArtist  String?                  // Cover artist
-  letterer     String?                  // Letterer
-  firstAppearance String?               // Notable first appearances
-  coverImageUrl String?                 // URL to cover image
-  
-  // User state (existing)
-  collected    Boolean  @default(false)
-  isGrail      Boolean  @default(false)
-  
-  // Optional certification details
-  certificationCompany String?          // CGC, CBCS, PGX, etc.
-  
-  // System fields (existing)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+// Schema matches the ACTUAL database structure exactly
+// Mixed naming convention: Users uses snake_case, other tables use camelCase
 
-  // Enhanced indexes for new query patterns
+model User {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email          String           @unique
+  createdAt      DateTime?        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastSignInAt   DateTime?        @map("last_sign_in_at") @db.Timestamptz(6)
+  displayName    String?          @map("display_name")
+  avatarUrl      String?          @map("avatar_url")
+  isActive       Boolean?         @default(true) @map("is_active")
+  emailVerified  Boolean?         @default(false) @map("email_verified")
+  
+  // Relations
+  alertLogs      AlertLog[]
+  comics         Comic[]
+  favoriteSeries FavoriteSeries[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Comic {
+  id                   String    @id @default(dbgenerated("('c'::text || substr(md5((random())::text), 1, 24))"))
+  
+  // Core identification - EXACT database column names (camelCase)
+  publisher            String
+  series               String
+  volume               String    @default("")
+  years                String    @default("")
+  type                 String    @default("")
+  issue                String
+  issueNumber          Float     @db.Real  // DB column is "issueNumber" not "issue_number"
+  
+  // Financial data - EXACT database column names (camelCase)
+  currentValue         Float     // DB column is "currentValue" not "current_value"
+  pricePaid            Float?    // DB column is "pricePaid" not "price_paid"
+  
+  // Physical/ownership data - EXACT database column names (camelCase)
+  grade                String?
+  gradeDetails         String?   // DB column is "gradeDetails" not "grade_details"
+  storageLocation      String?   // DB column is "storageLocation" not "storage_location"
+  notes                String?
+  cert                 String?
+  signed               Boolean   @default(false)
+  variantDetails       String?   // DB column is "variantDetails" not "variant_details"
+  
+  // Dates - EXACT database column names (camelCase)
+  dateAdded            DateTime? // DB column is "dateAdded" not "date_added"
+  issueDate            String?   // DB column is "issueDate" not "issue_date"
+  datePurchased        DateTime? // DB column is "datePurchased" not "date_purchased"
+  
+  // Creative team - EXACT database column names (camelCase)
+  storyTitle           String?   // DB column is "storyTitle" not "story_title"
+  description          String?
+  writer               String?
+  artist               String?
+  coverArtist          String?   // DB column is "coverArtist" not "cover_artist"
+  letterer             String?
+  firstAppearance      String?   // DB column is "firstAppearance" not "first_appearance"
+  coverImageUrl        String?   // DB column is "coverImageUrl" not "cover_image_url"
+  
+  // User state - EXACT database column names (camelCase)
+  collected            Boolean   @default(false)
+  isGrail              Boolean   @default(false) // DB column is "isGrail" not "is_grail"
+  
+  // Certification - EXACT database column names (camelCase)
+  certificationCompany String?   // DB column is "certificationCompany" not "certification_company"
+  
+  // System fields - EXACT database column names (camelCase)
+  createdAt            DateTime  @default(now())  // DB column is "createdAt" not "created_at"
+  updatedAt            DateTime  @default(now())  // DB column is "updatedAt" not "updated_at"
+  
+  // Foreign key - EXACT database column name (snake_case in this case)
+  userId               String    @map("user_id") @db.Uuid
+
+  // Relations
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Indexes (using actual column names)
+  @@index([userId])
   @@index([publisher, series, issue])
   @@index([series])
   @@index([collected])
   @@index([isGrail])
   @@index([publisher])
   @@index([issueNumber])
-  @@index([grade])                     // Now indexes string grades
-  @@index([signed])                    // New: Query signed comics
-  @@index([pricePaid])                 // New: Query by price ranges
-  @@index([dateAdded])                 // New: Query by add date
-  @@index([storageLocation])           // New: Find comics by location
+  @@index([grade])
+  @@index([signed])
+  @@index([pricePaid])
+  @@index([dateAdded])
+  @@index([storageLocation])
   
-  // Composite unique constraint (updated to include type)
-  @@unique([publisher, series, volume, issue, type], name: "publisher_series_volume_issue_type")
+  // Unique constraints (using actual column names)
+  @@unique([publisher, series, volume, issue, type, userId], name: "publisher_series_volume_issue_type_user")
   @@map("comics")
 }
 
 model FavoriteSeries {
-  id        String   @id @default(cuid())
+  id        String   @id @default(dbgenerated("('c'::text || substr(md5((random())::text), 1, 24))"))
   publisher String
   series    String
   volume    String   @default("")
-  dateAdded DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  dateAdded DateTime @default(now())  // DB column is "dateAdded" not "date_added"
+  createdAt DateTime @default(now())  // DB column is "createdAt" not "created_at"
+  updatedAt DateTime @default(now())  // DB column is "updatedAt" not "updated_at"
+  
+  // Foreign key - EXACT database column name (snake_case)
+  userId    String   @map("user_id") @db.Uuid
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([publisher, series, volume], name: "publisher_series_volume_volume")
+  @@index([userId])
   @@index([publisher, series])
+  @@unique([publisher, series, volume, userId], name: "publisher_series_volume_user")
   @@map("favorite_series")
 }
 
 model AlertLog {
-  id        String   @id @default(cuid())
-  message   String
-  severity  String   // "warning" | "error" | "critical"
-  source    String   // e.g., "github-actions-staging"
-  metadata  Json?    // Store additional context
+  id           String   @id @default(uuid())
+  message      String
+  severity     String
+  source       String
+  metadata     Json?
+  telegramSent Boolean  @default(false)  // DB column is "telegramSent" not "telegram_sent"
+  emailSent    Boolean  @default(false)  // DB column is "emailSent" not "email_sent"
+  sentAt       DateTime @default(now())  // DB column is "sentAt" not "sent_at"
+  createdAt    DateTime @default(now())  // DB column is "createdAt" not "created_at"
   
-  // Alert delivery tracking
-  telegramSent Boolean @default(false)
-  emailSent    Boolean @default(false)
+  // Foreign key - EXACT database column name (snake_case)
+  userId       String?  @map("user_id") @db.Uuid
   
-  // Timestamps
-  sentAt    DateTime @default(now())
-  createdAt DateTime @default(now())
-  
+  // Relations
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
   @@index([severity])
   @@index([source])
   @@index([sentAt])
