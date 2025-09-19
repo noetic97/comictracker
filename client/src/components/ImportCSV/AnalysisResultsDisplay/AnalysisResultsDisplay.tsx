@@ -7,7 +7,8 @@ import {
   downloadReport,
   generateReportFilename,
 } from "../../../utils/reportGenerator";
-import { AnalysisResult } from "../../../utils/comicAnalyzer";
+import { AnalysisResult } from "../../../utils/types";
+import { MissingComic, TypeMismatch } from "../../../utils/types";
 import * as S from "./styles";
 
 interface AnalysisResultsDisplayProps {
@@ -88,13 +89,15 @@ const AnalysisResultsDisplay: React.FC<AnalysisResultsDisplayProps> = ({
           <S.MissingComicsTitle>
             Missing Comics (showing first 20):
           </S.MissingComicsTitle>
-          {results.missing.slice(0, 20).map((comic, index) => (
-            <S.MissingComicItem key={index}>
-              <strong>{comic.publisher}</strong> - {comic.series}
-              {comic.volume && ` (${comic.volume})`} #{comic.issue}
-              {comic.type && ` [${comic.type}]`} - {comic.reason}
-            </S.MissingComicItem>
-          ))}
+          {results.missing
+            .slice(0, 20)
+            .map((comic: MissingComic, index: number) => (
+              <S.MissingComicItem key={index}>
+                <strong>{comic.publisher}</strong> - {comic.series}
+                {comic.volume && ` (${comic.volume})`} #{comic.issue}
+                {comic.type && ` [${comic.type}]`} - {comic.reason}
+              </S.MissingComicItem>
+            ))}
           {results.missing.length > 20 && (
             <S.MissingComicItem>
               ... and {results.missing.length - 20} more (download full report)
@@ -108,14 +111,16 @@ const AnalysisResultsDisplay: React.FC<AnalysisResultsDisplayProps> = ({
           <S.MissingComicsTitle>
             Type Mismatches (showing first 10):
           </S.MissingComicsTitle>
-          {results.typeMismatches.slice(0, 10).map((mismatch, index) => (
-            <S.MissingComicItem key={index}>
-              <strong>{mismatch.publisher}</strong> - {mismatch.series}
-              {mismatch.volume && ` (${mismatch.volume})`} #{mismatch.issue} -
-              File has "{mismatch.fileType}" but database has:{" "}
-              {mismatch.databaseTypes.join(", ")}
-            </S.MissingComicItem>
-          ))}
+          {results.typeMismatches
+            .slice(0, 10)
+            .map((mismatch: TypeMismatch, index: number) => (
+              <S.MissingComicItem key={index}>
+                <strong>{mismatch.publisher}</strong> - {mismatch.series}
+                {mismatch.volume && ` (${mismatch.volume})`} #{mismatch.issue} -
+                File has "{mismatch.fileType}" but database has:{" "}
+                {mismatch.databaseTypes.join(", ")}
+              </S.MissingComicItem>
+            ))}
         </S.MissingComicsList>
       )}
     </S.AnalysisResults>

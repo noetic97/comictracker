@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import { Comic } from "../types";
+import { Comic } from "../../types/index.ts";
 import {
   detectCSVFormat,
   normalizeCSVRow,

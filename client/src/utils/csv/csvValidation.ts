@@ -1,12 +1,6 @@
-import { validateComicFields } from "./simpleFieldValidator";
+import { validateComicFields } from "../validation/simpleFieldValidator";
 
 // Validation result types
-export interface FieldValidationResult {
-  isValid: boolean;
-  normalizedValue: any;
-  warnings: string[];
-  errors: string[];
-}
 
 export interface ComicValidationResult {
   isValid: boolean;
@@ -32,7 +26,7 @@ export interface BatchValidationResult {
  * Validate and normalize a single comic record
  */
 export const validateComicRecord = (
-  rawData: any,
+  rawData: any, // TODO: fix this
   rowIndex: number
 ): ComicValidationResult => {
   const errors: string[] = [];
@@ -107,7 +101,7 @@ export const validateComicBatch = (rawComics: any[]): BatchValidationResult => {
  */
 export const validateCSVStructure = (
   headers: string[],
-  sampleRows: any[],
+  sampleRows: any[], // TODO: fix this
   maxSampleSize: number = 5
 ): {
   isValid: boolean;
@@ -199,7 +193,7 @@ export const validateCSVStructure = (
  */
 export const generateValidationReport = (
   headers: string[],
-  sampleRows: any[],
+  sampleRows: any[], // TODO: fix this
   batchResult?: BatchValidationResult
 ): string => {
   const lines = [
@@ -229,7 +223,7 @@ export const generateValidationReport = (
       lines.push(``, `COMMON WARNINGS (first 10):`);
       // Group similar warnings
       const warningGroups = new Map<string, number>();
-      batchResult.warnings.forEach((warning) => {
+      batchResult.warnings.forEach((warning: string) => {
         const baseWarning = warning.replace(/Row \d+: /, "");
         warningGroups.set(
           baseWarning,
@@ -247,7 +241,7 @@ export const generateValidationReport = (
 
     if (batchResult.invalidComics.length > 0) {
       lines.push(``, `INVALID RECORDS (first 5):`);
-      batchResult.invalidComics.slice(0, 5).forEach((invalid) => {
+      batchResult.invalidComics.slice(0, 5).forEach((invalid: any) => {
         lines.push(
           `- Row ${invalid.originalIndex + 1}: ${invalid.errors.join(", ")}`
         );

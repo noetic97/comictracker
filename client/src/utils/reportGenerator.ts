@@ -1,7 +1,7 @@
-import { AnalysisResult } from "./comicAnalyzer";
 import { formatTimestamp, formatNumber } from "./formatters";
+import { AnalysisResult } from "../contracts/analysis";
 
-export interface ReportOptions {
+interface ReportOptions {
   includeTimestamp?: boolean;
   maxMissingItems?: number;
   maxInvalidItems?: number;

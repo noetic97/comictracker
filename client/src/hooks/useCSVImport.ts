@@ -1,10 +1,11 @@
 import { useState, useCallback } from "react";
-import { parseComicsCSV } from "../utils/csvParser";
-import { validateComicBatch, normalizeComic } from "../utils/comicValidator.ts";
+import { parseComicsCSV } from "../utils/csv/csvParser.ts";
 import {
-  processComicsInChunks,
-  ProcessingResult,
-} from "../utils/chunkProcessor";
+  validateComicBatch,
+  normalizeComic,
+} from "../utils/validation/comicValidator.ts";
+import { processComicsInChunks } from "../utils/chunkProcessor";
+import { ProcessingResult } from "../contracts/processing";
 import { formatImportStats } from "../utils/formatters";
 import {
   ImportResults,

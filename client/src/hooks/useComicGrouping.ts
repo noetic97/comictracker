@@ -5,7 +5,7 @@ import {
   FavoriteSeries,
   FilterOption,
 } from "../types";
-import { isValidComic } from "../utils/validation";
+import { isValidComic } from "../utils/validation/validation";
 import { sortSeriesKeysIgnoringArticles } from "../utils/sortingUtils";
 
 interface ComicGroupingResult {

@@ -1,10 +1,10 @@
-export interface ValidationResult {
+interface ValidationResult {
   isValid: boolean;
   errors: string[];
   warnings: string[];
 }
 
-export interface ComicValidationOptions {
+interface ComicValidationOptions {
   requireNumericIssue?: boolean;
   allowEmptyVolume?: boolean;
   allowEmptyType?: boolean;

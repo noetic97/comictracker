@@ -1,7 +1,7 @@
 import React from "react";
 import { CheckCircle, X } from "lucide-react";
 import { formatDuration, formatNumber } from "../../../utils/formatters";
-import { ImportResults } from "../../../hooks/useCSVImport";
+import { ImportResults } from "../../../hooks/types";
 import * as S from "./styles";
 
 interface ImportResultsDisplayProps {
@@ -61,7 +61,7 @@ const ImportResultsDisplay: React.FC<ImportResultsDisplayProps> = ({
       {results.processingErrors && results.processingErrors.length > 0 && (
         <S.ErrorsList>
           <S.ErrorsTitle>Processing Errors (showing first 10):</S.ErrorsTitle>
-          {results.processingErrors.map((error, index) => (
+          {results.processingErrors.map((error: string, index: number) => (
             <S.ErrorItem key={index}>{error}</S.ErrorItem>
           ))}
         </S.ErrorsList>

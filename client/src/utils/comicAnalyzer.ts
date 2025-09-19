@@ -1,52 +1,13 @@
 import { Comic } from "../types";
 import { apiService } from "./apiService";
-import { createComicKey } from "./comicValidator.ts";
-
-export interface AnalysisResult {
-  totalInFile: number;
-  totalInDatabase: number;
-  missing: MissingComic[];
-  duplicatesInFile: DuplicateComic[];
-  invalidComics: InvalidComic[];
-  typeMismatches: TypeMismatch[];
-}
-
-export interface MissingComic {
-  publisher: string;
-  series: string;
-  volume: string;
-  issue: string;
-  type: string;
-  currentValue: number;
-  reason: string;
-  fileIndex: number;
-}
-
-export interface DuplicateComic {
-  publisher: string;
-  series: string;
-  volume: string;
-  issue: string;
-  type: string;
-  count: number;
-  fileIndices: number[];
-}
-
-export interface InvalidComic {
-  index: number;
-  data: any;
-  reason: string;
-  errors: string[];
-}
-
-export interface TypeMismatch {
-  publisher: string;
-  series: string;
-  volume: string;
-  issue: string;
-  fileType: string;
-  databaseTypes: string[];
-}
+import { createComicKey } from "./validation/comicValidator.ts";
+import {
+  AnalysisResult,
+  MissingComic,
+  DuplicateComic,
+  InvalidComic,
+  TypeMismatch,
+} from "../contracts/analysis";
 
 /**
  * Load database comics for comparison
@@ -251,13 +212,4 @@ export const getAnalysisSummary = (result: AnalysisResult) => {
     successfullyMatchedCount:
       result.totalInFile - result.missing.length - result.invalidComics.length,
   };
-};
-
-/**
- * Convenience function for one-off analysis
- */
-export const analyzeComicsFile = async (
-  fileComics: any[]
-): Promise<AnalysisResult> => {
-  return analyzeComics(fileComics);
 };
