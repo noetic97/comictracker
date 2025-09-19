@@ -41,15 +41,3 @@ export interface SeriesSummary {
   collectedValue: number;
   isFavorite?: boolean;
 }
-
-export interface Comic {
-  id: string;
-  publisher: string;
-  series: string;
-  volume?: string;
-  issue: string;
-  years?: string;
-  currentValue?: number;
-  collected: boolean;
-  isGrail: boolean;
-}

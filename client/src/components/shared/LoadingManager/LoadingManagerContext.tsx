@@ -6,13 +6,13 @@ import React, {
   useEffect,
 } from "react";
 
-export type LoadingPhase =
+type LoadingPhase =
   | "data-loading" // Initial data fetch
   | "components-loading" // Lazy components loading
   | "ready" // All content ready
   | "background-refresh"; // Background updates
 
-export interface LoadingState {
+interface LoadingState {
   phase: LoadingPhase;
   message: string;
   subMessage: string;

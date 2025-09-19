@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { AggregationFilters, Comic } from "./types";
+import { AggregationFilters } from "./types";
+import { Comic } from "../../types/comic";
 import { getApiBaseUrl, buildQueryParams } from "../utils";
 
 /**

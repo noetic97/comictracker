@@ -8,7 +8,7 @@ import {
 import { isValidComic } from "../utils/validation";
 import { sortSeriesKeysIgnoringArticles } from "../utils/sortingUtils";
 
-export interface ComicGroupingResult {
+interface ComicGroupingResult {
   filteredComics: Comic[];
   groupedComics: PublisherGroupedComics;
   stats: {
@@ -21,7 +21,7 @@ export interface ComicGroupingResult {
   };
 }
 
-export interface UseComicGroupingOptions {
+interface UseComicGroupingOptions {
   onError?: (error: string) => void;
 }
 

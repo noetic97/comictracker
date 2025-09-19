@@ -6,44 +6,12 @@ import {
   ProcessingResult,
 } from "../utils/chunkProcessor";
 import { formatImportStats } from "../utils/formatters";
-
-export interface ImportState {
-  isImporting: boolean;
-  progress: ImportProgress | null;
-  results: ImportResults | null;
-  error: string | null;
-  warning: string | null;
-}
-
-export interface ImportProgress {
-  total: number;
-  processed: number;
-  chunks: number;
-  currentChunk: number;
-  created: number;
-  updated: number;
-  errors: number;
-  isComplete: boolean;
-  startTime: number;
-  estimatedTimeRemaining: number;
-  rate: number;
-}
-
-export interface ImportResults {
-  processed: number;
-  created: number;
-  updated: number;
-  errors: number;
-  processingTime: number;
-  processingErrors?: string[];
-  validationWarnings?: string[];
-}
-
-export interface ImportOptions {
-  chunkSize?: number;
-  delayBetweenChunks?: number;
-  validateComics?: boolean;
-}
+import {
+  ImportResults,
+  ImportState,
+  ImportOptions,
+  ImportProgress,
+} from "./types";
 
 export const useCSVImport = (
   onImportComplete?: (results: ImportResults) => void

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { PublisherGroupedComics } from "../types";
 
-export interface ExpandedStateResult {
+interface ExpandedStateResult {
   expandedPublishers: string[];
   expandedSeries: string[];
   isAllExpanded: boolean;

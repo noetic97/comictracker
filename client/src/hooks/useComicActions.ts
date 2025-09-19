@@ -1,24 +1,12 @@
 import { useState, useCallback } from "react";
-import { Comic } from "../types";
+import { ComicActionsState, ComicActionsOptions } from "./types";
 import {
   toggleComicCollected,
   toggleComicGrail,
   createOptimisticUpdate,
   StateChangeResult,
 } from "../utils/comicStateManager";
-
-export interface ComicActionsState {
-  isUpdating: boolean;
-  updatingComics: Set<string>; // Comic IDs currently being updated
-  errors: Map<string, string>; // Comic ID -> error message
-  lastOperation: string | null;
-}
-
-export interface ComicActionsOptions {
-  onComicUpdated?: (updatedComic: Comic) => void;
-  onError?: (error: string, comic: Comic) => void;
-  optimisticUpdates?: boolean;
-}
+import { Comic } from "../types";
 
 export const useComicActions = (options: ComicActionsOptions = {}) => {
   const { onComicUpdated, onError, optimisticUpdates = true } = options;

@@ -5,7 +5,7 @@ import {
   AnalysisResult,
 } from "../utils/comicAnalyzer";
 
-export interface AnalysisState {
+interface AnalysisState {
   isAnalyzing: boolean;
   results: AnalysisResult | null;
   error: string | null;

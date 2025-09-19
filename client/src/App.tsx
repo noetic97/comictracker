@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { SortOption, FilterOption, FavoriteSeries } from "./types.ts";
+import { SortOption, FilterOption, FavoriteSeries } from "./types";
 import ComicActionsErrorBoundary from "./components/shared/ComicActionErrorBoundary";
 import ErrorMessage from "./components/shared/ErrorMessage";
 import ImportModal from "./components/ImportModal";

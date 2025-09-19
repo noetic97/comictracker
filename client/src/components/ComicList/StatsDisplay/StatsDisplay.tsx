@@ -1,9 +1,9 @@
 import React from "react";
-import { useComicStats } from "../../../hooks/aggregations/useComicStats";
+import { useComicStats } from "../../../hooks";
 import { FilterOption } from "../../../types";
 import * as S from "./styles";
 
-export interface StatsDisplayProps {
+interface StatsDisplayProps {
   filterOption: FilterOption;
   // Remove all the old props since we'll fetch them directly
 }

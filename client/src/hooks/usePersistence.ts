@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 
-export interface PersistenceState<T> {
+interface PersistenceState<T> {
   data: T | null;
   timestamp: string | null;
   isLoaded: boolean;

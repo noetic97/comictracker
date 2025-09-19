@@ -1,4 +1,5 @@
-import { Component, ErrorInfo, ReactNode } from "react";
+import { ErrorInfo, ReactNode, useCallback, useState } from "react";
+import { ErrorBoundary, FallbackProps } from "react-error-boundary";
 import { AlertTriangle, RefreshCw, Bug } from "lucide-react";
 import Button from "../Button";
 import * as S from "./styles";
@@ -9,85 +10,78 @@ interface Props {
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
-interface State {
+interface ErrorState {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
   errorId: string | null;
 }
 
-class ComicActionsErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-      errorInfo: null,
-      errorId: null,
-    };
-  }
+const createInitialState = (): ErrorState => ({
+  hasError: false,
+  error: null,
+  errorInfo: null,
+  errorId: null,
+});
 
-  static getDerivedStateFromError(error: Error): Partial<State> {
-    // Update state so the next render will show the fallback UI
-    return {
-      hasError: true,
-      error,
-      errorId: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    };
-  }
+const ComicActionsErrorBoundary = ({
+  children,
+  fallback,
+  onError,
+}: Props) => {
+  const [errorState, setErrorState] = useState<ErrorState>(createInitialState);
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error details
-    console.error("🚨 Comic Actions Error Boundary caught an error:", error);
-    console.error("Error Info:", errorInfo);
+  const handleBoundaryError = useCallback(
+    (error: Error, errorInfo: ErrorInfo) => {
+      const errorId = `error-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 11)}`;
 
-    // Log additional context
-    console.error("Error Context:", {
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-      errorId: this.state.errorId,
-    });
-
-    this.setState({
-      error,
-      errorInfo,
-    });
-
-    // Call optional error handler
-    this.props.onError?.(error, errorInfo);
-
-    // Send error to monitoring service if available
-    if (window.console && typeof window.console.error === "function") {
-      window.console.error("Comic Actions Error:", {
-        error: error.toString(),
-        stack: error.stack,
-        componentStack: errorInfo.componentStack,
-        errorId: this.state.errorId,
+      console.error("🚨 Comic Actions Error Boundary caught an error:", error);
+      console.error("Error Info:", errorInfo);
+      console.error("Error Context:", {
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+        errorId,
       });
-    }
-  }
 
-  handleReset = () => {
-    this.setState({
-      hasError: false,
-      error: null,
-      errorInfo: null,
-      errorId: null,
-    });
-  };
+      setErrorState({
+        hasError: true,
+        error,
+        errorInfo,
+        errorId,
+      });
 
-  handleReload = () => {
+      onError?.(error, errorInfo);
+
+      if (window.console && typeof window.console.error === "function") {
+        window.console.error("Comic Actions Error:", {
+          error: error.toString(),
+          stack: error.stack,
+          componentStack: errorInfo.componentStack,
+          errorId,
+        });
+      }
+    },
+    [onError]
+  );
+
+  const handleReset = useCallback(() => {
+    setErrorState(createInitialState());
+  }, []);
+
+  const handleReload = useCallback(() => {
     window.location.reload();
-  };
+  }, []);
 
-  copyErrorDetails = () => {
+  const copyErrorDetails = useCallback(() => {
     const errorDetails = {
-      errorId: this.state.errorId,
+      errorId: errorState.errorId,
       timestamp: new Date().toISOString(),
-      error: this.state.error?.toString(),
-      stack: this.state.error?.stack,
-      componentStack: this.state.errorInfo?.componentStack,
+      error: errorState.error?.toString(),
+      stack: errorState.error?.stack,
+      componentStack: errorState.errorInfo?.componentStack,
       userAgent: navigator.userAgent,
       url: window.location.href,
     };
@@ -99,7 +93,6 @@ class ComicActionsErrorBoundary extends Component<Props, State> {
         console.log("Error details copied to clipboard");
       });
     } else {
-      // Fallback for older browsers
       const textArea = document.createElement("textarea");
       textArea.value = errorText;
       document.body.appendChild(textArea);
@@ -107,16 +100,20 @@ class ComicActionsErrorBoundary extends Component<Props, State> {
       document.execCommand("copy");
       document.body.removeChild(textArea);
     }
-  };
+  }, [errorState]);
 
-  render() {
-    if (this.state.hasError) {
-      // Custom fallback UI
-      if (this.props.fallback) {
-        return this.props.fallback;
+  const renderFallback = useCallback(
+    ({ error, resetErrorBoundary }: FallbackProps) => {
+      if (fallback) {
+        return fallback;
       }
 
-      // Default error UI
+      const activeError = errorState.hasError ? errorState.error : error;
+      const activeErrorId = errorState.hasError ? errorState.errorId : null;
+      const activeStack = errorState.hasError
+        ? errorState.error?.stack
+        : error.stack;
+
       return (
         <S.ErrorBoundaryContainer>
           <S.ErrorIcon>
@@ -134,15 +131,15 @@ class ComicActionsErrorBoundary extends Component<Props, State> {
             <summary>Error Details (Click to expand)</summary>
             <S.ErrorInfo>
               <p>
-                <strong>Error ID:</strong> {this.state.errorId}
+                <strong>Error ID:</strong> {activeErrorId ?? "N/A"}
               </p>
               <p>
-                <strong>Error:</strong> {this.state.error?.message}
+                <strong>Error:</strong> {activeError?.message ?? "Unknown error"}
               </p>
-              {this.state.error?.stack && (
+              {activeStack && (
                 <S.ErrorStack>
                   <strong>Stack Trace:</strong>
-                  <pre>{this.state.error.stack}</pre>
+                  <pre>{activeStack}</pre>
                 </S.ErrorStack>
               )}
             </S.ErrorInfo>
@@ -150,7 +147,7 @@ class ComicActionsErrorBoundary extends Component<Props, State> {
 
           <S.ErrorActions>
             <Button
-              onClick={this.handleReset}
+              onClick={resetErrorBoundary}
               icon={RefreshCw}
               variant="primary"
             >
@@ -158,7 +155,7 @@ class ComicActionsErrorBoundary extends Component<Props, State> {
             </Button>
 
             <Button
-              onClick={this.handleReload}
+              onClick={handleReload}
               icon={RefreshCw}
               variant="secondary"
             >
@@ -166,7 +163,7 @@ class ComicActionsErrorBoundary extends Component<Props, State> {
             </Button>
 
             <Button
-              onClick={this.copyErrorDetails}
+              onClick={copyErrorDetails}
               icon={Bug}
               variant="tertiary"
               size="small"
@@ -181,10 +178,19 @@ class ComicActionsErrorBoundary extends Component<Props, State> {
           </S.ErrorHelpText>
         </S.ErrorBoundaryContainer>
       );
-    }
+    },
+    [copyErrorDetails, errorState, fallback, handleReload]
+  );
 
-    return this.props.children;
-  }
-}
+  return (
+    <ErrorBoundary
+      onError={handleBoundaryError}
+      onReset={handleReset}
+      fallbackRender={renderFallback}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+};
 
 export default ComicActionsErrorBoundary;

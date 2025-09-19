@@ -1,11 +1,11 @@
 import React, { Suspense } from "react";
 import { FavoriteSeries, FilterOption } from "../../../types";
 import { PublisherSummary } from "../../../hooks/aggregations/types";
-import { useSeriesSummaries } from "../../../hooks/aggregations/useSeriesSummaries";
+import { useSeriesSummaries } from "../../../hooks";
 import SeriesCard from "../SeriesCard";
 import * as S from "./styles";
 
-export interface PublisherCardProps {
+interface PublisherCardProps {
   publisherSummary: PublisherSummary;
   isExpanded: boolean;
   expandedSeries: string[];

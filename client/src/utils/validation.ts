@@ -1,5 +1,5 @@
 import { Comic } from "../types";
-import { CSVComicRow } from "../types/csvTypes";
+import { CSVComicRow } from "./csv/types";
 
 export const isValidComic = (comic: unknown): comic is Comic => {
   if (typeof comic !== "object" || comic === null) {
