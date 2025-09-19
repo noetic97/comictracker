@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FavoriteSeries, FilterOption, ViewMode } from "../../types";
-import { usePublisherSummaries } from "../../hooks/useComicAggregations";
+import { usePublisherSummaries } from "../../hooks/aggregations/usePublisherSummaries";
 import { useExpandedState } from "../../hooks";
 import * as S from "./styles";
 import ErrorMessage from "../shared/ErrorMessage";

@@ -1,5 +1,5 @@
 import React from "react";
-import { useComicStats } from "../../../hooks/useComicAggregations";
+import { useComicStats } from "../../../hooks/aggregations/useComicStats";
 import { FilterOption } from "../../../types";
 import * as S from "./styles";
 

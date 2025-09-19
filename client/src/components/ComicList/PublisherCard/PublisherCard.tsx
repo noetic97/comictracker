@@ -1,9 +1,7 @@
 import React, { Suspense } from "react";
 import { FavoriteSeries, FilterOption } from "../../../types";
-import {
-  PublisherSummary,
-  useSeriesSummaries,
-} from "../../../hooks/useComicAggregations";
+import { PublisherSummary } from "../../../hooks/aggregations/types";
+import { useSeriesSummaries } from "../../../hooks/aggregations/useSeriesSummaries";
 import SeriesCard from "../SeriesCard";
 import * as S from "./styles";
 

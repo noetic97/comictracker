@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useCallback } from "react";
-import { FilterOption, Comic } from "../../types";
+import React, { useState, useCallback, useMemo } from "react";
+import { Comic, FilterOption } from "../../types";
 import {
   useSeriesComics,
   useComicStats,
-} from "../../hooks/useComicAggregations";
-import { useComicActions } from "../../hooks/useComicActions";
+  useOptimisticComics,
+  useComicActions,
+} from "../../hooks";
 import PaginationControls from "../ComicList/PaginationControls";
 import SeriesHeader from "./SeriesHeader";
 import CollapsibleStatsSection from "./CollapsibleStatsSection";
@@ -21,7 +22,7 @@ interface SeriesDetailViewProps {
   setItemsPerPage: (count: number) => void;
   isFavorite: boolean;
   onToggleFavorite: () => void;
-  filterOption: FilterOption; // Pass global filter state
+  filterOption: FilterOption;
 }
 
 const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
@@ -41,10 +42,11 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
 
   // Use hooks to fetch series-specific data
   const {
-    comics,
+    comics: serverComics,
     loading: comicsLoading,
     error: comicsError,
-    refetch: refetchComics,
+    silentRefetch,
+    updateComic,
   } = useSeriesComics(
     publisher,
     series,
@@ -67,47 +69,103 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
     filterOption,
   });
 
-  // Handle comic actions internally
+  // Use optimistic comics hook for immediate UI updates
+  const {
+    comics,
+    applyOptimisticUpdate,
+    confirmUpdate,
+    revertUpdate,
+    isUpdating,
+    syncWithServer,
+  } = useOptimisticComics(serverComics, {
+    onUpdateSuccess: (updatedComic) => {
+      console.log("✅ Comic update confirmed in detail view:", updatedComic);
+      // Silently refetch both comics and stats
+      Promise.all([silentRefetch(), refetchStats()]).then(([newComics]) => {
+        if (newComics) {
+          syncWithServer(newComics);
+        }
+      });
+    },
+    onUpdateError: (error, comic) => {
+      console.error("❌ Comic update failed in detail view:", error, comic);
+    },
+  });
+
+  // Handle comic actions with optimistic updates
   const comicActions = useComicActions({
     onComicUpdated: useCallback(
       (updatedComic: Comic) => {
-        console.log("Comic updated in SeriesDetailView:", updatedComic);
-        // Refetch both comics and stats after successful update
-        refetchComics();
-        refetchStats();
+        // Confirm the update was successful
+        confirmUpdate(updatedComic);
+        // Update the single comic in the background
+        updateComic({
+          ...updatedComic,
+          isGrail: updatedComic.isGrail ?? false,
+        });
       },
-      [refetchComics, refetchStats]
+      [confirmUpdate, updateComic]
     ),
-    onError: useCallback((error: string, comic: Comic) => {
-      console.error("Comic action failed:", error, comic);
-      // Could show toast/notification here in the future
-    }, []),
-    optimisticUpdates: true,
+    onError: useCallback(
+      (error: string, comic: Comic) => {
+        console.error("Comic action failed in detail view:", error, comic);
+        // Revert the optimistic update on error
+        revertUpdate(comic.id, comic);
+      },
+      [revertUpdate]
+    ),
+    optimisticUpdates: false, // We handle optimistic updates ourselves
   });
 
-  // Internal action handlers
+  // Internal action handlers with optimistic updates
   const handleCollect = useCallback(
     async (id: string) => {
       const comic = comics.find((c) => c.id === id);
-      if (!comic) {
-        console.error("Comic not found in current page:", id);
+      if (!comic || isUpdating(id)) {
         return;
       }
-      await comicActions.handleCollectedToggle(comic);
+
+      // Apply optimistic update immediately
+      const optimisticComic = {
+        ...comic,
+        collected: !comic.collected,
+      };
+      applyOptimisticUpdate(optimisticComic);
+
+      // Perform the actual update
+      const result = await comicActions.handleCollectedToggle(comic);
+
+      if (!result) {
+        // Revert on failure
+        revertUpdate(id, comic);
+      }
     },
-    [comics, comicActions]
+    [comics, comicActions, applyOptimisticUpdate, revertUpdate, isUpdating]
   );
 
   const handleToggleGrail = useCallback(
     async (id: string) => {
       const comic = comics.find((c) => c.id === id);
-      if (!comic) {
-        console.error("Comic not found in current page:", id);
+      if (!comic || isUpdating(id)) {
         return;
       }
-      await comicActions.handleGrailToggle(comic);
+
+      // Apply optimistic update immediately
+      const optimisticComic = {
+        ...comic,
+        isGrail: !comic.isGrail,
+      };
+      applyOptimisticUpdate(optimisticComic);
+
+      // Perform the actual update
+      const result = await comicActions.handleGrailToggle(comic);
+
+      if (!result) {
+        // Revert on failure
+        revertUpdate(id, comic);
+      }
     },
-    [comics, comicActions]
+    [comics, comicActions, applyOptimisticUpdate, revertUpdate, isUpdating]
   );
 
   // Sort comics (keep existing sorting logic)

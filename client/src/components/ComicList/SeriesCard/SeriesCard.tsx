@@ -1,9 +1,12 @@
 import React, { useCallback } from "react";
-import { ExternalLink, Heart, Star, Check } from "lucide-react";
-import { SeriesSummary } from "../../../hooks/useComicAggregations";
-import { useSeriesComics } from "../../../hooks/useComicAggregations";
-import { useComicActions } from "../../../hooks/useComicActions";
-import { Comic } from "../../../types";
+import { Heart, Star, Check, ExternalLink } from "lucide-react";
+import { Comic, FilterOption } from "../../../types";
+import { SeriesSummary } from "../../../hooks/aggregations/types";
+import {
+  useSeriesComics,
+  useOptimisticComics,
+  useComicActions,
+} from "../../../hooks";
 import PaginationControls from "../PaginationControls";
 import Button from "../../shared/Button";
 import * as S from "./styles";
@@ -23,6 +26,7 @@ interface SeriesCardProps {
   ) => void;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  filterOption: FilterOption;
 }
 
 const SeriesCard: React.FC<SeriesCardProps> = ({
@@ -30,12 +34,13 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
   seriesSummary,
   $isExpanded,
   toggleSeries,
-  onOpenDetailView,
-  isFavorite,
-  onToggleFavorite,
   currentPage,
   itemsPerPage,
   onPageChange,
+  onOpenDetailView,
+  isFavorite,
+  onToggleFavorite,
+  filterOption,
 }) => {
   const handleDetailView = () => {
     onOpenDetailView(
@@ -45,7 +50,6 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
     );
   };
 
-  // Create display title with years if available
   const displayTitle = seriesSummary.volume
     ? `${seriesSummary.series} - ${seriesSummary.volume}`
     : seriesSummary.series;
@@ -119,6 +123,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
             itemsPerPage={itemsPerPage}
             onPageChange={onPageChange}
             totalIssues={seriesSummary.issueCount}
+            filterOption={filterOption}
           />
         )}
       </S.SeriesContent>
@@ -134,6 +139,7 @@ interface SeriesComicsListProps {
   itemsPerPage: number;
   onPageChange: (page: number) => void;
   totalIssues: number;
+  filterOption: FilterOption;
 }
 
 const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
@@ -144,67 +150,129 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
   itemsPerPage,
   onPageChange,
   totalIssues,
+  filterOption,
 }) => {
   const {
-    comics,
+    comics: serverComics,
     loading,
     error,
-    refetch: refetchComics,
+    silentRefetch,
+    updateComic,
   } = useSeriesComics(
     publisher,
     series,
     volume || null,
     currentPage,
     itemsPerPage,
-    true
+    true,
+    { filterOption }
   );
 
-  // Handle comic actions internally
+  // Use optimistic comics hook for immediate UI updates
+  const {
+    comics,
+    applyOptimisticUpdate,
+    confirmUpdate,
+    revertUpdate,
+    isUpdating,
+    syncWithServer,
+  } = useOptimisticComics(serverComics, {
+    onUpdateSuccess: (updatedComic) => {
+      console.log("✅ Comic update confirmed:", updatedComic);
+      // Silently refetch to ensure consistency
+      silentRefetch().then((newComics) => {
+        if (newComics) {
+          syncWithServer(newComics);
+        }
+      });
+    },
+    onUpdateError: (error, comic) => {
+      console.error("❌ Comic update failed:", error, comic);
+    },
+  });
+
+  // Handle comic actions with optimistic updates
   const comicActions = useComicActions({
     onComicUpdated: useCallback(
       (updatedComic: Comic) => {
-        console.log("Comic updated in SeriesCard:", updatedComic);
-        // Refetch comics after successful update
-        refetchComics();
+        // Confirm the update was successful
+        confirmUpdate(updatedComic);
+        // Update the single comic in the background
+        updateComic({
+          ...updatedComic,
+          isGrail: updatedComic.isGrail ?? false,
+        });
       },
-      [refetchComics]
+      [confirmUpdate, updateComic]
     ),
-    onError: useCallback((error: string, comic: Comic) => {
-      console.error("Comic action failed in SeriesCard:", error, comic);
-    }, []),
-    optimisticUpdates: true,
+    onError: useCallback(
+      (error: string, comic: Comic) => {
+        console.error("Comic action failed:", error, comic);
+        // Revert the optimistic update on error
+        revertUpdate(comic.id, comic);
+      },
+      [revertUpdate]
+    ),
+    optimisticUpdates: false, // We handle optimistic updates ourselves
   });
 
   // Internal action handlers
   const handleCollect = useCallback(
     async (id: string) => {
       const comic = comics.find((c) => c.id === id);
-      if (!comic) {
-        console.error("Comic not found in current page:", id);
+      if (!comic || isUpdating(id)) {
         return;
       }
-      await comicActions.handleCollectedToggle(comic);
+
+      // Apply optimistic update immediately
+      const optimisticComic = {
+        ...comic,
+        collected: !comic.collected,
+      };
+      applyOptimisticUpdate(optimisticComic);
+
+      // Perform the actual update
+      const result = await comicActions.handleCollectedToggle(comic);
+
+      if (!result) {
+        // Revert on failure
+        revertUpdate(id, comic);
+      }
     },
-    [comics, comicActions]
+    [comics, comicActions, applyOptimisticUpdate, revertUpdate, isUpdating]
   );
 
   const handleToggleGrail = useCallback(
     async (id: string) => {
       const comic = comics.find((c) => c.id === id);
-      if (!comic) {
-        console.error("Comic not found in current page:", id);
+      if (!comic || isUpdating(id)) {
         return;
       }
-      await comicActions.handleGrailToggle(comic);
+
+      // Apply optimistic update immediately
+      const optimisticComic = {
+        ...comic,
+        isGrail: !comic.isGrail,
+      };
+      applyOptimisticUpdate(optimisticComic);
+
+      // Perform the actual update
+      const result = await comicActions.handleGrailToggle(comic);
+
+      if (!result) {
+        // Revert on failure
+        revertUpdate(id, comic);
+      }
     },
-    [comics, comicActions]
+    [comics, comicActions, applyOptimisticUpdate, revertUpdate, isUpdating]
   );
 
   const totalPages = Math.max(1, Math.ceil(totalIssues / itemsPerPage));
 
   if (loading) {
-    return <div style={{ padding: "1rem" }}>Loading comics…</div>;
+    return <div style={{ padding: "1rem" }}>Loading comics...</div>;
   }
+
   if (error) {
     return (
       <div style={{ padding: "1rem", color: "#ffdddd" }}>
@@ -221,11 +289,20 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
           $collected={comic.collected}
           $isGrail={comic.isGrail}
           data-sc="ComicItem"
+          style={{
+            opacity: isUpdating(comic.id) ? 0.7 : 1,
+            transition: "opacity 0.2s ease",
+          }}
         >
           <S.ComicInfo data-sc="ComicInfo">
             <S.ComicTitle data-sc="ComicTitle">
               {comic.series}
               {comic.volume && ` - ${comic.volume}`} #{comic.issue}
+              {comic.isGrail && (
+                <S.GrailBadge>
+                  <Star size={14} fill="currentColor" />
+                </S.GrailBadge>
+              )}
             </S.ComicTitle>
             <S.ComicMeta data-sc="ComicMeta">
               <span>Years: {comic.years}</span>
@@ -238,16 +315,24 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
             <S.ActionButton
               onClick={() => handleToggleGrail(comic.id)}
               $isActive={comic.isGrail}
+              disabled={isUpdating(comic.id)}
               title={comic.isGrail ? "Remove from grails" : "Mark as grail"}
+              style={{
+                cursor: isUpdating(comic.id) ? "not-allowed" : "pointer",
+              }}
             >
               <Star size={16} fill={comic.isGrail ? "currentColor" : "none"} />
             </S.ActionButton>
             <S.ActionButton
               onClick={() => handleCollect(comic.id)}
               $isActive={comic.collected}
+              disabled={isUpdating(comic.id)}
               title={
                 comic.collected ? "Mark as uncollected" : "Mark as collected"
               }
+              style={{
+                cursor: isUpdating(comic.id) ? "not-allowed" : "pointer",
+              }}
             >
               <Check size={16} />
             </S.ActionButton>
