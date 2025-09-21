@@ -1,9 +1,6 @@
 import { useState, useCallback } from "react";
 import { parseComicsCSV } from "../utils/csv/csvParser.ts";
-import {
-  validateComicBatch,
-  normalizeComic,
-} from "../utils/validation/comicValidator.ts";
+import { validateComicBatch, normalizeComic } from "../contracts/validation";
 import { processComicsInChunks } from "../utils/chunkProcessor";
 import { ProcessingResult } from "../contracts/processing";
 import { formatImportStats } from "../utils/formatters";
@@ -82,12 +79,22 @@ export const useCSVImport = (
         let validationWarnings: string[] = [];
 
         if (validateComics) {
-          const validation = validateComicBatch(rawComics);
-          processedComics = validation.validComics.map(normalizeComic);
-          validationWarnings = validation.warnings;
+          // Use unified validation WITHOUT transformation (data already parsed)
+          const validation = validateComicBatch(rawComics, {
+            transformData: false, // KEY: Don't transform, just validate
+            requireNumericIssue: false,
+            allowEmptyVolume: true,
+            allowEmptyType: true,
+          });
 
-          if (validation.hasErrors) {
-            console.warn("Validation errors found:", validation.errors);
+          processedComics = validation.validComics.map(normalizeComic);
+          validationWarnings = validation.warnings || [];
+
+          if (validation.validationErrors.length > 0) {
+            console.warn(
+              "Validation errors found:",
+              validation.validationErrors
+            );
           }
         } else {
           processedComics = rawComics.map(normalizeComic);

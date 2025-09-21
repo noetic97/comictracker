@@ -1,6 +1,6 @@
 import { Comic } from "../types";
 import { apiService } from "./apiService";
-import { createComicKey } from "./validation/comicValidator.ts";
+import { createComicKey } from "../contracts/validation";
 import {
   AnalysisResult,
   MissingComic,

@@ -5,7 +5,7 @@ import {
   normalizeCSVRow,
   CSVFormat,
 } from "./csvFormatDetection";
-import { validateComicBatch } from "./csvValidation.ts";
+import { validateComicBatch } from "../../contracts/validation";
 
 // Enhanced parse result with detailed reporting
 export interface EnhancedParseResult {
@@ -62,8 +62,11 @@ export const parseComicsCSVEnhanced = async (
           );
 
           // Validate and normalize with detailed reporting
-          const validationResult = validateComicBatch(normalizedRows);
-
+          const validationResult = validateComicBatch(normalizedRows, {
+            transformData: true, // KEY: Transform raw CSV data into Comic objects
+            allowEmptyVolume: true,
+            allowEmptyType: true,
+          });
           console.log(`✅ Normalization Complete:`, validationResult.summary);
 
           // Determine collected vs want list comics
@@ -88,16 +91,19 @@ export const parseComicsCSVEnhanced = async (
 
           const result: EnhancedParseResult = {
             validComics: finalComics,
-            invalidRows: validationResult.invalidComics,
+            invalidRows: validationResult.invalidComics || [],
             detectedFormat: detection.format,
-            warnings: [...detection.reasoning, ...validationResult.warnings],
+            warnings: [
+              ...detection.reasoning,
+              ...(validationResult.warnings || []),
+            ],
             summary: {
               totalRows: data.length,
               validComics: finalComics.length,
-              invalidRows: validationResult.invalidComics.length,
+              invalidRows: (validationResult.invalidComics || []).length,
               collectedComics: collectedComics.length,
               wantListComics: wantListComics.length,
-              warningCount: validationResult.warnings.length,
+              warningCount: (validationResult.warnings || []).length,
             },
             fieldMapping: detection.fieldMapping,
           };

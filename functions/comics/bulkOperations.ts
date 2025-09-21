@@ -1,6 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createResponse, createErrorResponse } from "../utils/cors";
 import { validateComicBatch } from "./validation";
+import { Comic } from "../../client/src/types/comic";
 
 export interface BulkImportResult {
   processed: number;
@@ -11,6 +12,7 @@ export interface BulkImportResult {
   processingTime: number;
   rate: number;
   validationErrors?: string[];
+  duplicatesSkipped?: number;
 }
 
 /**
@@ -45,9 +47,7 @@ export const handleBulkImport = async (
   }
 
   // BYPASS ALL TRANSFORMATIONS - use exact database field names
-  const comicsWithUser = validation.validComics.map((comic) => {
-    console.log({ comic });
-
+  const comicsWithUser = validation.validComics.map((comic: Comic) => {
     // Remove any snake_case fields that might have been created by old code
     const cleanComic = {
       // Core fields (exact database column names)
@@ -137,22 +137,49 @@ export const handleBulkImport = async (
     JSON.stringify(deduplicatedComics[0], null, 2)
   );
 
+  // FIRST: Check which comics already exist in database to distinguish created vs updated
+  const existingComicsQuery = await supabase
+    .from("comics")
+    .select("publisher,series,volume,issue,type")
+    .eq("user_id", userId);
+
+  const existingComicsSet = new Set();
+  if (existingComicsQuery.data) {
+    existingComicsQuery.data.forEach((comic) => {
+      const key = `${comic.publisher}|${comic.series}|${comic.volume}|${comic.issue}|${comic.type}`;
+      existingComicsSet.add(key);
+    });
+  }
+
+  // Separate comics into new vs existing
+  const comicsToUpdate: typeof deduplicatedComics = [];
+  const newComics: typeof deduplicatedComics = [];
+
+  deduplicatedComics.forEach((comic) => {
+    const key = `${comic.publisher}|${comic.series}|${comic.volume}|${comic.issue}|${comic.type}`;
+    if (existingComicsSet.has(key)) {
+      comicsToUpdate.push(comic);
+    } else {
+      newComics.push(comic);
+    }
+  });
+
+  console.log(
+    `📊 Import breakdown: ${newComics.length} new, ${comicsToUpdate.length} updates, ${duplicatesSkipped} file duplicates skipped`
+  );
+
   try {
     // Use UPSERT with deduplicated data
     const { data: insertedComics, error: insertError } = await supabase
       .from("comics")
       .upsert(deduplicatedComics, {
         onConflict: "publisher,series,volume,issue,type,user_id",
-        ignoreDuplicates: false, // Update existing records instead of ignoring
+        ignoreDuplicates: false, // Update existing records
       })
       .select();
 
     if (insertError) {
       console.error("Bulk upsert error:", insertError);
-      console.error(
-        "Sample data being inserted:",
-        JSON.stringify(deduplicatedComics[0], null, 2)
-      );
       return createErrorResponse(
         500,
         `Bulk upsert failed: ${insertError.message}`
@@ -163,20 +190,26 @@ export const handleBulkImport = async (
     const totalTime = endTime - startTime;
     const processed = insertedComics?.length || 0;
 
-    console.log(
-      `🎉 Bulk import completed: ${processed} comics processed, ${duplicatesSkipped} duplicates skipped, completed in ${totalTime}ms`
-    );
-
+    // FIXED: Proper reporting of created vs updated vs duplicates
     const result: BulkImportResult = {
-      processed: deduplicatedComics.length,
-      created: processed, // With upsert, we can't easily distinguish created vs updated
-      updated: 0, // Would need more complex logic to track this
-      errors: validation.validationErrors.length + duplicatesSkipped,
-      message: `Bulk import: ${processed} comics processed, ${duplicatesSkipped} duplicates in file skipped`,
+      processed: processed,
+      created: newComics.length, // NEW: Actual new comics
+      updated: comicsToUpdate.length, // NEW: Actual updated comics
+      errors: validation.validationErrors.length, // FIXED: Don't count duplicates as errors
+      message: buildImportMessage(
+        newComics.length,
+        comicsToUpdate.length,
+        duplicatesSkipped
+      ),
       processingTime: totalTime,
       rate: Math.round(processed / (totalTime / 1000)),
       validationErrors: validation.validationErrors.slice(0, 10),
+      duplicatesSkipped, // NEW: Report duplicates separately
     };
+
+    console.log(
+      `🎉 Import complete: ${result.created} created, ${result.updated} updated, ${duplicatesSkipped} duplicates skipped`
+    );
 
     return createResponse(201, result);
   } catch (error: any) {
@@ -210,3 +243,21 @@ export const handleBulkDelete = async (
   // This could be used for clearing collections, deleting by criteria, etc.
   return createErrorResponse(501, "Bulk deletes not yet implemented");
 };
+
+/**
+ * Build a descriptive message for import results
+ */
+function buildImportMessage(
+  created: number,
+  updated: number,
+  duplicatesSkipped: number
+): string {
+  const parts: string[] = [];
+
+  if (created > 0) parts.push(`${created} created`);
+  if (updated > 0) parts.push(`${updated} updated`);
+  if (duplicatesSkipped > 0)
+    parts.push(`${duplicatesSkipped} duplicates skipped`);
+
+  return parts.length > 0 ? parts.join(", ") : "No changes made";
+}
