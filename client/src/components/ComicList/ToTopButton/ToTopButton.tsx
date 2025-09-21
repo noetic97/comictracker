@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ChevronsUp } from "lucide-react";
-import Button from "../../shared/Button/Button";
+import Button from "../../shared/Button";
 import * as S from "./styles";
 
 const ToTopButton: React.FC = () => {

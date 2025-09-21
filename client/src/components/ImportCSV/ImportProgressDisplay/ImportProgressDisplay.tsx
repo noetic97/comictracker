@@ -5,7 +5,7 @@ import {
   formatNumber,
   createProgressMessage,
 } from "../../../utils/formatters";
-import { ImportProgress } from "../../../hooks/useCSVImport";
+import { ImportProgress } from "../../../hooks/types";
 import * as S from "./styles";
 
 interface ImportProgressDisplayProps {

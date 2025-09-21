@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Comic, SortOption, FilterOption, FavoriteSeries } from "./types.ts";
-import { useComicActions } from "./hooks/useComicActions";
+import { SortOption, FilterOption, FavoriteSeries } from "./types";
 import ComicActionsErrorBoundary from "./components/shared/ComicActionErrorBoundary";
 import ErrorMessage from "./components/shared/ErrorMessage";
 import ImportModal from "./components/ImportModal";
@@ -24,24 +23,22 @@ import ComicLoadingSpinner from "./components/shared/ComicLoadingSpinner";
 
 const ThemedAppWithLoading: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [comics, setComics] = useState<Comic[]>([]);
   const [favoriteSeries, setFavoriteSeries] = useState<FavoriteSeries[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filteredComics, setFilteredComics] = useState<Comic[]>([]);
+
+  // Global filter/sort state (used by all components)
   const [filter, setFilter] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("series");
   const [filterOption, setFilterOption] = useState<FilterOption>("all");
   const [hideCollected, setHideCollected] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
-  // Modal state
+  // UI state
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importStatus, setImportStatus] = useState<string>("");
-
-  // Add state to track if we've finished initial loading
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
 
   // Use loading manager
@@ -60,113 +57,72 @@ const ThemedAppWithLoading: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        setLoadingPhase("data-loading");
+        console.log("🔄 Loading initial app data...");
+
+        // Only load favorites and global settings - components will load their own comic data
+        const favoritesResponse = await apiService.favorites.getAll();
+
+        console.log(`✅ Loaded ${favoritesResponse.length} favorite series`);
+
+        setFavoriteSeries(favoritesResponse);
+        setError(null);
+
+        // Move to ready state
+        setTimeout(() => {
+          setLoadingPhase("ready");
+          setHasInitiallyLoaded(true);
+        }, 300);
+      } catch (err: any) {
+        console.error("Failed to load initial data:", err);
+        setError("Failed to load app data. Please try again later.");
+        setLoadingPhase("ready");
+        setHasInitiallyLoaded(true);
+      }
+    };
+
+    fetchInitialData();
+  }, [setLoadingPhase]);
+
   if (!isOnline) {
     return (
       <div>You are currently offline. Some features may be unavailable.</div>
     );
   }
 
-  const comicActions = useComicActions({
-    onComicUpdated: (updatedComic) => {
-      console.log(`📝 Comic updated in UI:`, updatedComic);
-      setComics((prevComics) =>
-        prevComics.map((c) => (c.id === updatedComic.id ? updatedComic : c))
+  const handleImport = async (): Promise<void> => {
+    try {
+      setIsRefreshing(true);
+      setImportStatus("Import complete! Refreshing data...");
+
+      // Use background-refresh phase for imports after initial load
+      if (hasInitiallyLoaded) {
+        setLoadingPhase("background-refresh");
+      }
+
+      console.log(
+        "🔄 Import completed, data will refresh automatically via hooks"
       );
-    },
-    onError: (error, comic) => {
-      console.error(
-        `❌ Comic action error for ${comic.series} #${comic.issue}:`,
-        error
-      );
-      setError(`Failed to update ${comic.series} #${comic.issue}: ${error}`);
-    },
-    optimisticUpdates: true,
-  });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoadingPhase("data-loading");
-        console.log("🔄 Loading all comics and favorites...");
+      setError(null);
+      setImportStatus("Complete! ✅");
 
-        const [comicsResponse, favoritesResponse] = await Promise.all([
-          apiService.comics.getAll({ limit: 5000 }),
-          apiService.favorites.getAll(),
-        ]);
-
-        console.log(
-          `✅ Loaded ${comicsResponse.comics.length} comics and ${favoritesResponse.length} favorites`
-        );
-
-        setComics(comicsResponse.comics);
-        setFavoriteSeries(favoritesResponse);
-        setError(null);
-
-        // FIXED: Go directly to ready after data loads
-        // Let the lazy components handle their own loading without affecting main loading state
-        setTimeout(() => {
-          setLoadingPhase("ready");
-          setHasInitiallyLoaded(true);
-        }, 300); // Short delay to let state settle
-      } catch (err: any) {
-        console.error("Failed to load data:", err);
-        setError("Failed to load data. Please try again later.");
+      // Return to ready state
+      if (hasInitiallyLoaded) {
+        setTimeout(() => setLoadingPhase("ready"), 500);
+      }
+    } catch (err: any) {
+      console.error("Failed to handle import:", err);
+      setError("Import completed but refresh failed. Please reload the page.");
+      setImportStatus("Error ❌");
+      if (hasInitiallyLoaded) {
         setLoadingPhase("ready");
-        setHasInitiallyLoaded(true);
       }
-    };
-
-    fetchData();
-  }, [setLoadingPhase]);
-
-  useEffect(() => {
-    const filtered = comics.filter(
-      (comic) =>
-        (comic.series.toLowerCase().includes(filter.toLowerCase()) ||
-          comic.publisher.toLowerCase().includes(filter.toLowerCase())) &&
-        (!hideCollected || !comic.collected)
-    );
-
-    const sorted = [...filtered].sort((a, b) => {
-      if (sortBy === "issueNumber") {
-        return (a.issueNumber || 0) - (b.issueNumber || 0);
-      } else if (sortBy === "currentValue") {
-        return (a.currentValue || 0) - (b.currentValue || 0);
-      } else {
-        return (a[sortBy] as string).localeCompare(b[sortBy] as string);
-      }
-    });
-
-    setFilteredComics(sorted);
-  }, [comics, filter, sortBy, hideCollected]);
-
-  const handleCollect = async (id: string) => {
-    const comic = comics.find((c) => c.id === id);
-    if (!comic) {
-      console.error("Comic not found:", id);
-      setError("Comic not found");
-      return;
-    }
-
-    try {
-      await comicActions.handleCollectedToggle(comic);
-    } catch (error: any) {
-      console.error("Collect toggle failed:", error);
-    }
-  };
-
-  const handleToggleGrail = async (id: string) => {
-    const comic = comics.find((c) => c.id === id);
-    if (!comic) {
-      console.error("Comic not found:", id);
-      setError("Comic not found");
-      return;
-    }
-
-    try {
-      await comicActions.handleGrailToggle(comic);
-    } catch (error: any) {
-      console.error("Grail toggle failed:", error);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -202,44 +158,7 @@ const ThemedAppWithLoading: React.FC = () => {
     }
   };
 
-  const handleImport = async (_importedComics: Comic[]): Promise<void> => {
-    try {
-      setIsRefreshing(true);
-      setImportStatus("Refreshing...");
-
-      // Use background-refresh phase for imports after initial load
-      if (hasInitiallyLoaded) {
-        setLoadingPhase("background-refresh");
-      }
-
-      console.log("🔄 Refreshing comics list after import...");
-
-      const comicsResponse = await apiService.comics.getAll();
-      setComics(comicsResponse.comics);
-
-      console.log(
-        `✅ Refreshed: Now showing ${comicsResponse.comics.length} total comics`
-      );
-      setError(null);
-      setImportStatus("Complete! ✅");
-
-      // Return to ready state
-      if (hasInitiallyLoaded) {
-        setTimeout(() => setLoadingPhase("ready"), 500);
-      }
-    } catch (err: any) {
-      console.error("Failed to refresh comics after import:", err);
-      setError("Failed to refresh comics. Please reload the page.");
-      setImportStatus("Error ❌");
-      if (hasInitiallyLoaded) {
-        setLoadingPhase("ready");
-      }
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  // All the handler functions remain the same...
+  // UI handlers
   const toggleFilterModal = () => {
     setIsFilterModalOpen(!isFilterModalOpen);
     if (isMenuOpen) {
@@ -263,25 +182,6 @@ const ThemedAppWithLoading: React.FC = () => {
     setImportStatus("");
   };
 
-  const renderComicActionErrors = () => {
-    if (!comicActions.hasErrors) return null;
-
-    const errors = comicActions.getAllErrors();
-    const errorMessage = `Comic update errors: ${errors
-      .map(([_id, error]) => error)
-      .join(", ")}`;
-
-    return (
-      <S.FloatingErrorContainer>
-        <ErrorMessage
-          message={errorMessage}
-          type="error"
-          onDismiss={comicActions.clearErrors}
-        />
-      </S.FloatingErrorContainer>
-    );
-  };
-
   const renderGeneralError = () => {
     if (!error) return null;
 
@@ -296,33 +196,21 @@ const ThemedAppWithLoading: React.FC = () => {
     );
   };
 
-  const renderActionStatus = () => {
-    if (comicActions.isUpdating && comicActions.lastOperation) {
-      return (
-        <S.FloatingStatusMessage>
-          🔄 {comicActions.lastOperation}
-        </S.FloatingStatusMessage>
-      );
-    }
-    return null;
-  };
-
   const renderRefreshIndicator = () => {
     if (!isRefreshing) return null;
 
     return (
       <S.RefreshIndicatorContainer>
         <S.RefreshIndicatorInner />
-        Updating comic list...
+        Updating data...
       </S.RefreshIndicatorContainer>
     );
   };
 
-  // Always render app content - ComicLoadingSpinner overlays when needed
   return (
     <ComicActionsErrorBoundary
       onError={(error, errorInfo) => {
-        console.error("🚨 Comic Actions crashed:", error, errorInfo);
+        console.error("🚨 Application crashed:", error, errorInfo);
         setError(
           `Application error: ${error.message}. Please refresh the page.`
         );
@@ -347,14 +235,9 @@ const ThemedAppWithLoading: React.FC = () => {
           />
         </S.HeaderContainer>
 
-        {renderActionStatus()}
-        {renderComicActionErrors()}
         {renderGeneralError()}
 
         <ComicList
-          comics={filteredComics}
-          onCollect={handleCollect}
-          onToggleGrail={handleToggleGrail}
           itemsPerPage={itemsPerPage}
           setItemsPerPage={setItemsPerPage}
           filterOption={filterOption}

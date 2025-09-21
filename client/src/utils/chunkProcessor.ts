@@ -1,54 +1,17 @@
 import { Comic } from "../types";
 import { apiService } from "./apiService";
-
-export interface ChunkProcessorOptions {
-  chunkSize: number;
-  delayBetweenChunks: number;
-  onProgress?: (progress: ChunkProgress) => void;
-  onChunkComplete?: (result: ChunkResult) => void;
-  onError?: (error: ChunkError) => void;
-}
-
-export interface ChunkProgress {
-  currentChunk: number;
-  totalChunks: number;
-  processedItems: number;
-  totalItems: number;
-  percentComplete: number;
-  estimatedTimeRemaining: number;
-  startTime: number;
-}
-
-export interface ChunkResult {
-  chunkIndex: number;
-  processed: number;
-  created: number;
-  updated: number;
-  errors: number;
-  processingTime: number;
-  processingErrors?: string[];
-}
-
-export interface ChunkError {
-  chunkIndex: number;
-  error: Error;
-  chunk: any[];
-}
-
-export interface ProcessingResult {
-  totalProcessed: number;
-  totalCreated: number;
-  totalUpdated: number;
-  totalErrors: number;
-  processingTime: number;
-  chunks: ChunkResult[];
-  errors: ChunkError[];
-}
+import {
+  ChunkProcessorOptions,
+  ProcessingResult,
+  ChunkResult,
+  ChunkError,
+  ChunkProgress,
+} from "../contracts/processing";
 
 /**
  * Splits an array into smaller chunks
  */
-export const chunkArray = <T>(array: T[], size: number): T[][] => {
+const chunkArray = <T>(array: T[], size: number): T[][] => {
   const chunks: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
     const chunk = array.slice(i, i + size);

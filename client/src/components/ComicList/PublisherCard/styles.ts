@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { readableTextColor } from "../../../themes/colorUtils";
 
 export const PublisherCard = styled.div<{ $isExpanded: boolean }>`
   background-color: ${({ theme }) => theme.colors.card};
@@ -26,7 +27,7 @@ export const PublisherButton = styled.button<{ $isExpanded: boolean }>`
   width: 100%;
   height: ${({ $isExpanded }) => ($isExpanded ? "auto" : "150px")};
   background-color: ${({ theme }) => theme.colors.primary};
-  color: ${({ theme }) => theme.colors.cardForeground};
+  color: ${({ theme }) => readableTextColor(theme.colors.primary)};
   border: none;
   padding: 1rem;
   font-weight: bold;
@@ -58,6 +59,10 @@ export const PublisherButton = styled.button<{ $isExpanded: boolean }>`
 
   &:hover:before {
     transform: rotate(45deg) translate(50%, 50%);
+  }
+
+  &:hover {
+    color: ${({ theme }) => readableTextColor(theme.colors.primary)};
   }
 
   ${({ $isExpanded }) =>

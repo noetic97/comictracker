@@ -2,23 +2,36 @@ import styled from "styled-components";
 
 export const ThemeSwitcherContainer = styled.div`
   margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 `;
 
-export const ThemeButton = styled.button<{ $isActive: boolean }>`
-  background-color: ${(props) =>
-    props.$isActive
-      ? props.theme.colors.primary
-      : props.theme.colors.secondary};
+export const ThemeSelect = styled.select`
+  background-color: ${(props) => props.theme.colors.card};
   color: ${(props) => props.theme.colors.cardForeground};
-  border: none;
-  padding: 0.5rem 1rem;
-  margin-right: 0.5rem;
-  margin-bottom: 0.5rem;
+  border: 1px solid ${(props) => props.theme.colors.border};
+  padding: 0.5rem 0.75rem;
   border-radius: var(--radius);
   cursor: pointer;
-  transition: background-color 0.2s;
+  max-width: 16rem;
 
-  &:hover {
-    opacity: 0.9;
+  &:focus-visible {
+    outline: 2px solid ${(props) => props.theme.colors.primary};
+    outline-offset: 2px;
   }
+`;
+
+export const RememberToggleLabel = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: ${(props) => props.theme.colors.cardForeground};
+`;
+
+export const RememberToggleInput = styled.input`
+  width: 1rem;
+  height: 1rem;
+  accent-color: ${(props) => props.theme.colors.primary};
 `;

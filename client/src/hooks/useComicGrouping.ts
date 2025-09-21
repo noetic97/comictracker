@@ -5,10 +5,10 @@ import {
   FavoriteSeries,
   FilterOption,
 } from "../types";
-import { isValidComic } from "../utils/validation";
+import { isValidComic } from "../utils/validation/sharedValidation";
 import { sortSeriesKeysIgnoringArticles } from "../utils/sortingUtils";
 
-export interface ComicGroupingResult {
+interface ComicGroupingResult {
   filteredComics: Comic[];
   groupedComics: PublisherGroupedComics;
   stats: {
@@ -21,7 +21,7 @@ export interface ComicGroupingResult {
   };
 }
 
-export interface UseComicGroupingOptions {
+interface UseComicGroupingOptions {
   onError?: (error: string) => void;
 }
 

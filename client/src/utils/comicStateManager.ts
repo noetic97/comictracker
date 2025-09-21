@@ -1,17 +1,6 @@
 import { Comic } from "../types";
 import { apiService } from "./apiService";
-
-export interface StateChangeResult {
-  success: boolean;
-  comic?: Comic;
-  error?: string;
-  originalComic: Comic;
-}
-
-export interface StateChangeOptions {
-  retryCount?: number;
-  onProgress?: (status: string) => void;
-}
+import { StateChangeResult, StateChangeOptions } from "../contracts";
 
 /**
  * Safely toggle a comic's collected status

@@ -1,11 +1,11 @@
 import Papa from "papaparse";
-import { Comic } from "../types";
+import { Comic } from "../../types/index.ts";
 import {
   detectCSVFormat,
   normalizeCSVRow,
   CSVFormat,
 } from "./csvFormatDetection";
-import { validateComicBatch } from "./csvValidation.ts";
+import { validateComicBatch } from "../../contracts/validation";
 
 // Enhanced parse result with detailed reporting
 export interface EnhancedParseResult {
@@ -49,12 +49,6 @@ export const parseComicsCSVEnhanced = async (
 
           // Detect format and create field mapping
           const detection = detectCSVFormat(headers);
-          console.log(
-            `🔍 Format Detection: ${detection.format} (${Math.round(
-              detection.confidence * 100
-            )}% confidence)`
-          );
-          console.log(`🧠 Reasoning: ${detection.reasoning.join("; ")}`);
 
           // Normalize all rows using field mapping
           const normalizedRows = data.map((row) =>
@@ -62,8 +56,11 @@ export const parseComicsCSVEnhanced = async (
           );
 
           // Validate and normalize with detailed reporting
-          const validationResult = validateComicBatch(normalizedRows);
-
+          const validationResult = validateComicBatch(normalizedRows, {
+            transformData: true, // KEY: Transform raw CSV data into Comic objects
+            allowEmptyVolume: true,
+            allowEmptyType: true,
+          });
           console.log(`✅ Normalization Complete:`, validationResult.summary);
 
           // Determine collected vs want list comics
@@ -88,16 +85,16 @@ export const parseComicsCSVEnhanced = async (
 
           const result: EnhancedParseResult = {
             validComics: finalComics,
-            invalidRows: validationResult.invalidComics,
+            invalidRows: validationResult.invalidComics || [],
             detectedFormat: detection.format,
-            warnings: [...detection.reasoning, ...validationResult.warnings],
+            warnings: [...(validationResult.warnings || [])],
             summary: {
               totalRows: data.length,
               validComics: finalComics.length,
-              invalidRows: validationResult.invalidComics.length,
+              invalidRows: (validationResult.invalidComics || []).length,
               collectedComics: collectedComics.length,
               wantListComics: wantListComics.length,
-              warningCount: validationResult.warnings.length,
+              warningCount: (validationResult.warnings || []).length,
             },
             fieldMapping: detection.fieldMapping,
           };
@@ -105,13 +102,25 @@ export const parseComicsCSVEnhanced = async (
           resolve(result);
         } catch (error) {
           console.error("❌ CSV processing error:", error);
-          reject(new Error(`CSV processing failed: ${error.message}`));
+          reject(
+            new Error(
+              `CSV processing failed: ${
+                error instanceof Error ? error.message : String(error)
+              }`
+            )
+          );
         }
       },
 
       error: (error) => {
         console.error("❌ CSV parsing error:", error);
-        reject(new Error(`CSV parsing failed: ${error.message}`));
+        reject(
+          new Error(
+            `CSV parsing failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          )
+        );
       },
     });
   });
@@ -167,7 +176,11 @@ export const parseComicsCSVWithAutoDetection = async (
     return result;
   } catch (error) {
     console.error(`❌ Enhanced CSV parsing failed:`, error);
-    throw new Error(`Failed to parse CSV: ${error.message}`);
+    throw new Error(
+      `Failed to parse CSV: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
 };
 
@@ -203,7 +216,13 @@ export const previewCSVStructure = async (
       },
 
       error: (error) => {
-        reject(new Error(`CSV preview failed: ${error.message}`));
+        reject(
+          new Error(
+            `CSV preview failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          )
+        );
       },
     });
   });
@@ -284,7 +303,11 @@ export const validateCSVFile = async (
   } catch (error) {
     return {
       isValid: false,
-      errors: [`Failed to validate CSV: ${error.message}`],
+      errors: [
+        `Failed to validate CSV: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      ],
       warnings: [],
       preview: null,
     };

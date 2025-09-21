@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { FavoriteSeries, FilterOption, ViewMode } from "../../types";
-import { usePublisherSummaries } from "../../hooks/useComicAggregations";
-import { useExpandedState } from "../../hooks";
+import { usePublisherSummaries, useExpandedState } from "../../hooks";
 import * as S from "./styles";
 import ErrorMessage from "../shared/ErrorMessage";
 import ControlsSection from "./ControlsSection";
@@ -10,8 +9,6 @@ import ToTopButton from "./ToTopButton";
 import SeriesDetailView from "../SeriesDetailView";
 
 interface Props {
-  onCollect: (id: string) => void;
-  onToggleGrail: (id: string) => void;
   itemsPerPage: number;
   setItemsPerPage: (count: number) => void;
   filterOption: FilterOption;
@@ -24,8 +21,6 @@ interface Props {
 }
 
 const ComicList: React.FC<Props> = ({
-  onCollect,
-  onToggleGrail,
   itemsPerPage,
   setItemsPerPage,
   filterOption,
@@ -39,6 +34,7 @@ const ComicList: React.FC<Props> = ({
     series: string;
     volume?: string;
   } | null>(null);
+  const [seriesPages, setSeriesPages] = useState<Record<string, number>>({});
 
   // Use our new hook to fetch publisher summaries
   const {
@@ -77,24 +73,30 @@ const ComicList: React.FC<Props> = ({
     setSelectedSeries(null);
   };
 
+  const getSeriesPage = (seriesKey: string): number =>
+    seriesPages[seriesKey] ?? 1;
+
+  const handleSeriesPageChange = (seriesKey: string, page: number) => {
+    setSeriesPages((prev) => {
+      if (prev[seriesKey] === page) return prev;
+      return { ...prev, [seriesKey]: page };
+    });
+  };
+
   // Handle errors
   const combinedError = error || publishersError;
 
   // Render series detail view
   if (viewMode === "series-detail" && selectedSeries) {
-    // For now, we'll need to keep the existing SeriesDetailView
-    // We can update this later to use the new progressive loading
     return (
       <SeriesDetailView
-        comics={[]} // Will need to fetch these
         publisher={selectedSeries.publisher}
         series={selectedSeries.series}
         volume={selectedSeries.volume}
-        onCollect={onCollect}
-        onToggleGrail={onToggleGrail}
         onBack={handleBackToGrid}
         itemsPerPage={itemsPerPage}
         setItemsPerPage={setItemsPerPage}
+        filterOption={filterOption} // Pass global filter state
         isFavorite={favoriteSeries.some(
           (fav) =>
             fav.publisher === selectedSeries.publisher &&
@@ -146,10 +148,10 @@ const ComicList: React.FC<Props> = ({
               filterOption={filterOption}
               onTogglePublisher={togglePublisher}
               onToggleSeries={toggleSeries}
-              onCollect={onCollect}
-              onToggleGrail={onToggleGrail}
               onOpenDetailView={handleOpenDetailView}
               onToggleFavoriteSeries={onToggleFavoriteSeries}
+              getSeriesPage={getSeriesPage}
+              onSeriesPageChange={handleSeriesPageChange}
             />
           ))}
         </S.PublisherGrid>

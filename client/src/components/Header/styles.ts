@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { readableTextColor } from "../../themes/colorUtils";
 
 export const HeaderContainer = styled.header`
   display: flex;
@@ -25,7 +26,7 @@ export const LogoContainer = styled.div`
 
 export const StyledLogoIcon = styled.div`
   background-color: ${({ theme }) => theme.colors.primary};
-  color: ${({ theme }) => theme.colors.foreground};
+  color: ${({ theme }) => readableTextColor(theme.colors.primary)};
   width: 40px;
   height: 40px;
   border-radius: 50%;

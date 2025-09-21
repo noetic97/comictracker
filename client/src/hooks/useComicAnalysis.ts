@@ -1,9 +1,6 @@
 import { useState, useCallback } from "react";
-import {
-  analyzeComics,
-  getAnalysisSummary,
-  AnalysisResult,
-} from "../utils/comicAnalyzer";
+import { analyzeComics, getAnalysisSummary } from "../utils/comicAnalyzer";
+import { AnalysisResult } from "../contracts/analysis";
 
 export interface AnalysisState {
   isAnalyzing: boolean;

@@ -3,7 +3,7 @@ import StatsDisplay from "../StatsDisplay";
 import { FilterOption } from "../../../types";
 import * as S from "./styles";
 
-export interface ControlsSectionProps {
+interface ControlsSectionProps {
   isAllExpanded: boolean;
   onToggleAll: () => void;
   filterOption: FilterOption;

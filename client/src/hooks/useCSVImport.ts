@@ -1,49 +1,15 @@
 import { useState, useCallback } from "react";
-import { parseComicsCSV } from "../utils/csvParser";
-import { validateComicBatch, normalizeComic } from "../utils/comicValidator.ts";
-import {
-  processComicsInChunks,
-  ProcessingResult,
-} from "../utils/chunkProcessor";
+import { parseComicsCSV } from "../utils/csv/csvParser.ts";
+import { validateComicBatch, normalizeComic } from "../contracts/validation";
+import { processComicsInChunks } from "../utils/chunkProcessor";
+import { ProcessingResult } from "../contracts/processing";
 import { formatImportStats } from "../utils/formatters";
-
-export interface ImportState {
-  isImporting: boolean;
-  progress: ImportProgress | null;
-  results: ImportResults | null;
-  error: string | null;
-  warning: string | null;
-}
-
-export interface ImportProgress {
-  total: number;
-  processed: number;
-  chunks: number;
-  currentChunk: number;
-  created: number;
-  updated: number;
-  errors: number;
-  isComplete: boolean;
-  startTime: number;
-  estimatedTimeRemaining: number;
-  rate: number;
-}
-
-export interface ImportResults {
-  processed: number;
-  created: number;
-  updated: number;
-  errors: number;
-  processingTime: number;
-  processingErrors?: string[];
-  validationWarnings?: string[];
-}
-
-export interface ImportOptions {
-  chunkSize?: number;
-  delayBetweenChunks?: number;
-  validateComics?: boolean;
-}
+import {
+  ImportResults,
+  ImportState,
+  ImportOptions,
+  ImportProgress,
+} from "./types";
 
 export const useCSVImport = (
   onImportComplete?: (results: ImportResults) => void
@@ -113,12 +79,22 @@ export const useCSVImport = (
         let validationWarnings: string[] = [];
 
         if (validateComics) {
-          const validation = validateComicBatch(rawComics);
-          processedComics = validation.validComics.map(normalizeComic);
-          validationWarnings = validation.warnings;
+          // Use unified validation WITHOUT transformation (data already parsed)
+          const validation = validateComicBatch(rawComics, {
+            transformData: false, // KEY: Don't transform, just validate
+            requireNumericIssue: false,
+            allowEmptyVolume: true,
+            allowEmptyType: true,
+          });
 
-          if (validation.hasErrors) {
-            console.warn("Validation errors found:", validation.errors);
+          processedComics = validation.validComics.map(normalizeComic);
+          validationWarnings = validation.warnings || [];
+
+          if (validation.validationErrors.length > 0) {
+            console.warn(
+              "Validation errors found:",
+              validation.validationErrors
+            );
           }
         } else {
           processedComics = rawComics.map(normalizeComic);

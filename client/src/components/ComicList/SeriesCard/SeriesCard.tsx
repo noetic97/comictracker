@@ -1,8 +1,8 @@
 import React from "react";
-import { ExternalLink, Heart, Star, Check } from "lucide-react";
-import { SeriesSummary } from "../../../hooks/useComicAggregations";
-import { useSeriesComics } from "../../../hooks/useComicAggregations";
-import PaginationControls from "../PaginationControls";
+import { Heart, Star, ExternalLink } from "lucide-react";
+import SeriesComicsList from "../SeriesComicList";
+import { FilterOption } from "../../../types";
+import { SeriesSummary } from "../../../hooks/aggregations/types";
 import Button from "../../shared/Button";
 import * as S from "./styles";
 
@@ -13,8 +13,6 @@ interface SeriesCardProps {
   toggleSeries: (series: string) => void;
   currentPage: number;
   itemsPerPage: number;
-  onCollect: (id: string) => void;
-  onToggleGrail: (id: string) => void;
   onPageChange: (page: number) => void;
   onOpenDetailView: (
     publisher: string,
@@ -23,6 +21,7 @@ interface SeriesCardProps {
   ) => void;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  filterOption: FilterOption;
 }
 
 const SeriesCard: React.FC<SeriesCardProps> = ({
@@ -30,14 +29,13 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
   seriesSummary,
   $isExpanded,
   toggleSeries,
+  currentPage,
+  itemsPerPage,
+  onPageChange,
   onOpenDetailView,
   isFavorite,
   onToggleFavorite,
-  currentPage,
-  itemsPerPage,
-  onCollect,
-  onToggleGrail,
-  onPageChange,
+  filterOption,
 }) => {
   const handleDetailView = () => {
     onOpenDetailView(
@@ -47,18 +45,9 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
     );
   };
 
-  // Create display title with years if available
   const displayTitle = seriesSummary.volume
     ? `${seriesSummary.series} - ${seriesSummary.volume}`
     : seriesSummary.series;
-
-  // derive total pages from aggregation (issueCount is total issues in the series)
-  const totalPages = Math.max(
-    1,
-    Math.ceil(
-      seriesSummary.issueCount / /* fallback */ (seriesSummary.issueCount || 1)
-    )
-  );
 
   return (
     <S.SeriesCard data-sc="SeriesCard">
@@ -127,10 +116,9 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
             volume={seriesSummary.volume}
             currentPage={currentPage}
             itemsPerPage={itemsPerPage}
-            onCollect={onCollect}
-            onToggleGrail={onToggleGrail}
             onPageChange={onPageChange}
             totalIssues={seriesSummary.issueCount}
+            filterOption={filterOption}
           />
         )}
       </S.SeriesContent>
@@ -139,100 +127,3 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
 };
 
 export default SeriesCard;
-
-interface SeriesComicsListProps {
-  publisher: string;
-  series: string;
-  volume?: string;
-  currentPage: number;
-  itemsPerPage: number;
-  onCollect: (id: string) => void;
-  onToggleGrail: (id: string) => void;
-  onPageChange: (page: number) => void;
-  totalIssues: number;
-}
-
-const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
-  publisher,
-  series,
-  volume,
-  currentPage,
-  itemsPerPage,
-  onCollect,
-  onToggleGrail,
-  onPageChange,
-  totalIssues,
-}) => {
-  const { comics, loading, error } = useSeriesComics(
-    publisher,
-    series,
-    volume || null,
-    currentPage,
-    itemsPerPage,
-    true
-  );
-
-  const totalPages = Math.max(1, Math.ceil(totalIssues / itemsPerPage));
-
-  if (loading) {
-    return <div style={{ padding: "1rem" }}>Loading comics…</div>;
-  }
-  if (error) {
-    return (
-      <div style={{ padding: "1rem", color: "#ffdddd" }}>
-        Failed to load comics: {error}
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {comics.map((comic) => (
-        <S.ComicItem
-          key={comic.id}
-          $collected={comic.collected}
-          $isGrail={comic.isGrail}
-          data-sc="ComicItem"
-        >
-          <S.ComicInfo data-sc="ComicInfo">
-            <S.ComicTitle data-sc="ComicTitle">
-              {comic.series}
-              {comic.volume && ` - ${comic.volume}`} #{comic.issue}
-            </S.ComicTitle>
-            <S.ComicMeta data-sc="ComicMeta">
-              <span>Years: {comic.years}</span>
-              <S.ComicValue>
-                ${comic.currentValue?.toLocaleString()}
-              </S.ComicValue>
-            </S.ComicMeta>
-          </S.ComicInfo>
-          <S.ComicActions>
-            <S.ActionButton
-              onClick={() => onToggleGrail(comic.id)}
-              $isActive={comic.isGrail}
-              title={comic.isGrail ? "Remove from grails" : "Mark as grail"}
-            >
-              <Star size={16} fill={comic.isGrail ? "currentColor" : "none"} />
-            </S.ActionButton>
-            <S.ActionButton
-              onClick={() => onCollect(comic.id)}
-              $isActive={comic.collected}
-              title={
-                comic.collected ? "Mark as uncollected" : "Mark as collected"
-              }
-            >
-              <Check size={16} />
-            </S.ActionButton>
-          </S.ComicActions>
-        </S.ComicItem>
-      ))}
-      {totalPages > 1 && (
-        <PaginationControls
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={onPageChange}
-        />
-      )}
-    </>
-  );
-};

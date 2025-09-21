@@ -1,13 +1,11 @@
 import React, { Suspense } from "react";
 import { FavoriteSeries, FilterOption } from "../../../types";
-import {
-  PublisherSummary,
-  useSeriesSummaries,
-} from "../../../hooks/useComicAggregations";
+import { PublisherSummary } from "../../../hooks/aggregations/types";
+import { useSeriesSummaries } from "../../../hooks";
 import SeriesCard from "../SeriesCard";
 import * as S from "./styles";
 
-export interface PublisherCardProps {
+interface PublisherCardProps {
   publisherSummary: PublisherSummary;
   isExpanded: boolean;
   expandedSeries: string[];
@@ -16,8 +14,6 @@ export interface PublisherCardProps {
   filterOption: FilterOption;
   onTogglePublisher: (publisher: string) => void;
   onToggleSeries: (seriesKey: string) => void;
-  onCollect: (id: string) => void;
-  onToggleGrail: (id: string) => void;
   onOpenDetailView: (
     publisher: string,
     series: string,
@@ -28,6 +24,8 @@ export interface PublisherCardProps {
     series: string,
     volume: string
   ) => void;
+  getSeriesPage: (seriesKey: string) => number;
+  onSeriesPageChange: (seriesKey: string, page: number) => void;
 }
 
 const PublisherCard: React.FC<PublisherCardProps> = ({
@@ -39,10 +37,10 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
   filterOption,
   onTogglePublisher,
   onToggleSeries,
-  onCollect,
-  onToggleGrail,
   onOpenDetailView,
   onToggleFavoriteSeries,
+  getSeriesPage,
+  onSeriesPageChange,
 }) => {
   // Only fetch series data when this publisher is expanded
   const {
@@ -111,11 +109,11 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
                     seriesSummary={seriesSummary}
                     $isExpanded={expandedSeries.includes(seriesKey)}
                     toggleSeries={onToggleSeries}
-                    currentPage={1} // We'll handle pagination later
+                    currentPage={getSeriesPage(seriesKey)}
                     itemsPerPage={itemsPerPage}
-                    onCollect={onCollect}
-                    onToggleGrail={onToggleGrail}
-                    onPageChange={() => {}} // Handle later
+                    onPageChange={(page) =>
+                      onSeriesPageChange(seriesKey, page)
+                    }
                     onOpenDetailView={onOpenDetailView}
                     isFavorite={isFavoriteSeries(
                       seriesSummary.publisher,

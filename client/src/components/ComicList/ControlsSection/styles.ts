@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { readableTextColor } from "../../../themes/colorUtils";
 
 export const ControlsContainer = styled.div`
   margin-bottom: 1rem;
@@ -20,7 +21,7 @@ export const ControlsRow = styled.div`
 
 export const ToggleButton = styled.button`
   background-color: ${({ theme }) => theme.colors.primary};
-  color: ${({ theme }) => theme.colors.foreground};
+  color: ${({ theme }) => readableTextColor(theme.colors.primary)};
   border: none;
   padding: 0.5rem 1rem;
   border-radius: var(--radius);
@@ -31,6 +32,7 @@ export const ToggleButton = styled.button`
 
   &:hover {
     background-color: ${({ theme }) => theme.colors.secondary};
+    color: ${({ theme }) => readableTextColor(theme.colors.secondary)};
   }
 
   @media (max-width: 768px) {

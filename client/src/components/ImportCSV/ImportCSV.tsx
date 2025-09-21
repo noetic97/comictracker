@@ -9,7 +9,7 @@ import { useCSVImport } from "../../hooks/useCSVImport";
 import { useComicAnalysis } from "../../hooks/useComicAnalysis";
 import { usePersistence } from "../../hooks/usePersistence";
 import { Comic } from "../../types";
-import { parseComicsCSV } from "../../utils/csvParser";
+import { parseComicsCSV } from "../../utils/csv/csvParser";
 import * as S from "./styles";
 
 interface Props {
