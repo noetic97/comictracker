@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useCallback } from "react";
 import { Star, Check } from "lucide-react";
 import { Comic, FilterOption } from "../../../types";
 import {

@@ -5,20 +5,11 @@ import * as S from "./styles";
 
 interface StatsDisplayProps {
   filterOption: FilterOption;
-  // Remove all the old props since we'll fetch them directly
 }
 
 const StatsDisplay: React.FC<StatsDisplayProps> = ({ filterOption }) => {
   // Use our new hook to fetch stats based on current filter
   const { stats, loading, error } = useComicStats({ filterOption });
-
-  // const stats = {
-  //   total: 100,
-  //   collected: 50,
-  //   grails: 20,
-  //   totalValue: 1000,
-  //   collectedValue: 500,
-  // };
 
   // Show loading state
   if (loading) {
