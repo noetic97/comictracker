@@ -1,20 +1,11 @@
-interface ValidationResult {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
-}
-
-interface ComicValidationOptions {
-  requireNumericIssue?: boolean;
-  allowEmptyVolume?: boolean;
-  allowEmptyType?: boolean;
-}
+import { ComicValidationOptions, ValidationResult } from "../../contracts";
+import { Comic } from "../../types";
 
 /**
  * Validates a single comic record from CSV data
  */
 export const validateComic = (
-  comic: any,
+  comic: Comic,
   index: number,
   options: ComicValidationOptions = {}
 ): ValidationResult => {
@@ -60,11 +51,14 @@ export const validateComic = (
   }
 
   // Current value validation
-  if (comic["Current Value"]) {
-    const value = parseFloat(comic["Current Value"]);
+  if (comic.currentValue !== undefined) {
+    const value =
+      typeof comic.currentValue === "number"
+        ? comic.currentValue
+        : parseFloat(String(comic.currentValue));
     if (isNaN(value)) {
       warnings.push(
-        `Row ${index + 1}: Invalid current value "${comic["Current Value"]}"`
+        `Row ${index + 1}: Invalid current value "${comic.currentValue}"`
       );
     } else if (value < 0) {
       warnings.push(`Row ${index + 1}: Negative current value "${value}"`);

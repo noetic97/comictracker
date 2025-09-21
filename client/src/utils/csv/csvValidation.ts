@@ -46,7 +46,7 @@ export const validateComicRecord = (
 
   return {
     isValid: normalizationResult.isValid,
-    comic: normalizationResult.isValid ? normalizationResult.data : undefined,
+    comic: normalizationResult.isValid ? normalizationResult.comic : undefined,
     errors: contextualErrors,
     warnings: contextualWarnings,
     skippedFields, // Could be populated with fields that couldn't be mapped

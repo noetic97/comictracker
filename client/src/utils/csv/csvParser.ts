@@ -105,13 +105,25 @@ export const parseComicsCSVEnhanced = async (
           resolve(result);
         } catch (error) {
           console.error("❌ CSV processing error:", error);
-          reject(new Error(`CSV processing failed: ${error.message}`));
+          reject(
+            new Error(
+              `CSV processing failed: ${
+                error instanceof Error ? error.message : String(error)
+              }`
+            )
+          );
         }
       },
 
       error: (error) => {
         console.error("❌ CSV parsing error:", error);
-        reject(new Error(`CSV parsing failed: ${error.message}`));
+        reject(
+          new Error(
+            `CSV parsing failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          )
+        );
       },
     });
   });
@@ -167,7 +179,11 @@ export const parseComicsCSVWithAutoDetection = async (
     return result;
   } catch (error) {
     console.error(`❌ Enhanced CSV parsing failed:`, error);
-    throw new Error(`Failed to parse CSV: ${error.message}`);
+    throw new Error(
+      `Failed to parse CSV: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
 };
 
@@ -203,7 +219,13 @@ export const previewCSVStructure = async (
       },
 
       error: (error) => {
-        reject(new Error(`CSV preview failed: ${error.message}`));
+        reject(
+          new Error(
+            `CSV preview failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          )
+        );
       },
     });
   });
@@ -284,7 +306,11 @@ export const validateCSVFile = async (
   } catch (error) {
     return {
       isValid: false,
-      errors: [`Failed to validate CSV: ${error.message}`],
+      errors: [
+        `Failed to validate CSV: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      ],
       warnings: [],
       preview: null,
     };

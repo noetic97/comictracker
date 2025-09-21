@@ -4,9 +4,9 @@ import {
   toggleComicCollected,
   toggleComicGrail,
   createOptimisticUpdate,
-  StateChangeResult,
 } from "../utils/comicStateManager";
 import { Comic } from "../types";
+import { StateChangeResult } from "../contracts";
 
 export const useComicActions = (options: ComicActionsOptions = {}) => {
   const { onComicUpdated, onError, optimisticUpdates = true } = options;

@@ -1,9 +1,4 @@
-export interface ValidationResult {
-  isValid: boolean;
-  data: any;
-  warnings: string[];
-  errors: string[];
-}
+import { ComicValidationResult } from "../../contracts";
 
 // Common grade values we accept (for suggestion purposes)
 const COMMON_GRADES = new Set([
@@ -57,7 +52,7 @@ const COMMON_GRADES = new Set([
  * Fast grade validation - accepts any string, suggests common formats
  */
 const validateGrade = (
-  input: any
+  input: any // TODO: fix this
 ): { value: string | null; warning?: string } => {
   if (!input || input === "" || input === "null" || input === "N/A") {
     return { value: null };
@@ -86,7 +81,7 @@ const validateGrade = (
  * Fast numeric parsing - minimal validation
  */
 const parseNumeric = (
-  input: any,
+  input: any, // TODO: fix this
   defaultValue: number | null = null
 ): number | null => {
   if (input === null || input === undefined || input === "") {
@@ -108,6 +103,7 @@ const parseNumeric = (
  * Fast boolean parsing - simple true/false detection
  */
 const parseBoolean = (input: any): boolean => {
+  // TODO: fix this
   if (typeof input === "boolean") return input;
   if (!input) return false;
 
@@ -119,6 +115,7 @@ const parseBoolean = (input: any): boolean => {
  * Fast text parsing - just trim and null empty strings
  */
 const parseText = (input: any): string | null => {
+  // TODO: fix this
   if (!input || input === "null" || input === "N/A") return null;
   const trimmed = String(input).trim();
   return trimmed === "" ? null : trimmed;
@@ -128,6 +125,7 @@ const parseText = (input: any): string | null => {
  * Simple date parsing - ISO format only
  */
 const parseDate = (input: any): Date | null => {
+  // TODO: fix this
   if (!input) return null;
 
   try {
@@ -142,7 +140,8 @@ const parseDate = (input: any): Date | null => {
  * Main validation function - FIXED to use correct database field names
  * This replaces the complex normalizeComicFields function
  */
-export const validateComicFields = (rawData: any): ValidationResult => {
+export const validateComicFields = (rawData: any): ComicValidationResult => {
+  // TODO: fix this
   const errors: string[] = [];
   const warnings: string[] = [];
   const data: any = {};
@@ -159,7 +158,7 @@ export const validateComicFields = (rawData: any): ValidationResult => {
 
   // If any required field is missing, return early
   if (errors.length > 0) {
-    return { isValid: false, data: {}, errors, warnings };
+    return { isValid: false, comic: {}, errors, warnings, skippedFields: [] };
   }
 
   // Optional text fields - using EXACT database column names (camelCase)
@@ -211,9 +210,10 @@ export const validateComicFields = (rawData: any): ValidationResult => {
 
   return {
     isValid: true,
-    data,
+    comic: data,
     errors,
     warnings,
+    skippedFields: [],
   };
 };
 
@@ -221,7 +221,7 @@ export const validateComicFields = (rawData: any): ValidationResult => {
  * Batch validation for arrays of comics - optimized for performance
  */
 export const validateComicBatch = (
-  rawComics: any[]
+  rawComics: any[] // TODO: fix this
 ): {
   validComics: any[];
   invalidComics: any[];
@@ -242,19 +242,19 @@ export const validateComicBatch = (
 
     if (result.isValid) {
       validComics.push({
-        ...result.data,
+        ...result.comic,
         originalIndex: i,
       });
 
       // Add context to warnings
-      result.warnings.forEach((warning) => {
+      result.warnings.forEach((warning: string) => {
         allWarnings.push(`Row ${i + 1}: ${warning}`);
       });
     } else {
       invalidComics.push({
         originalIndex: i,
         data: rawComics[i],
-        errors: result.errors.map((error) => `Row ${i + 1}: ${error}`),
+        errors: result.errors.map((error: string) => `Row ${i + 1}: ${error}`),
       });
     }
   }
@@ -298,14 +298,15 @@ export const validateCSVHeaders = (
 } => {
   const required = ["Publisher", "Series", "Issue"];
   const missing = required.filter(
-    (field) => !headers.some((header) => header.trim() === field)
+    (field: string) =>
+      !headers.some((header: string) => header.trim() === field)
   );
 
   return {
     isValid: missing.length === 0,
     missingRequired: missing,
     suggestions: missing.map(
-      (field) => `Add "${field}" column to your CSV file`
+      (field: string) => `Add "${field}" column to your CSV file`
     ),
   };
 };
