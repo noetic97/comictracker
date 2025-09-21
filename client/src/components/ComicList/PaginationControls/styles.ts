@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { readableTextColor } from "../../../themes/colorUtils";
 
 export const PaginationContainer = styled.div`
   display: flex;
@@ -10,7 +11,7 @@ export const PaginationContainer = styled.div`
 
 export const PaginationButton = styled.button`
   background-color: ${({ theme }) => theme.colors.primary};
-  color: ${({ theme }) => theme.colors.foreground};
+  color: ${({ theme }) => readableTextColor(theme.colors.primary)};
   border: none;
   padding: 0.5rem;
   border-radius: var(--radius);
@@ -22,6 +23,7 @@ export const PaginationButton = styled.button`
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    color: ${({ theme }) => readableTextColor(theme.colors.primary)};
   }
 `;
 

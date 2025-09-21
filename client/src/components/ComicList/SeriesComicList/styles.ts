@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { readableTextColor } from "../../../themes/colorUtils";
 
 export const ComicItem = styled.div<{
   $collected: boolean;
@@ -63,7 +64,9 @@ export const GrailButton = styled.button<{ $isGrail?: boolean }>`
   background-color: ${({ theme, $isGrail }) =>
     $isGrail ? theme.colors.primary : "transparent"};
   color: ${({ theme, $isGrail }) =>
-    $isGrail ? theme.colors.cardForeground : theme.colors.foreground};
+    $isGrail
+      ? readableTextColor(theme.colors.primary)
+      : theme.colors.foreground};
   border: 1px solid
     ${({ theme, $isGrail }) =>
       $isGrail ? theme.colors.primary : theme.colors.border};
@@ -80,6 +83,10 @@ export const GrailButton = styled.button<{ $isGrail?: boolean }>`
   &:hover {
     background-color: ${({ theme, $isGrail }) =>
       $isGrail ? theme.colors.secondary : theme.colors.border};
+    color: ${({ theme, $isGrail }) =>
+      $isGrail
+        ? readableTextColor(theme.colors.secondary)
+        : theme.colors.foreground};
     transform: scale(1.05);
   }
 `;
@@ -88,7 +95,9 @@ export const ActionButton = styled.button<{ $isActive?: boolean }>`
   background-color: ${({ theme, $isActive }) =>
     $isActive ? theme.colors.primary : "transparent"};
   color: ${({ theme, $isActive }) =>
-    $isActive ? theme.colors.cardForeground : theme.colors.foreground};
+    $isActive
+      ? readableTextColor(theme.colors.primary)
+      : theme.colors.foreground};
   border: 1px solid
     ${({ theme, $isActive }) =>
       $isActive ? theme.colors.primary : theme.colors.border};
@@ -105,6 +114,10 @@ export const ActionButton = styled.button<{ $isActive?: boolean }>`
   &:hover {
     background-color: ${({ theme, $isActive }) =>
       $isActive ? theme.colors.secondary : theme.colors.border};
+    color: ${({ theme, $isActive }) =>
+      $isActive
+        ? readableTextColor(theme.colors.secondary)
+        : theme.colors.foreground};
     transform: scale(1.05);
   }
 `;
@@ -113,7 +126,9 @@ export const CollectButton = styled.button<{ $collected: boolean }>`
   background-color: ${({ theme, $collected }) =>
     $collected ? theme.colors.primary : "transparent"};
   color: ${({ theme, $collected }) =>
-    $collected ? theme.colors.cardForeground : theme.colors.foreground};
+    $collected
+      ? readableTextColor(theme.colors.primary)
+      : theme.colors.foreground};
   border: 1px solid
     ${({ theme, $collected }) =>
       $collected ? theme.colors.primary : theme.colors.border};
@@ -130,6 +145,10 @@ export const CollectButton = styled.button<{ $collected: boolean }>`
   &:hover {
     background-color: ${({ theme, $collected }) =>
       $collected ? theme.colors.secondary : theme.colors.border};
+    color: ${({ theme, $collected }) =>
+      $collected
+        ? readableTextColor(theme.colors.secondary)
+        : theme.colors.foreground};
     transform: scale(1.05);
   }
 `;

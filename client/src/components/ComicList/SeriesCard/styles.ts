@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { readableTextColor } from "../../../themes/colorUtils";
 
 export const SeriesCard = styled.div`
   margin-bottom: 1rem;
@@ -10,7 +11,7 @@ export const SeriesCard = styled.div`
 
 export const SeriesHeader = styled.div`
   background-color: ${({ theme }) => theme.colors.primary};
-  color: ${({ theme }) => theme.colors.secondary};
+  color: ${({ theme }) => readableTextColor(theme.colors.primary)};
   padding: 0.75rem 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -18,6 +19,7 @@ export const SeriesHeader = styled.div`
 
   &:hover {
     background-color: ${({ theme }) => theme.colors.input};
+    color: ${({ theme }) => readableTextColor(theme.colors.input)};
   }
 
   /* When expanded, flatten the bottom corners */
@@ -54,7 +56,7 @@ export const GrailIndicator = styled.span`
   align-items: center;
   gap: 0.25rem;
   background-color: ${({ theme }) => theme.colors.accent};
-  color: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => readableTextColor(theme.colors.accent)};
   padding: 0.125rem 0.375rem;
   border-radius: 1rem;
   font-size: 0.75rem;
@@ -68,7 +70,7 @@ export const FavoriteIndicator = styled.span`
   align-items: center;
   gap: 0.25rem;
   background-color: ${({ theme }) => theme.colors.accent};
-  color: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => readableTextColor(theme.colors.accent)};
   padding: 0.125rem 0.375rem;
   border-radius: 1rem;
   font-size: 0.75rem;

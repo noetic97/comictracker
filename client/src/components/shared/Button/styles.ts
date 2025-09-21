@@ -1,5 +1,9 @@
 import styled, { css } from "styled-components";
+import { readableTextColor } from "../../../themes/colorUtils";
 import { ButtonVariant, ButtonSize, ButtonShape } from "./Button";
+
+const getHoverVariant = (variant: ButtonVariant): ButtonVariant =>
+  variant === "primary" ? "secondary" : "primary";
 
 export const StyledButton = styled.button<{
   $variant: ButtonVariant;
@@ -36,7 +40,7 @@ export const StyledButton = styled.button<{
 
     ${({ theme, $variant, $size, $shape, $iconOnly }) => css`
     background-color: ${theme.colors[$variant]};
-    color: ${theme.colors.cardForeground};
+    color: ${readableTextColor(theme.colors[$variant])};
     font-size: ${$size === "small"
       ? "0.875rem"
       : $size === "medium"
@@ -77,9 +81,8 @@ export const StyledButton = styled.button<{
         `}
 
     &:hover:not(:disabled) {
-      background-color: ${theme.colors[
-        $variant === "primary" ? "secondary" : "primary"
-      ]};
+      background-color: ${theme.colors[getHoverVariant($variant)]};
+      color: ${readableTextColor(theme.colors[getHoverVariant($variant)])};
     }
 
     &:disabled {

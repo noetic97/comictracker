@@ -34,6 +34,7 @@ const ComicList: React.FC<Props> = ({
     series: string;
     volume?: string;
   } | null>(null);
+  const [seriesPages, setSeriesPages] = useState<Record<string, number>>({});
 
   // Use our new hook to fetch publisher summaries
   const {
@@ -70,6 +71,16 @@ const ComicList: React.FC<Props> = ({
   const handleBackToGrid = () => {
     setViewMode("grid");
     setSelectedSeries(null);
+  };
+
+  const getSeriesPage = (seriesKey: string): number =>
+    seriesPages[seriesKey] ?? 1;
+
+  const handleSeriesPageChange = (seriesKey: string, page: number) => {
+    setSeriesPages((prev) => {
+      if (prev[seriesKey] === page) return prev;
+      return { ...prev, [seriesKey]: page };
+    });
   };
 
   // Handle errors
@@ -139,6 +150,8 @@ const ComicList: React.FC<Props> = ({
               onToggleSeries={toggleSeries}
               onOpenDetailView={handleOpenDetailView}
               onToggleFavoriteSeries={onToggleFavoriteSeries}
+              getSeriesPage={getSeriesPage}
+              onSeriesPageChange={handleSeriesPageChange}
             />
           ))}
         </S.PublisherGrid>

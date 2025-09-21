@@ -24,6 +24,8 @@ interface PublisherCardProps {
     series: string,
     volume: string
   ) => void;
+  getSeriesPage: (seriesKey: string) => number;
+  onSeriesPageChange: (seriesKey: string, page: number) => void;
 }
 
 const PublisherCard: React.FC<PublisherCardProps> = ({
@@ -37,6 +39,8 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
   onToggleSeries,
   onOpenDetailView,
   onToggleFavoriteSeries,
+  getSeriesPage,
+  onSeriesPageChange,
 }) => {
   // Only fetch series data when this publisher is expanded
   const {
@@ -105,9 +109,11 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
                     seriesSummary={seriesSummary}
                     $isExpanded={expandedSeries.includes(seriesKey)}
                     toggleSeries={onToggleSeries}
-                    currentPage={1} // We'll handle pagination later in Phase 2
+                    currentPage={getSeriesPage(seriesKey)}
                     itemsPerPage={itemsPerPage}
-                    onPageChange={() => {}} // We'll handle pagination later in Phase 2
+                    onPageChange={(page) =>
+                      onSeriesPageChange(seriesKey, page)
+                    }
                     onOpenDetailView={onOpenDetailView}
                     isFavorite={isFavoriteSeries(
                       seriesSummary.publisher,

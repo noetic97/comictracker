@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { readableTextColor } from "../../../themes/colorUtils";
 
 export const StatsContainer = styled.div`
   display: flex;
@@ -61,12 +62,12 @@ export const StatsNumber = styled.span`
   font-weight: bold;
   font-size: 1rem;
   line-height: 1;
-  color: ${({ theme }) => theme.colors.foreground};
+  color: ${({ theme }) => theme.colors.secondary};
 `;
 
 export const StatsLabel = styled.span`
   font-size: 0.7rem;
-  color: ${({ theme }) => theme.colors.foreground};
+  color: ${({ theme }) => theme.colors.secondary};
   opacity: 0.8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
