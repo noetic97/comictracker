@@ -79,6 +79,127 @@ export const ResultsLabel = styled.div`
   letter-spacing: 0.5px;
 `;
 
+export const MetricsSection = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: ${({ theme }) => theme.colors.background};
+  border-radius: var(--radius);
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+`;
+
+export const MetricItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+`;
+
+export const MetricLabel = styled.span`
+  color: ${({ theme }) => theme.colors.foreground};
+  opacity: 0.8;
+`;
+
+export const MetricValue = styled.span<{ success?: boolean }>`
+  font-weight: 600;
+  color: ${({ theme, success }) =>
+    success ? theme.colors.accent : theme.colors.primary};
+`;
+
+// NEW: Download section
+export const DownloadSection = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+export const DownloadTitle = styled.h4`
+  margin: 0 0 0.75rem 0;
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 0.9rem;
+  font-weight: 600;
+`;
+
+export const DownloadButtons = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+`;
+
+export const DownloadButton = styled.button<{
+  variant?: "primary" | "secondary";
+}>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: ${({ theme, variant }) =>
+    variant === "secondary" ? theme.colors.background : theme.colors.primary};
+  color: ${({ theme, variant }) =>
+    variant === "secondary"
+      ? theme.colors.foreground
+      : theme.colors.background};
+  border: 1px solid
+    ${({ theme, variant }) =>
+      variant === "secondary" ? theme.colors.border : theme.colors.primary};
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: ${({ theme, variant }) =>
+      variant === "secondary"
+        ? theme.colors.border
+        : theme.colors.primaryHover};
+    transform: translateY(-1px);
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+// NEW: Recommendations section
+export const RecommendationsSection = styled.div`
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: ${({ theme }) => theme.colors.warningLight};
+  border-radius: var(--radius);
+  border: 1px solid ${({ theme }) => theme.colors.warning};
+`;
+
+export const RecommendationsTitle = styled.h4`
+  margin: 0 0 0.75rem 0;
+  color: ${({ theme }) => theme.colors.warning};
+  font-size: 0.9rem;
+  font-weight: 600;
+`;
+
+export const RecommendationsList = styled.ul`
+  margin: 0;
+  padding-left: 1.2rem;
+`;
+
+export const RecommendationItem = styled.li`
+  color: ${({ theme }) => theme.colors.foreground};
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
 export const ResultsMeta = styled.div`
   text-align: center;
   color: ${({ theme }) => theme.colors.foreground};

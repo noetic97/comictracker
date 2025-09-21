@@ -42,7 +42,7 @@ const AnalysisSection: React.FC<AnalysisSectionProps> = ({
           onClick={onAnalyze}
           icon={Search}
           disabled={isAnalyzing}
-          variant="secondary"
+          variant="tertiary"
         >
           {isAnalyzing ? "Analyzing..." : "Analyze Missing Comics"}
         </Button>

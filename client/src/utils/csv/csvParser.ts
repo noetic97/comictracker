@@ -49,12 +49,6 @@ export const parseComicsCSVEnhanced = async (
 
           // Detect format and create field mapping
           const detection = detectCSVFormat(headers);
-          console.log(
-            `🔍 Format Detection: ${detection.format} (${Math.round(
-              detection.confidence * 100
-            )}% confidence)`
-          );
-          console.log(`🧠 Reasoning: ${detection.reasoning.join("; ")}`);
 
           // Normalize all rows using field mapping
           const normalizedRows = data.map((row) =>
@@ -93,10 +87,7 @@ export const parseComicsCSVEnhanced = async (
             validComics: finalComics,
             invalidRows: validationResult.invalidComics || [],
             detectedFormat: detection.format,
-            warnings: [
-              ...detection.reasoning,
-              ...(validationResult.warnings || []),
-            ],
+            warnings: [...(validationResult.warnings || [])],
             summary: {
               totalRows: data.length,
               validComics: finalComics.length,

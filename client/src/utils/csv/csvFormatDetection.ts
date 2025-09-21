@@ -1,160 +1,74 @@
-// CSV Format types
-export type CSVFormat = "wantlist" | "owned" | "mixed" | "unknown";
+export type CSVFormat = "owned" | "wantlist" | "unknown";
 
-// Header detection configurations
-const WANTLIST_HEADERS = {
-  required: ["Publisher", "Series", "Issue", "Current Value"],
-  optional: ["Volume", "Years", "Type"],
-  signature: [] as string[], // No unique fields for want list
-};
-
-const OWNED_HEADERS = {
-  required: ["Publisher", "Series", "Issue", "Current Value", "Price Paid"],
-  optional: [
-    "Volume",
-    "Years",
-    "Type",
-    "Grade",
-    "Pile",
-    "Notes",
-    "CERT",
-    "Signed",
-    "Date Added",
-    "Issue Date",
-  ],
-  signature: ["Price Paid", "Grade", "Pile"], // Fields that indicate owned format
-};
-
-// Common header variations and aliases
-const HEADER_ALIASES: Record<string, string[]> = {
-  Publisher: ["publisher", "pub", "company"],
-  Series: ["series", "title", "comic", "book"],
-  Volume: ["volume", "vol", "v"],
-  Years: ["years", "year", "publication year", "pub year"],
-  Type: ["type", "format", "variant"],
-  Issue: ["issue", "#", "number", "iss"],
-  "Current Value": ["current value", "value", "market value", "worth", "price"],
-  "Price Paid": ["price paid", "paid", "cost", "purchase price", "bought for"],
-  Grade: ["grade", "condition", "rating"],
-  Pile: ["pile", "box", "location", "storage", "where"],
-  Notes: ["notes", "comments", "description", "memo"],
-  CERT: ["cert", "certificate", "certification", "cgc", "cbcs"],
-  Signed: ["signed", "autograph", "signature", "auto"],
-  "Date Added": ["date added", "added", "date acquired", "acquired"],
-  "Issue Date": ["issue date", "publication date", "pub date", "release date"],
-};
-
-export interface FormatDetectionResult {
+interface FormatDetectionResult {
   format: CSVFormat;
-  confidence: number;
-  reasoning: string[];
   fieldMapping: Record<string, string>;
-  missingRequiredFields: string[];
-  suggestions: string[];
 }
 
+// Essential header aliases - keep only the most common variations
+const CORE_ALIASES: Record<string, string[]> = {
+  // Core required fields
+  Publisher: ["publisher", "pub"],
+  Series: ["series", "title", "comic"],
+  Issue: ["issue", "#", "number"],
+  "Current Value": ["current value", "value", "price", "worth"],
+
+  // Ownership indicators
+  "Price Paid": ["price paid", "paid", "cost"],
+  Grade: ["grade", "condition"],
+
+  // Common optional fields
+  Volume: ["volume", "vol"],
+  Years: ["years", "year"],
+  Type: ["type", "format"],
+  Notes: ["notes", "comments"],
+  Signed: ["signed", "autograph"],
+
+  // Storage fields (map to storageLocation)
+  "Storage Location": ["pile", "box", "location", "storage", "where"],
+
+  // Date fields
+  "Date Added": ["date added", "added"],
+  "Issue Date": ["issue date", "pub date"],
+};
+
+// Ownership indicators - if any of these are found, it's likely an owned collection
+const OWNERSHIP_INDICATORS = [
+  "price paid",
+  "paid",
+  "cost",
+  "grade",
+  "condition",
+  "pile",
+  "box",
+  "storage",
+  "signed",
+  "cert",
+];
+
 /**
- * Detect CSV format based on headers
+ * Simplified format detection - focus on owned vs wantlist
  */
 export const detectCSVFormat = (headers: string[]): FormatDetectionResult => {
-  const normalizedHeaders = headers.map((h) => h.trim().toLowerCase());
-  const reasoning: string[] = [];
-  const missingRequiredFields: string[] = [];
-  const suggestions: string[] = [];
+  const lowerHeaders = headers.map((h) => h.trim().toLowerCase());
 
-  // Check for owned format signature fields
-  const ownedSignatureCount = OWNED_HEADERS.signature.filter((field) => {
-    const variations = [field.toLowerCase(), ...(HEADER_ALIASES[field] || [])];
-    const found = variations.some((variation) =>
-      normalizedHeaders.some((header) => header.includes(variation))
-    );
-    if (found) {
-      reasoning.push(`Found owned format indicator: "${field}"`);
-    }
-    return found;
-  }).length;
-
-  // Check required field coverage
-  const ownedRequiredCount = OWNED_HEADERS.required.filter((field) => {
-    const variations = [field.toLowerCase(), ...(HEADER_ALIASES[field] || [])];
-    const found = variations.some((variation) =>
-      normalizedHeaders.some((header) => header.includes(variation))
-    );
-    if (!found) {
-      missingRequiredFields.push(field);
-    }
-    return found;
-  }).length;
-
-  const wantlistRequiredCount = WANTLIST_HEADERS.required.filter((field) => {
-    const variations = [field.toLowerCase(), ...(HEADER_ALIASES[field] || [])];
-    return variations.some((variation) =>
-      normalizedHeaders.some((header) => header.includes(variation))
-    );
-  }).length;
-
-  reasoning.push(
-    `Found ${ownedSignatureCount}/${OWNED_HEADERS.signature.length} owned signature fields`
-  );
-  reasoning.push(
-    `Found ${ownedRequiredCount}/${OWNED_HEADERS.required.length} owned required fields`
-  );
-  reasoning.push(
-    `Found ${wantlistRequiredCount}/${WANTLIST_HEADERS.required.length} wantlist required fields`
+  // Simple detection: look for ownership indicators
+  const hasOwnershipFields = OWNERSHIP_INDICATORS.some((indicator) =>
+    lowerHeaders.some((header) => header.includes(indicator))
   );
 
-  // Create field mapping
+  const format: CSVFormat = hasOwnershipFields ? "owned" : "wantlist";
   const fieldMapping = createFieldMapping(headers);
 
-  // Decision logic with confidence scoring
-  let format: CSVFormat;
-  let confidence: number;
+  console.log(
+    `🔍 CSV Format: ${format} (${
+      hasOwnershipFields
+        ? "found ownership fields"
+        : "no ownership fields detected"
+    })`
+  );
 
-  if (ownedSignatureCount >= 2 && ownedRequiredCount >= 4) {
-    format = "owned";
-    confidence = 0.9;
-    reasoning.push(
-      "High confidence: Strong indicators of owned format detected"
-    );
-  } else if (ownedSignatureCount >= 1 && ownedRequiredCount >= 3) {
-    format = "owned";
-    confidence = 0.7;
-    reasoning.push(
-      "Medium confidence: Moderate indicators of owned format detected"
-    );
-  } else if (wantlistRequiredCount >= 3 && ownedSignatureCount === 0) {
-    format = "wantlist";
-    confidence = 0.8;
-    reasoning.push(
-      "High confidence: Appears to be want list format (no owned-specific fields)"
-    );
-  } else if (ownedRequiredCount >= 2 && wantlistRequiredCount >= 3) {
-    format = "mixed";
-    confidence = 0.6;
-    reasoning.push("Medium confidence: Contains fields from both formats");
-  } else {
-    format = "unknown";
-    confidence = 0.3;
-    reasoning.push("Low confidence: Could not confidently determine format");
-  }
-
-  // Generate suggestions for missing fields
-  if (missingRequiredFields.length > 0) {
-    suggestions.push("Missing required fields for owned format:");
-    missingRequiredFields.forEach((field) => {
-      const aliases = HEADER_ALIASES[field] || [];
-      suggestions.push(`  - "${field}" (alternatives: ${aliases.join(", ")})`);
-    });
-  }
-
-  return {
-    format,
-    confidence,
-    reasoning,
-    fieldMapping,
-    missingRequiredFields,
-    suggestions,
-  };
+  return { format, fieldMapping };
 };
 
 /**
@@ -166,45 +80,45 @@ export const createFieldMapping = (
   const mapping: Record<string, string> = {};
 
   headers.forEach((header) => {
-    const normalizedHeader = header.trim();
+    const cleanHeader = header.trim();
+    const lowerHeader = cleanHeader.toLowerCase();
 
-    // Try exact match first (case sensitive)
-    if (HEADER_ALIASES[normalizedHeader]) {
-      mapping[normalizedHeader] = normalizedHeader;
+    // Try exact match first
+    if (CORE_ALIASES[cleanHeader]) {
+      mapping[cleanHeader] = cleanHeader;
       return;
     }
 
     // Try case-insensitive exact match
-    const exactMatch = Object.keys(HEADER_ALIASES).find(
-      (key) => key.toLowerCase() === normalizedHeader.toLowerCase()
+    const exactMatch = Object.keys(CORE_ALIASES).find(
+      (key) => key.toLowerCase() === lowerHeader
     );
     if (exactMatch) {
-      mapping[normalizedHeader] = exactMatch;
+      mapping[cleanHeader] = exactMatch;
       return;
     }
 
     // Try alias matching
-    for (const [standardField, aliases] of Object.entries(HEADER_ALIASES)) {
-      const headerLower = normalizedHeader.toLowerCase();
+    for (const [standardField, aliases] of Object.entries(CORE_ALIASES)) {
       const aliasMatch = aliases.some(
-        (alias) => headerLower === alias || headerLower.includes(alias)
+        (alias) => lowerHeader === alias || lowerHeader.includes(alias)
       );
 
       if (aliasMatch) {
-        mapping[normalizedHeader] = standardField;
+        mapping[cleanHeader] = standardField;
         return;
       }
     }
 
-    // No match found - will be ignored but tracked
-    mapping[normalizedHeader] = `UNMAPPED_${normalizedHeader}`;
+    // No match found - mark as unmapped
+    mapping[cleanHeader] = `UNMAPPED_${cleanHeader}`;
   });
 
   return mapping;
 };
 
 /**
- * Normalize a single CSV row using field mapping
+ * Normalize a CSV row using field mapping
  */
 export const normalizeCSVRow = (
   row: any,
@@ -214,154 +128,83 @@ export const normalizeCSVRow = (
 
   Object.entries(row).forEach(([originalField, value]) => {
     const mappedField = fieldMapping[originalField];
-    if (mappedField && !mappedField.startsWith("UNMAPPED_")) {
-      normalized[mappedField] = value;
-    } else if (mappedField?.startsWith("UNMAPPED_")) {
-      // Keep unmapped fields for debugging but prefix them
-      normalized[mappedField] = value;
-    }
-  });
 
-  // Handle special field mappings that need renaming
-  if (normalized["Pile"]) {
-    normalized["storageLocation"] = normalized["Pile"];
-    delete normalized["Pile"];
-  }
+    if (mappedField && !mappedField.startsWith("UNMAPPED_")) {
+      // Handle special field mappings
+      if (mappedField === "Storage Location") {
+        normalized["storageLocation"] = value;
+      } else {
+        normalized[mappedField] = value;
+      }
+    }
+    // Silently ignore unmapped fields
+  });
 
   return normalized;
 };
 
 /**
- * Validate that CSV has minimum required fields for processing
+ * Simple validation - check for minimum required fields
  */
 export const validateCSVHeaders = (
   headers: string[]
 ): {
   isValid: boolean;
   missingFields: string[];
-  suggestions: string[];
-  confidence: number;
 } => {
-  const normalizedHeaders = headers.map((h) => h.trim().toLowerCase());
-  const missingFields: string[] = [];
-  const suggestions: string[] = [];
+  const lowerHeaders = headers.map((h) => h.trim().toLowerCase());
+  const requiredFields = ["publisher", "series", "issue"];
 
-  // Check for absolute minimum fields (any format needs these)
-  const minimumRequired = ["Publisher", "Series", "Issue"];
-
-  let foundCount = 0;
-  for (const required of minimumRequired) {
-    const variations = [
-      required.toLowerCase(),
-      ...(HEADER_ALIASES[required] || []),
-    ];
-    const found = variations.some((variation) =>
-      normalizedHeaders.some((header) => header.includes(variation))
-    );
-
-    if (found) {
-      foundCount++;
-    } else {
-      missingFields.push(required);
-      suggestions.push(
-        `Missing "${required}" field. Try: ${
-          HEADER_ALIASES[required]?.join(", ") || required
-        }`
-      );
-    }
-  }
-
-  const confidence = foundCount / minimumRequired.length;
+  const missingFields = requiredFields.filter(
+    (required) =>
+      !lowerHeaders.some(
+        (header) =>
+          header === required ||
+          header.includes(required) ||
+          CORE_ALIASES[
+            required.charAt(0).toUpperCase() + required.slice(1)
+          ]?.some((alias) => header === alias || header.includes(alias))
+      )
+  );
 
   return {
     isValid: missingFields.length === 0,
-    missingFields,
-    suggestions,
-    confidence,
+    missingFields: missingFields.map(
+      (field) => field.charAt(0).toUpperCase() + field.slice(1)
+    ),
   };
 };
 
 /**
- * Get format-specific field requirements and recommendations
+ * Quick format check without full parsing
  */
-export const getFormatRequirements = (
-  format: CSVFormat
+export const quickFormatCheck = (
+  headers: string[]
 ): {
-  required: string[];
-  recommended: string[];
-  description: string;
+  format: CSVFormat;
+  hasRequiredFields: boolean;
+  suggestion?: string;
 } => {
-  switch (format) {
-    case "wantlist":
-      return {
-        required: WANTLIST_HEADERS.required,
-        recommended: WANTLIST_HEADERS.optional,
-        description: "Want List format - comics you want to collect",
-      };
+  const detection = detectCSVFormat(headers);
+  const validation = validateCSVHeaders(headers);
 
-    case "owned":
-      return {
-        required: OWNED_HEADERS.required,
-        recommended: OWNED_HEADERS.optional,
-        description: "Owned Collection format - comics you currently own",
-      };
+  let suggestion: string | undefined;
 
-    case "mixed":
-      return {
-        required: [...WANTLIST_HEADERS.required, "Price Paid"],
-        recommended: [...WANTLIST_HEADERS.optional, ...OWNED_HEADERS.optional],
-        description: "Mixed format - contains both want list and owned comics",
-      };
-
-    case "unknown":
-    default:
-      return {
-        required: ["Publisher", "Series", "Issue"],
-        recommended: ["Current Value", "Volume", "Years", "Type"],
-        description: "Unknown format - will attempt best-effort parsing",
-      };
-  }
-};
-
-/**
- * Generate a field mapping report for debugging
- */
-export const generateFieldMappingReport = (
-  fieldMapping: Record<string, string>,
-  detectedFormat: CSVFormat
-): string => {
-  const lines = [
-    `FIELD MAPPING REPORT`,
-    `===================`,
-    ``,
-    `Detected Format: ${detectedFormat}`,
-    ``,
-    `MAPPED FIELDS:`,
-  ];
-
-  const mapped = Object.entries(fieldMapping).filter(
-    ([_, mapped]) => !mapped.startsWith("UNMAPPED_")
-  );
-  const unmapped = Object.entries(fieldMapping).filter(([_, mapped]) =>
-    mapped.startsWith("UNMAPPED_")
-  );
-
-  mapped.forEach(([original, mapped]) => {
-    lines.push(`  "${original}" → ${mapped}`);
-  });
-
-  if (unmapped.length > 0) {
-    lines.push(``, `UNMAPPED FIELDS (will be ignored):`);
-    unmapped.forEach(([original]) => {
-      lines.push(`  "${original}" → IGNORED`);
-    });
+  if (!validation.isValid) {
+    suggestion = `Missing required fields: ${validation.missingFields.join(
+      ", "
+    )}`;
+  } else if (detection.format === "wantlist") {
+    suggestion =
+      "Want list format detected - comics will be marked as uncollected";
+  } else if (detection.format === "owned") {
+    suggestion =
+      "Owned collection format detected - comics will be marked as collected";
   }
 
-  const requirements = getFormatRequirements(detectedFormat);
-  lines.push(``, `FORMAT REQUIREMENTS:`);
-  lines.push(`  Required: ${requirements.required.join(", ")}`);
-  lines.push(`  Recommended: ${requirements.recommended.join(", ")}`);
-  lines.push(`  Description: ${requirements.description}`);
-
-  return lines.join("\n");
+  return {
+    format: detection.format,
+    hasRequiredFields: validation.isValid,
+    suggestion,
+  };
 };

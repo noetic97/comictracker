@@ -1,5 +1,6 @@
 import { formatTimestamp, formatNumber } from "./formatters";
 import { AnalysisResult } from "../contracts/analysis";
+import { ImportResults } from "../hooks/types";
 
 interface ReportOptions {
   includeTimestamp?: boolean;
@@ -265,9 +266,7 @@ export const generateReportFilename = (
   return `${baseName}-${timestamp}.${extension}`;
 };
 
-/**
- * Helper function to format duration (copied here to avoid circular dependency)
- */
+// Helper function to format duration (avoid circular dependency)
 const formatDuration = (ms: number): string => {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
@@ -282,4 +281,332 @@ const formatDuration = (ms: number): string => {
     return `${minutes}m ${remainingSeconds}s`;
   }
   return `${remainingSeconds}s`;
+};
+
+/**
+ * NEW: Generate CSV export for missing comics
+ */
+export const generateMissingComicsCSV = (analysis: AnalysisResult): string => {
+  const headers =
+    [
+      "Publisher",
+      "Series",
+      "Volume",
+      "Issue",
+      "Type",
+      "Current Value",
+      "Reason",
+      "File Row",
+    ].join(",") + "\n";
+
+  const rows = analysis.missing
+    .map((comic) => {
+      // Escape CSV values that contain commas or quotes
+      const escapeCSV = (value: string | number) => {
+        const str = String(value || "");
+        if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      return [
+        escapeCSV(comic.publisher),
+        escapeCSV(comic.series),
+        escapeCSV(comic.volume),
+        escapeCSV(comic.issue),
+        escapeCSV(comic.type),
+        comic.currentValue || 0,
+        escapeCSV(comic.reason),
+        comic.fileIndex + 1, // Convert to 1-based row number
+      ].join(",");
+    })
+    .join("\n");
+
+  return headers + rows;
+};
+
+/**
+ * NEW: Generate comprehensive import + analysis report
+ */
+export const generateComprehensiveReport = (
+  importResults: ImportResults,
+  analysisResults?: AnalysisResult
+): string => {
+  const sections: string[] = [];
+
+  // Header
+  sections.push("COMPREHENSIVE IMPORT REPORT");
+  sections.push("=".repeat(60));
+  sections.push(`Generated: ${formatTimestamp(new Date())}`);
+  sections.push("");
+
+  // Import Summary
+  sections.push("IMPORT SUMMARY");
+  sections.push("-".repeat(30));
+  sections.push(`Comics processed: ${formatNumber(importResults.processed)}`);
+  sections.push(`Comics created: ${formatNumber(importResults.created)}`);
+  sections.push(`Comics updated: ${formatNumber(importResults.updated)}`);
+  sections.push(`Errors: ${formatNumber(importResults.errors)}`);
+  sections.push(`Total time: ${formatDuration(importResults.processingTime)}`);
+
+  const rate = Math.round(
+    (importResults.processed / importResults.processingTime) * 1000
+  );
+  sections.push(`Processing rate: ${formatNumber(rate)} comics/second`);
+
+  if (importResults.errors > 0) {
+    const errorRate = (importResults.errors / importResults.processed) * 100;
+    sections.push(`Error rate: ${errorRate.toFixed(2)}%`);
+  }
+  sections.push("");
+
+  // Analysis Results (if provided)
+  if (analysisResults) {
+    sections.push("ANALYSIS RESULTS");
+    sections.push("-".repeat(30));
+    sections.push(
+      `Total comics in file: ${formatNumber(analysisResults.totalInFile)}`
+    );
+    sections.push(
+      `Total comics in database: ${formatNumber(
+        analysisResults.totalInDatabase
+      )}`
+    );
+    sections.push(
+      `Missing comics: ${formatNumber(analysisResults.missing.length)}`
+    );
+    sections.push(
+      `Invalid comics: ${formatNumber(analysisResults.invalidComics.length)}`
+    );
+    sections.push(
+      `File duplicates: ${formatNumber(
+        analysisResults.duplicatesInFile.length
+      )}`
+    );
+    sections.push(
+      `Type mismatches: ${formatNumber(analysisResults.typeMismatches.length)}`
+    );
+    sections.push("");
+
+    // Top Missing Comics
+    if (analysisResults.missing.length > 0) {
+      sections.push("TOP MISSING COMICS (first 10)");
+      sections.push("-".repeat(50));
+      sections.push("Publisher | Series | Issue | Value | Reason");
+      sections.push("-".repeat(50));
+
+      analysisResults.missing.slice(0, 10).forEach((comic) => {
+        sections.push(
+          `${comic.publisher} | ${comic.series} | #${comic.issue} | ${comic.currentValue} | ${comic.reason}`
+        );
+      });
+      sections.push("");
+    }
+  }
+
+  // Recommendations
+  sections.push("RECOMMENDATIONS");
+  sections.push("-".repeat(30));
+
+  const recommendations = generateSmartRecommendations(
+    importResults,
+    analysisResults
+  );
+  recommendations.forEach((rec) => {
+    sections.push(`• ${rec}`);
+  });
+
+  if (recommendations.length === 0) {
+    sections.push(
+      "• No specific recommendations - import completed successfully"
+    );
+  }
+
+  sections.push("");
+  sections.push(
+    "For detailed analysis, download the Missing Comics Analysis report."
+  );
+
+  return sections.join("\n");
+};
+
+/**
+ * NEW: Generate smart recommendations based on import and analysis results
+ */
+export const generateSmartRecommendations = (
+  importResults: ImportResults,
+  analysisResults?: AnalysisResult
+): string[] => {
+  const recommendations: string[] = [];
+
+  // Import-based recommendations
+  if (importResults.errors > importResults.processed * 0.1) {
+    recommendations.push(
+      "High error rate detected - review CSV format and data quality"
+    );
+  }
+
+  if (importResults.updated > importResults.created * 2) {
+    recommendations.push(
+      "Mostly updates rather than new comics - check for duplicate imports"
+    );
+  }
+
+  if (importResults.processingTime > 30000 && importResults.processed < 1000) {
+    recommendations.push(
+      "Slow processing detected - consider smaller batch sizes for large files"
+    );
+  }
+
+  // Analysis-based recommendations
+  if (analysisResults) {
+    if (analysisResults.typeMismatches.length > 5) {
+      recommendations.push(
+        "Standardize Type field values (Issue, Annual, Special, etc.)"
+      );
+    }
+
+    if (
+      analysisResults.duplicatesInFile.length >
+      analysisResults.missing.length * 0.1
+    ) {
+      recommendations.push("Remove duplicate rows from CSV before importing");
+    }
+
+    if (
+      analysisResults.invalidComics.length >
+      analysisResults.totalInFile * 0.05
+    ) {
+      recommendations.push(
+        "High number of invalid entries - verify CSV header format"
+      );
+    }
+
+    if (analysisResults.missing.length === 0) {
+      recommendations.push(
+        "Excellent! All comics from your file are already in your collection"
+      );
+    } else if (analysisResults.missing.length > 50) {
+      recommendations.push(
+        "Consider creating a want list from missing comics for future purchases"
+      );
+    }
+
+    // Value-based recommendations
+    const highValueMissing = analysisResults.missing.filter(
+      (comic) => comic.currentValue > 100
+    );
+    if (highValueMissing.length > 0) {
+      recommendations.push(
+        `${highValueMissing.length} high-value comics (>$100) are missing from your collection`
+      );
+    }
+  }
+
+  return recommendations;
+};
+
+/**
+ * NEW: Generate error report for detailed troubleshooting
+ */
+export const generateErrorReport = (
+  importResults: ImportResults,
+  analysisResults?: AnalysisResult
+): string => {
+  const sections: string[] = [];
+
+  sections.push("ERROR ANALYSIS REPORT");
+  sections.push("=".repeat(50));
+  sections.push(`Generated: ${formatTimestamp(new Date())}`);
+  sections.push("");
+
+  // Processing Errors
+  if (
+    importResults.processingErrors &&
+    importResults.processingErrors.length > 0
+  ) {
+    sections.push("PROCESSING ERRORS");
+    sections.push("-".repeat(30));
+    importResults.processingErrors.forEach((error, index) => {
+      sections.push(`${index + 1}. ${error}`);
+    });
+    sections.push("");
+  }
+
+  // Validation Warnings
+  if (
+    importResults.validationWarnings &&
+    importResults.validationWarnings.length > 0
+  ) {
+    sections.push("VALIDATION WARNINGS");
+    sections.push("-".repeat(30));
+    importResults.validationWarnings.forEach((warning, index) => {
+      sections.push(`${index + 1}. ${warning}`);
+    });
+    sections.push("");
+  }
+
+  // Invalid Comics from Analysis
+  if (analysisResults && analysisResults.invalidComics.length > 0) {
+    sections.push("INVALID COMIC ENTRIES");
+    sections.push("-".repeat(50));
+    sections.push("Row | Reason | Data");
+    sections.push("-".repeat(50));
+
+    analysisResults.invalidComics.slice(0, 20).forEach((comic) => {
+      const dataStr = JSON.stringify(comic.data).substring(0, 100);
+      sections.push(`${comic.index} | ${comic.reason} | ${dataStr}...`);
+    });
+
+    if (analysisResults.invalidComics.length > 20) {
+      sections.push(
+        `... and ${
+          analysisResults.invalidComics.length - 20
+        } more invalid entries`
+      );
+    }
+    sections.push("");
+  }
+
+  // Troubleshooting Tips
+  sections.push("TROUBLESHOOTING TIPS");
+  sections.push("-".repeat(30));
+  sections.push("1. Ensure CSV has required headers: Publisher, Series, Issue");
+  sections.push("2. Check for special characters or encoding issues");
+  sections.push(
+    "3. Verify numeric fields (Current Value, Price Paid) contain valid numbers"
+  );
+  sections.push("4. Remove or fix empty rows in your CSV file");
+  sections.push(
+    "5. Ensure Issue numbers are consistent (avoid mixing '1' and 'Issue 1')"
+  );
+  sections.push("");
+
+  return sections.join("\n");
+};
+
+/**
+ * NEW: Export analysis results as JSON for advanced users
+ */
+export const generateAnalysisJSON = (
+  analysisResults: AnalysisResult
+): string => {
+  const exportData = {
+    summary: {
+      totalInFile: analysisResults.totalInFile,
+      totalInDatabase: analysisResults.totalInDatabase,
+      missingCount: analysisResults.missing.length,
+      duplicateCount: analysisResults.duplicatesInFile.length,
+      invalidCount: analysisResults.invalidComics.length,
+      typeMismatchCount: analysisResults.typeMismatches.length,
+      generatedAt: new Date().toISOString(),
+    },
+    missing: analysisResults.missing,
+    duplicatesInFile: analysisResults.duplicatesInFile,
+    invalidComics: analysisResults.invalidComics,
+    typeMismatches: analysisResults.typeMismatches,
+  };
+
+  return JSON.stringify(exportData, null, 2);
 };
