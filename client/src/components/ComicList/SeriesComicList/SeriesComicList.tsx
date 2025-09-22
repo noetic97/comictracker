@@ -1,6 +1,6 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { Star, Check } from "lucide-react";
-import { Comic, FilterOption } from "../../../types";
+import { Comic, FilterOption, SortOption } from "../../../types";
 import {
   useSeriesComics,
   useOptimisticComics,
@@ -19,6 +19,8 @@ interface SeriesComicsListProps {
   onPageChange: (page: number) => void;
   totalIssues: number;
   filterOption: FilterOption;
+  searchFilter: string;
+  sortBy: SortOption;
   onStatsRefresh?: (() => Promise<any>) | null;
 }
 
@@ -31,8 +33,11 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
   onPageChange,
   totalIssues,
   filterOption,
+  searchFilter,
+  sortBy,
   onStatsRefresh,
 }) => {
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const {
     comics: serverComics,
     loading,
@@ -46,7 +51,7 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
     currentPage,
     itemsPerPage,
     true,
-    { filterOption }
+    { filterOption, search: searchFilter, sortBy }
   );
 
   // Use optimistic comics hook for immediate UI updates
@@ -80,6 +85,24 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
       logger.comics.error("Comic update failed", { error, comic });
     },
   });
+
+  const isTransitioning = loading && hasLoadedOnce;
+
+  // Track when we've loaded data for the first time
+  React.useEffect(() => {
+    if (!loading && serverComics) {
+      setHasLoadedOnce(true);
+    }
+  }, [loading, serverComics]);
+
+  // Handle silent refetch on page changes
+  React.useEffect(() => {
+    if (hasLoadedOnce) {
+      silentRefetch().then((newComics) => {
+        if (newComics) syncWithServer(newComics);
+      });
+    }
+  }, [currentPage, itemsPerPage, hasLoadedOnce, silentRefetch, syncWithServer]);
 
   // Handle comic actions with optimistic updates
   const comicActions = useComicActions({
@@ -159,7 +182,8 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
 
   const totalPages = Math.max(1, Math.ceil(totalIssues / itemsPerPage));
 
-  if (loading) {
+  // Only show full loading on first load
+  if (!hasLoadedOnce && loading) {
     return <div style={{ padding: "1rem" }}>Loading comics...</div>;
   }
 
@@ -172,7 +196,12 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
   }
 
   return (
-    <>
+    <div
+      style={{
+        opacity: isTransitioning ? 0.7 : 1,
+        transition: "opacity 150ms ease",
+      }}
+    >
       {comics.map((comic) => (
         <S.ComicItem
           key={comic.id}
@@ -236,7 +265,7 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
           onPageChange={onPageChange}
         />
       )}
-    </>
+    </div>
   );
 };
 

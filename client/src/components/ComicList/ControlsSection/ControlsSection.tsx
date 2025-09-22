@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import StatsDisplay from "../StatsDisplay";
-import { FilterOption } from "../../../types";
+import { FilterOption, FavoriteSeries, SortOption } from "../../../types";
 import { logger } from "../../../utils/logger";
 import * as S from "./styles";
 
@@ -8,6 +8,9 @@ interface ControlsSectionProps {
   isAllExpanded: boolean;
   onToggleAll: () => void;
   filterOption: FilterOption;
+  searchFilter: string;
+  sortBy: SortOption;
+  favoriteSeries: FavoriteSeries[];
   onStatsRefreshReady?: (refreshStats: () => Promise<any>) => void;
 }
 
@@ -15,6 +18,9 @@ const ControlsSection: React.FC<ControlsSectionProps> = ({
   isAllExpanded,
   onToggleAll,
   filterOption,
+  searchFilter,
+  sortBy,
+  favoriteSeries,
   onStatsRefreshReady,
 }) => {
   const handleStatsRefreshReady = useCallback(
@@ -40,6 +46,9 @@ const ControlsSection: React.FC<ControlsSectionProps> = ({
 
         <StatsDisplay
           filterOption={filterOption}
+          searchFilter={searchFilter}
+          sortBy={sortBy}
+          favoriteSeries={favoriteSeries}
           onSilentRefetchReady={handleStatsRefreshReady}
         />
       </S.ControlsRow>

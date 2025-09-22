@@ -1,13 +1,15 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { AggregationFilters, SeriesSummary } from "./types";
 import { getApiBaseUrl, buildQueryParams } from "../utils";
+import { FavoriteSeries } from "../../types";
 
 /**
  * Hook for fetching series summaries for a specific publisher
  */
 export const useSeriesSummaries = (
   publisher: string | null,
-  filters: AggregationFilters = {}
+  filters: AggregationFilters = {},
+  favoriteSeries: FavoriteSeries[] = []
 ) => {
   const [series, setSeries] = useState<SeriesSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,6 +28,7 @@ export const useSeriesSummaries = (
       filters.storageLocation,
       filters.search,
       filters.filterOption,
+      filters.sortBy,
     ]
   );
 
@@ -39,13 +42,18 @@ export const useSeriesSummaries = (
       setLoading(true);
       setError(null);
 
-      console.log(
-        `🔄 Fetching series for ${publisher} with filters:`,
-        memoizedFilters
-      );
+      console.log(`🔄 useSeriesSummaries fetchSeries called for ${publisher}`, {
+        filters: memoizedFilters,
+        sortBy: memoizedFilters.sortBy,
+      });
 
       const params = buildQueryParams({ ...memoizedFilters, publisher });
       const url = `${getApiBaseUrl()}/comics/series?${params}`;
+
+      console.log("🌐 useSeriesSummaries API call", {
+        url,
+        params: Object.fromEntries(new URLSearchParams(params).entries()),
+      });
 
       const response = await fetch(url);
 
@@ -56,7 +64,8 @@ export const useSeriesSummaries = (
         );
       }
 
-      const data: SeriesSummary[] = await response.json();
+      let data: SeriesSummary[] = await response.json();
+
       setSeries(data);
 
       console.log(`✅ Series loaded for ${publisher}:`, data.length);

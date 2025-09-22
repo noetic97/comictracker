@@ -59,6 +59,7 @@ export const handleGetStats = async (
       storageLocation,
       search,
       exact,
+      favoriteSeriesOnly,
     } = queryParams || {};
 
     if (publisher) {
@@ -90,6 +91,39 @@ export const handleGetStats = async (
       query = query.or(
         `publisher.ilike.%${search}%,series.ilike.%${search}%,issue.ilike.%${search}%`
       );
+    }
+
+    // Apply favorites filter server-side if requested
+    if (favoriteSeriesOnly === "true") {
+      const { data: favs, error: favErr } = await supabase
+        .from("favorite_series")
+        .select("publisher,series,volume")
+        .eq("user_id", userId);
+      if (favErr) {
+        console.error("Stats favorites fetch error:", favErr);
+        return createErrorResponse(
+          500,
+          `Failed to load favorites: ${favErr.message}`
+        );
+      }
+      if (!favs || favs.length === 0) {
+        return createResponse(200, {
+          total: 0,
+          collected: 0,
+          grails: 0,
+          totalValue: 0,
+          collectedValue: 0,
+        });
+      }
+      const groups = favs.map((f: any) => {
+        const parts = [`publisher.eq.${f.publisher}`, `series.eq.${f.series}`];
+        if (f.volume && String(f.volume).length > 0) {
+          parts.push(`volume.eq.${f.volume}`);
+        }
+        return `and(${parts.join(",")})`;
+      });
+      const orExpression = groups.join(",");
+      query = query.or(orExpression);
     }
 
     console.log("📋 Executing stats query with pagination...");
@@ -189,6 +223,8 @@ export const handleGetPublishers = async (
       storageLocation,
       search,
       exact,
+      sortBy,
+      favoriteSeriesOnly,
     } = queryParams || {};
 
     if (publisher) {
@@ -220,6 +256,33 @@ export const handleGetPublishers = async (
       query = query.or(
         `publisher.ilike.%${search}%,series.ilike.%${search}%,issue.ilike.%${search}%`
       );
+    }
+
+    // Apply favorites filter server-side if requested
+    if (favoriteSeriesOnly === "true") {
+      const { data: favs, error: favErr } = await supabase
+        .from("favorite_series")
+        .select("publisher,series,volume")
+        .eq("user_id", userId);
+      if (favErr) {
+        console.error("Publishers favorites fetch error:", favErr);
+        return createErrorResponse(
+          500,
+          `Failed to load favorites: ${favErr.message}`
+        );
+      }
+      if (!favs || favs.length === 0) {
+        return createResponse(200, []);
+      }
+      const groups = favs.map((f: any) => {
+        const parts = [`publisher.eq.${f.publisher}`, `series.eq.${f.series}`];
+        if (f.volume && String(f.volume).length > 0) {
+          parts.push(`volume.eq.${f.volume}`);
+        }
+        return `and(${parts.join(",")})`;
+      });
+      const orExpression = groups.join(",");
+      query = query.or(orExpression);
     }
 
     query = query.order("id", { ascending: true });
@@ -314,9 +377,29 @@ export const handleGetPublishers = async (
       }
     });
 
-    const publishers = Array.from(publisherMap.values()).sort((a, b) =>
-      a.publisher.localeCompare(b.publisher)
-    );
+    // Apply sorting to publisher summaries
+    const publishers = Array.from(publisherMap.values()).sort((a, b) => {
+      if (!sortBy) {
+        return a.publisher.localeCompare(b.publisher);
+      }
+
+      switch (sortBy) {
+        case "publisher":
+          return a.publisher.localeCompare(b.publisher);
+        case "seriesCount":
+          return b.seriesCount - a.seriesCount; // Descending by default
+        case "totalComics":
+          return b.totalComics - a.totalComics; // Descending by default
+        case "collectedComics":
+          return b.collectedComics - a.collectedComics; // Descending by default
+        case "grailComics":
+          return b.grailComics - a.grailComics; // Descending by default
+        case "totalValue":
+          return b.totalValue - a.totalValue; // Descending by default
+        default:
+          return a.publisher.localeCompare(b.publisher);
+      }
+    });
 
     console.log(`✅ Found ${publishers.length} publishers`);
     return createResponse(200, publishers);
@@ -364,6 +447,8 @@ export const handleGetSeries = async (
       storageLocation,
       search,
       exact,
+      sortBy,
+      favoriteSeriesOnly,
     } = otherFilters;
 
     if (filterSeries) {
@@ -385,6 +470,39 @@ export const handleGetSeries = async (
 
     if (search) {
       query = query.or(`series.ilike.%${search}%,issue.ilike.%${search}%`);
+    }
+
+    // Apply favorites filter server-side if requested
+    if (favoriteSeriesOnly === "true") {
+      const { data: favs, error: favErr } = await supabase
+        .from("favorite_series")
+        .select("publisher,series,volume")
+        .eq("user_id", userId);
+      if (favErr) {
+        console.error("Series favorites fetch error:", favErr);
+        return createErrorResponse(
+          500,
+          `Failed to load favorites: ${favErr.message}`
+        );
+      }
+      if (!favs || favs.length === 0) {
+        return createResponse(200, []);
+      }
+      const groups = favs
+        .filter((f: any) => f.publisher === publisher)
+        .map((f: any) => {
+          const parts = [`series.eq.${f.series}`];
+          if (f.volume && String(f.volume).length > 0) {
+            parts.push(`volume.eq.${f.volume}`);
+          }
+          return `and(${parts.join(",")})`;
+        });
+      if (groups.length > 0) {
+        const orExpression = groups.join(",");
+        query = query.or(orExpression);
+      } else {
+        return createResponse(200, []);
+      }
     }
 
     console.log("📋 Executing series query with pagination...");
@@ -461,10 +579,34 @@ export const handleGetSeries = async (
       summary.totalValue += comic.currentValue || 0;
     });
 
+    // Apply sorting to series summaries
     const series = Array.from(seriesMap.values()).sort((a, b) => {
-      const seriesCompare = a.series.localeCompare(b.series);
-      if (seriesCompare !== 0) return seriesCompare;
-      return a.volume.localeCompare(b.volume);
+      if (!sortBy) {
+        const seriesCompare = a.series.localeCompare(b.series);
+        if (seriesCompare !== 0) return seriesCompare;
+        return a.volume.localeCompare(b.volume);
+      }
+
+      switch (sortBy) {
+        case "series":
+          const seriesCompare = a.series.localeCompare(b.series);
+          if (seriesCompare !== 0) return seriesCompare;
+          return a.volume.localeCompare(b.volume);
+        case "issueCount":
+          return b.issueCount - a.issueCount; // Descending by default
+        case "collectedCount":
+          return b.collectedCount - a.collectedCount; // Descending by default
+        case "grailCount":
+          return b.grailCount - a.grailCount; // Descending by default
+        case "totalValue":
+          return b.totalValue - a.totalValue; // Descending by default
+        case "collectedValue":
+          return b.collectedValue - a.collectedValue; // Descending by default
+        default:
+          const defaultSeriesCompare = a.series.localeCompare(b.series);
+          if (defaultSeriesCompare !== 0) return defaultSeriesCompare;
+          return a.volume.localeCompare(b.volume);
+      }
     });
 
     console.log(`✅ Found ${series.length} series for publisher ${publisher}`);

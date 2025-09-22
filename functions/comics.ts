@@ -75,6 +75,7 @@ const handleGetComics = async (
     limit = "25",
     offset,
     order,
+    favoriteSeriesOnly,
   } = queryParams || {};
 
   const pageNum = parseInt(page, 10);
@@ -95,7 +96,20 @@ const handleGetComics = async (
     .eq("user_id", userId);
 
   const applyOrder = (ord?: string) => {
-    const whitelist = new Set(["series", "issueNumber", "id"]);
+    const whitelist = new Set([
+      "series",
+      "publisher",
+      "currentValue",
+      "pricePaid",
+      "grade",
+      "createdAt",
+      "issue",
+      "issueNumber",
+      "collected",
+      "isGrail",
+      "id",
+    ]);
+
     if (!ord) {
       query = query
         .order("series", { ascending: true })
@@ -103,6 +117,7 @@ const handleGetComics = async (
         .order("id", { ascending: true });
       return;
     }
+
     const parts = ord.split(",").map((s) => s.trim());
     for (const p of parts) {
       const [col, dir] = p.split("."); // e.g., series.asc
@@ -152,6 +167,42 @@ const handleGetComics = async (
     query = query.or(
       `publisher.ilike.%${search}%,series.ilike.%${search}%,issue.ilike.%${search}%`
     );
+  }
+
+  // Apply favorites filter (server-side)
+  if (favoriteSeriesOnly === "true") {
+    // Load user's favorite series triplets
+    const { data: favs, error: favErr } = await supabase
+      .from("favorite_series")
+      .select("publisher,series,volume")
+      .eq("user_id", userId);
+
+    if (favErr) {
+      console.error("Favorites fetch error:", favErr);
+      return createErrorResponse(
+        500,
+        `Failed to load favorites: ${favErr.message}`
+      );
+    }
+
+    if (!favs || favs.length === 0) {
+      return createResponse(200, {
+        comics: [],
+        pagination: { page: pageNum, limit: limitNum, total: 0, pages: 0 },
+      });
+    }
+
+    // Build OR expression of favored series (publisher/series[/volume])
+    const groups = favs.map((f: any) => {
+      const parts = [`publisher.eq.${f.publisher}`, `series.eq.${f.series}`];
+      if (f.volume && String(f.volume).length > 0) {
+        parts.push(`volume.eq.${f.volume}`);
+      }
+      return `and(${parts.join(",")})`;
+    });
+    const orExpression = groups.join(",");
+    // Apply server-side favorites filter
+    query = query.or(orExpression);
   }
 
   // Apply pagination

@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { FavoriteSeries, FilterOption, ViewMode } from "../../types";
+import {
+  FavoriteSeries,
+  FilterOption,
+  ViewMode,
+  SortOption,
+} from "../../types";
 import { usePublisherSummaries, useExpandedState } from "../../hooks";
 import { logger } from "../../utils/logger";
 import * as S from "./styles";
@@ -13,6 +18,8 @@ interface Props {
   itemsPerPage: number;
   setItemsPerPage: (count: number) => void;
   filterOption: FilterOption;
+  searchFilter: string;
+  sortBy: SortOption;
   favoriteSeries: FavoriteSeries[];
   onToggleFavoriteSeries: (
     publisher: string,
@@ -25,6 +32,8 @@ const ComicList: React.FC<Props> = ({
   itemsPerPage,
   setItemsPerPage,
   filterOption,
+  searchFilter,
+  sortBy,
   favoriteSeries,
   onToggleFavoriteSeries,
 }) => {
@@ -53,7 +62,10 @@ const ComicList: React.FC<Props> = ({
     publishers,
     loading: publishersLoading,
     error: publishersError,
-  } = usePublisherSummaries({ filterOption });
+  } = usePublisherSummaries(
+    { filterOption, search: searchFilter, sortBy },
+    favoriteSeries
+  );
 
   // Convert publishers array to the grouped format expected by existing components
   const groupedComics = publishers.reduce((acc, pub) => {
@@ -108,7 +120,10 @@ const ComicList: React.FC<Props> = ({
         onBack={handleBackToGrid}
         itemsPerPage={itemsPerPage}
         setItemsPerPage={setItemsPerPage}
-        filterOption={filterOption} // Pass global filter state
+        filterOption={filterOption}
+        searchFilter={searchFilter}
+        sortBy={sortBy}
+        favoriteSeries={favoriteSeries}
         isFavorite={favoriteSeries.some(
           (fav) =>
             fav.publisher === selectedSeries.publisher &&
@@ -141,6 +156,9 @@ const ComicList: React.FC<Props> = ({
         isAllExpanded={isAllExpanded}
         onToggleAll={toggleAll}
         filterOption={filterOption}
+        searchFilter={searchFilter}
+        sortBy={sortBy}
+        favoriteSeries={favoriteSeries}
         onStatsRefreshReady={(refreshFn) =>
           setGlobalStatsRefresh(() => refreshFn)
         }
@@ -161,6 +179,8 @@ const ComicList: React.FC<Props> = ({
               itemsPerPage={itemsPerPage}
               favoriteSeries={favoriteSeries}
               filterOption={filterOption}
+              searchFilter={searchFilter}
+              sortBy={sortBy}
               onTogglePublisher={togglePublisher}
               onToggleSeries={toggleSeries}
               onOpenDetailView={handleOpenDetailView}

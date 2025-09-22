@@ -41,11 +41,20 @@ export const useSeriesComics = (
       extraFilters.storageLocation,
       extraFilters.search,
       extraFilters.filterOption,
+      extraFilters.sortBy,
     ]
   );
 
   const fetchComics = useCallback(
     async (silent: boolean = false) => {
+      console.log("🔄 useSeriesComics fetchComics called", {
+        enabled,
+        publisher,
+        series,
+        sortBy: extraFilters.sortBy,
+        silent,
+      });
+
       if (!enabled || !publisher || !series) {
         if (!silent) setComics([]);
         return [];
@@ -65,7 +74,11 @@ export const useSeriesComics = (
         params.set("publisher", publisher);
         params.set("series", series);
         if (volume) params.set("volume", volume);
-        params.set("order", "series.asc,issueNumber.asc,id.asc");
+
+        // Set default order if no sortBy is specified
+        if (!extraFilters.sortBy) {
+          params.set("order", "series.asc,issueNumber.asc,id.asc");
+        }
 
         const offset = (page - 1) * perPage;
         params.set("offset", String(offset));
@@ -74,13 +87,27 @@ export const useSeriesComics = (
         const extra = buildQueryParams(extraFilters);
         if (extra) {
           const extraQS = new URLSearchParams(extra);
-          extraQS.forEach((v, k) => params.set(k, v));
+          extraQS.forEach((v, k) => {
+            // Map sortBy to order for the main comics endpoint
+            if (k === "sortBy") {
+              params.set("order", `${v}.asc,id.asc`);
+            } else {
+              params.set(k, v);
+            }
+          });
         }
 
         const paramsString = params.toString();
 
+        console.log("🌐 useSeriesComics API call", {
+          url: `${getApiBaseUrl()}/comics?${paramsString}`,
+          params: Object.fromEntries(params.entries()),
+          sortBy: extraFilters.sortBy,
+        });
+
         // Check if params have changed
         if (silent && paramsString === lastFetchParamsRef.current) {
+          console.log("⏭️ Skipping refetch - params unchanged");
           // Skip refetch if params haven't changed
           return comics;
         }
@@ -151,6 +178,25 @@ export const useSeriesComics = (
     memoized.page,
     memoized.perPage,
     memoized.enabled,
+  ]);
+
+  // Silent refetch on filter/sort changes (including sortBy)
+  useEffect(() => {
+    // Only run when base params are valid
+    if (!enabled || !publisher || !series) return;
+    fetchComics(true);
+  }, [
+    // filter deps
+    extraFilters.publisher,
+    extraFilters.series,
+    extraFilters.collected,
+    extraFilters.isGrail,
+    extraFilters.signed,
+    extraFilters.grade,
+    extraFilters.storageLocation,
+    extraFilters.search,
+    extraFilters.filterOption,
+    extraFilters.sortBy,
   ]);
 
   return {

@@ -1,19 +1,17 @@
 import React, { memo } from "react";
 import { X } from "lucide-react";
-import { SortOption, FilterOption } from "../../types";
+import { FilterOption, SortOption } from "../../types";
 import Input from "../shared/Input";
 import * as S from "./styles";
-import Toggle from "../shared/Toggle";
+// import Toggle from "../shared/Toggle"; // Unused for now
 
 interface Props {
   filter: string;
   setFilter: (filter: string) => void;
-  sortBy: SortOption | "issueNumber";
-  setSortBy: (sortBy: SortOption | "issueNumber") => void;
   filterOption: FilterOption;
   setFilterOption: (option: FilterOption) => void;
-  hideCollected: boolean;
-  setHideCollected: (hide: boolean) => void;
+  sortBy: SortOption;
+  setSortBy: (option: SortOption) => void;
   itemsPerPage: number;
   setItemsPerPage: (value: number) => void;
   isOpen: boolean;
@@ -24,12 +22,10 @@ const FilterSort: React.FC<Props> = memo(
   ({
     filter,
     setFilter,
-    sortBy,
-    setSortBy,
     filterOption,
     setFilterOption,
-    hideCollected,
-    setHideCollected,
+    sortBy,
+    setSortBy,
     itemsPerPage,
     setItemsPerPage,
     isOpen,
@@ -68,16 +64,21 @@ const FilterSort: React.FC<Props> = memo(
           <S.FilterLabel>Sort by</S.FilterLabel>
           <S.StyledSelect
             value={sortBy}
-            onChange={(e) =>
-              setSortBy(e.target.value as SortOption | "issueNumber")
-            }
+            onChange={(e) => {
+              console.log("🔄 FilterSort sortBy changed:", e.target.value);
+              setSortBy(e.target.value as SortOption);
+            }}
             data-sc="SortBySelect"
           >
-            <option value="series">Series (Alphabetical, ignores "the")</option>
+            <option value="series">Series</option>
             <option value="publisher">Publisher</option>
             <option value="currentValue">Current Value</option>
-            <option value="issue">Issue (Alphabetically)</option>
-            <option value="issueNumber">Issue Number (Numerically)</option>
+            <option value="pricePaid">Price Paid</option>
+            <option value="grade">Grade</option>
+            <option value="dateAdded">Date Added</option>
+            <option value="issue">Issue</option>
+            <option value="issueNumber">Issue Number</option>
+            <option value="collected">Collected Status</option>
           </S.StyledSelect>
 
           <S.FilterLabel>Items per page</S.FilterLabel>
@@ -93,13 +94,7 @@ const FilterSort: React.FC<Props> = memo(
             <option value={10000}>All</option>
           </S.StyledSelect>
 
-          <S.ToggleContainer>
-            <S.FilterLabel>Hide Collected</S.FilterLabel>
-            <Toggle
-              checked={hideCollected}
-              onChange={() => setHideCollected(!hideCollected)}
-            />
-          </S.ToggleContainer>
+          {/* TODO: Add hide collected toggle support to server-side API */}
         </S.FilterSortContent>
       </S.FilterSortContainer>
     );

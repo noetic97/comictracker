@@ -27,6 +27,7 @@ export const buildQueryParams = (filters: AggregationFilters): string => {
   if (filters.storageLocation)
     params.set("storageLocation", filters.storageLocation);
   if (filters.search) params.set("search", filters.search);
+  if (filters.sortBy) params.set("sortBy", filters.sortBy);
 
   // Handle the special filterOption cases
   if (filters.filterOption && filters.filterOption !== "all") {
@@ -37,11 +38,14 @@ export const buildQueryParams = (filters: AggregationFilters): string => {
       case "uncollected":
         params.set("collected", "false");
         break;
-      case "grails":
+      case "grailComicsOnly":
         params.set("isGrail", "true");
         break;
       case "signed":
         params.set("signed", "true");
+        break;
+      case "favoriteSeriesOnly":
+        params.set("favoriteSeriesOnly", "true");
         break;
     }
   }

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { Comic, FilterOption } from "../../types";
+import { Comic, FilterOption, FavoriteSeries, SortOption } from "../../types";
 import {
   useSeriesComics,
   useComicStats,
@@ -23,6 +23,9 @@ interface SeriesDetailViewProps {
   isFavorite: boolean;
   onToggleFavorite: () => void;
   filterOption: FilterOption;
+  searchFilter: string;
+  sortBy: SortOption;
+  favoriteSeries: FavoriteSeries[];
 }
 
 const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
@@ -35,10 +38,14 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
   isFavorite,
   onToggleFavorite,
   filterOption,
+  searchFilter,
+  sortBy,
+  favoriteSeries,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isStatsCollapsed, setIsStatsCollapsed] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   // Use hooks to fetch series-specific data
   const {
@@ -54,7 +61,7 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
     currentPage,
     itemsPerPage,
     true, // always enabled for detail view
-    { filterOption } // pass global filters
+    { filterOption, search: searchFilter, sortBy } // pass global filters
   );
 
   // Fetch series-specific stats using the same filters
@@ -63,11 +70,18 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
     loading: statsLoading,
     error: statsError,
     silentRefetch: silentRefetchStats,
-  } = useComicStats({
-    publisher,
-    series,
-    filterOption,
-  });
+  } = useComicStats(
+    {
+      publisher,
+      series,
+      filterOption,
+      search: searchFilter,
+      sortBy,
+    },
+    favoriteSeries
+  );
+
+  const isTransitioning = comicsLoading && hasLoadedOnce;
 
   // Use optimistic comics hook for immediate UI updates
   const {
@@ -94,6 +108,27 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
     },
   });
 
+  React.useEffect(() => {
+    if (!comicsLoading && serverComics) {
+      setHasLoadedOnce(true);
+    }
+  }, [comicsLoading, serverComics]);
+
+  React.useEffect(() => {
+    // Reset page when filters change
+    setCurrentPage(1);
+    // Fetch latest server data and sync optimistic list
+    silentRefetch().then((newComics) => {
+      if (newComics) syncWithServer(newComics);
+    });
+  }, [filterOption, searchFilter, publisher, series, volume]);
+
+  React.useEffect(() => {
+    silentRefetch().then((newComics) => {
+      if (newComics) syncWithServer(newComics);
+    });
+  }, [currentPage, itemsPerPage]);
+
   // Handle comic actions with optimistic updates
   const comicActions = useComicActions({
     onComicUpdated: useCallback(
@@ -116,6 +151,22 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
     ),
     optimisticUpdates: false, // We handle optimistic updates ourselves
   });
+
+  // Reset page on filter/series change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filterOption, searchFilter, publisher, series, volume]);
+
+  // Keep optimistic list in sync with server results (e.g., after filter/search changes)
+  React.useEffect(() => {
+    if (serverComics && serverComics.length >= 0) {
+      syncWithServer(serverComics);
+    }
+  }, [serverComics, syncWithServer]);
+
+  React.useEffect(() => {
+    silentRefetch().then((newComics) => newComics && syncWithServer(newComics));
+  }, [currentPage, itemsPerPage]);
 
   // Internal action handlers with optimistic updates
   const handleCollect = useCallback(
@@ -184,7 +235,7 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
     : Math.ceil(comics.length / itemsPerPage);
 
   // Handle loading states
-  if (comicsLoading || statsLoading) {
+  if (!hasLoadedOnce && (comicsLoading || statsLoading)) {
     return (
       <S.SeriesDetailContainer data-sc="SeriesDetailContainer">
         <S.CompactHeader data-sc="CompactHeader">
@@ -255,12 +306,21 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
           onCurrentPageReset={() => setCurrentPage(1)}
         />
       </S.CompactHeader>
-
-      <ComicsGrid
-        comics={sortedComics}
-        onCollect={handleCollect}
-        onToggleGrail={handleToggleGrail}
-      />
+      <div
+        style={{
+          opacity: isTransitioning ? 0.7 : 1,
+          transition: "opacity 150ms ease",
+        }}
+      >
+        <ComicsGrid
+          // key={`${publisher}|${series}|${
+          //   volume || ""
+          // }|${filterOption}|${searchFilter}|${itemsPerPage}`}
+          comics={sortedComics}
+          onCollect={handleCollect}
+          onToggleGrail={handleToggleGrail}
+        />
+      </div>
 
       <S.StickyFooter data-sc="StickyFooter">
         <S.FooterControls>

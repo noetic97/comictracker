@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { FavoriteSeries, FilterOption } from "../../../types";
+import { FavoriteSeries, FilterOption, SortOption } from "../../../types";
 import { PublisherSummary } from "../../../hooks/aggregations/types";
 import { useSeriesSummaries } from "../../../hooks";
 import SeriesCard from "../SeriesCard";
@@ -12,6 +12,8 @@ interface PublisherCardProps {
   itemsPerPage: number;
   favoriteSeries: FavoriteSeries[];
   filterOption: FilterOption;
+  searchFilter: string;
+  sortBy: SortOption;
   onTogglePublisher: (publisher: string) => void;
   onToggleSeries: (seriesKey: string) => void;
   onOpenDetailView: (
@@ -36,6 +38,8 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
   itemsPerPage,
   favoriteSeries,
   filterOption,
+  searchFilter,
+  sortBy,
   onTogglePublisher,
   onToggleSeries,
   onOpenDetailView,
@@ -49,9 +53,15 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
     series,
     loading: seriesLoading,
     error: seriesError,
-  } = useSeriesSummaries(isExpanded ? publisherSummary.publisher : null, {
-    filterOption,
-  });
+  } = useSeriesSummaries(
+    isExpanded ? publisherSummary.publisher : null,
+    {
+      filterOption,
+      search: searchFilter,
+      sortBy,
+    },
+    favoriteSeries
+  );
 
   const isFavoriteSeries = (
     publisher: string,
@@ -128,6 +138,8 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
                       )
                     }
                     filterOption={filterOption}
+                    searchFilter={searchFilter}
+                    sortBy={sortBy}
                     onStatsRefresh={onStatsRefresh}
                   />
                 );

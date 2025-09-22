@@ -2,11 +2,15 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { AggregationFilters, ComicStats } from "./types";
 import { getApiBaseUrl, buildQueryParams } from "../utils";
 import { logger } from "../../utils/logger";
+import { FavoriteSeries } from "../../types";
 
 /**
  * Hook for fetching comic statistics
  */
-export const useComicStats = (filters: AggregationFilters = {}) => {
+export const useComicStats = (
+  filters: AggregationFilters = {},
+  favoriteSeries: FavoriteSeries[] = []
+) => {
   const [stats, setStats] = useState<ComicStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +30,10 @@ export const useComicStats = (filters: AggregationFilters = {}) => {
       filters.filterOption,
     ]
   );
+
+  // TODO: Implement favoriteSeriesOnly stats filtering
+  // This requires complex server-side logic to calculate stats for only favorite series
+  // For now, stats will show all comics even when favoriteSeriesOnly is selected
 
   const fetchStats = useCallback(
     async (silent = false) => {
