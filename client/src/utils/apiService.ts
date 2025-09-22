@@ -1,5 +1,6 @@
 import { Comic, FavoriteSeries } from "../types";
 import { debugFetch, apiDebugger } from "./apiDebugger";
+import { logger } from "./logger";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/.netlify/functions";
 
@@ -17,9 +18,11 @@ const createApiError = (
 
 const handleResponse = async (response: Response) => {
   // Always log response details for debugging
-  console.log(
-    `📡 API Response: ${response.status} ${response.statusText} (${response.url})`
-  );
+  logger.api.debug("API Response", {
+    status: response.status,
+    statusText: response.statusText,
+    url: response.url,
+  });
 
   if (!response.ok) {
     let errorData: any = { error: "Unknown error" };
@@ -30,13 +33,13 @@ const handleResponse = async (response: Response) => {
         errorData = JSON.parse(responseText);
       }
     } catch (parseError) {
-      console.warn("Failed to parse error response:", parseError);
+      logger.api.warn("Failed to parse error response", parseError);
       errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
     }
 
     const errorMessage =
       errorData.error || errorData.message || `HTTP ${response.status}`;
-    console.error(`❌ API Error:`, {
+    logger.api.error("API Error", {
       status: response.status,
       statusText: response.statusText,
       url: response.url,
@@ -49,16 +52,16 @@ const handleResponse = async (response: Response) => {
 
   // Handle 204 No Content
   if (response.status === 204) {
-    console.log("✅ API Success: No content (204)");
+    logger.api.debug("API Success: No content (204)");
     return null;
   }
 
   try {
     const data = await response.json();
-    console.log(`✅ API Success:`, data);
+    logger.api.debug("API Success", data);
     return data;
   } catch (parseError) {
-    console.error("Failed to parse success response:", parseError);
+    logger.api.error("Failed to parse success response", parseError);
     throw createApiError(500, "Failed to parse response from server");
   }
 };
@@ -93,9 +96,7 @@ export const apiService = {
         searchParams.toString() ? `?${searchParams}` : ""
       }`;
 
-      console.log(`🔍 Fetching comics: ${url}`);
       const response = await debugFetch(url);
-      console.log({ response });
 
       return handleResponse(response);
     },
@@ -121,7 +122,10 @@ export const apiService = {
       }
 
       const url = `${API_BASE_URL}/comics`;
-      console.log(`➕ Creating comic: ${comic.series} #${comic.issue}`);
+      logger.comics.info("Creating comic", {
+        series: comic.series,
+        issue: comic.issue,
+      });
 
       const response = await debugFetch(url, {
         method: "POST",
@@ -152,7 +156,7 @@ export const apiService = {
       }
 
       const url = `${API_BASE_URL}/comics/bulk`;
-      console.log(`📦 Bulk creating ${comics.length} comics`);
+      logger.comics.info("Bulk creating comics", { count: comics.length });
 
       const response = await debugFetch(url, {
         method: "POST",
@@ -184,7 +188,7 @@ export const apiService = {
       }
 
       const url = `${API_BASE_URL}/comics/${encodeURIComponent(id)}/collect`;
-      console.log(`🔄 Toggling collected status for comic: ${id}`);
+      // Request details logged by debugFetch
 
       const response = await debugFetch(url, {
         method: "PATCH",
@@ -198,7 +202,7 @@ export const apiService = {
       }
 
       const url = `${API_BASE_URL}/comics/${encodeURIComponent(id)}/grail`;
-      console.log(`⭐ Toggling grail status for comic: ${id}`);
+      // Request details logged by debugFetch
 
       const response = await debugFetch(url, {
         method: "PATCH",

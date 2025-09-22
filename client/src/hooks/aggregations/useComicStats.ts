@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { AggregationFilters, ComicStats } from "./types";
 import { getApiBaseUrl, buildQueryParams } from "../utils";
+import { logger } from "../../utils/logger";
 
 /**
  * Hook for fetching comic statistics
@@ -26,50 +27,73 @@ export const useComicStats = (filters: AggregationFilters = {}) => {
     ]
   );
 
-  const fetchStats = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const fetchStats = useCallback(
+    async (silent = false) => {
+      try {
+        if (!silent) {
+          setLoading(true);
+          setError(null);
+        }
 
-      console.log("🔄 Fetching comic stats with filters:", memoizedFilters);
+        logger.stats.debug("Fetching comic stats", {
+          filters: memoizedFilters,
+        });
 
-      // Convert filters to query parameters
-      const params = buildQueryParams(memoizedFilters);
-      const url = `${getApiBaseUrl()}/comics/stats?${params}`;
+        // Convert filters to query parameters
+        const params = buildQueryParams(memoizedFilters);
+        const url = `${getApiBaseUrl()}/comics/stats?${params}`;
 
-      console.log("📡 Requesting:", url);
+        logger.api.debug("Stats API request", { url });
 
-      const response = await fetch(url);
+        const response = await fetch(url);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ Error response:", errorText);
-        throw new Error(
-          `Failed to fetch stats: ${response.status} - ${errorText}`
-        );
+        if (!response.ok) {
+          const errorText = await response.text();
+          logger.api.error("Stats API error response", {
+            status: response.status,
+            errorText,
+          });
+          throw new Error(
+            `Failed to fetch stats: ${response.status} - ${errorText}`
+          );
+        }
+
+        const data: ComicStats = await response.json();
+        setStats(data);
+
+        logger.stats.info("Stats loaded successfully", {
+          total: data.total,
+          collected: data.collected,
+          grails: data.grails,
+        });
+        return data;
+      } catch (err: any) {
+        logger.stats.error("Failed to fetch stats", err);
+        if (!silent) {
+          setError(err.message);
+          setStats(null);
+        }
+        return null;
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
       }
-
-      const data: ComicStats = await response.json();
-      setStats(data);
-
-      console.log("✅ Stats loaded:", data);
-    } catch (err: any) {
-      console.error("❌ Error fetching stats:", err);
-      setError(err.message);
-      setStats(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [memoizedFilters]);
+    },
+    [memoizedFilters]
+  );
 
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  const silentRefetch = useCallback(() => fetchStats(true), [fetchStats]);
 
   return {
     stats,
     loading,
     error,
     refetch: fetchStats,
+    silentRefetch,
   };
 };

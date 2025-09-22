@@ -45,6 +45,7 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
     comics: serverComics,
     loading: comicsLoading,
     error: comicsError,
+    silentRefetch,
     updateComic,
   } = useSeriesComics(
     publisher,
@@ -61,7 +62,7 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
     stats,
     loading: statsLoading,
     error: statsError,
-    refetch: refetchStats,
+    silentRefetch: silentRefetchStats,
   } = useComicStats({
     publisher,
     series,
@@ -78,11 +79,15 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
     syncWithServer,
   } = useOptimisticComics(serverComics, {
     onUpdateSuccess: (updatedComic) => {
-      console.log("✅ Comic update confirmed in detail view:", updatedComic);
-      refetchStats().catch((error) => {
-        console.error("❌ Failed to refresh stats:", error);
+      console.log("✅ Comic update confirmed:", updatedComic);
+      // Silently refetch to ensure consistency
+      silentRefetch().then((newComics) => {
+        if (newComics) {
+          syncWithServer(newComics);
+        }
       });
-      syncWithServer([updatedComic]);
+      // Silently refetch stats when comics are updated
+      silentRefetchStats();
     },
     onUpdateError: (error, comic) => {
       console.error("❌ Comic update failed in detail view:", error, comic);

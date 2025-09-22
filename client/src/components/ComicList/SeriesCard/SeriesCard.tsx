@@ -22,6 +22,7 @@ interface SeriesCardProps {
   isFavorite: boolean;
   onToggleFavorite: () => void;
   filterOption: FilterOption;
+  onStatsRefresh?: (() => Promise<any>) | null;
 }
 
 const SeriesCard: React.FC<SeriesCardProps> = ({
@@ -36,6 +37,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
   isFavorite,
   onToggleFavorite,
   filterOption,
+  onStatsRefresh,
 }) => {
   const handleDetailView = () => {
     onOpenDetailView(
@@ -119,6 +121,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
             onPageChange={onPageChange}
             totalIssues={seriesSummary.issueCount}
             filterOption={filterOption}
+            onStatsRefresh={onStatsRefresh}
           />
         )}
       </S.SeriesContent>

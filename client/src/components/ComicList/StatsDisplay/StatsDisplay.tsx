@@ -5,20 +5,24 @@ import * as S from "./styles";
 
 interface StatsDisplayProps {
   filterOption: FilterOption;
-  // Remove all the old props since we'll fetch them directly
+  onSilentRefetchReady?: (silentRefetch: () => Promise<any>) => void;
 }
 
-const StatsDisplay: React.FC<StatsDisplayProps> = ({ filterOption }) => {
+const StatsDisplay: React.FC<StatsDisplayProps> = ({
+  filterOption,
+  onSilentRefetchReady,
+}) => {
   // Use our new hook to fetch stats based on current filter
-  const { stats, loading, error } = useComicStats({ filterOption });
+  const { stats, loading, error, silentRefetch } = useComicStats({
+    filterOption,
+  });
 
-  // const stats = {
-  //   total: 100,
-  //   collected: 50,
-  //   grails: 20,
-  //   totalValue: 1000,
-  //   collectedValue: 500,
-  // };
+  // Expose silentRefetch to parent component
+  React.useEffect(() => {
+    if (onSilentRefetchReady && silentRefetch) {
+      onSilentRefetchReady(silentRefetch);
+    }
+  }, [onSilentRefetchReady, silentRefetch]);
 
   // Show loading state
   if (loading) {

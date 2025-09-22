@@ -89,6 +89,152 @@ The built files will be in the `dist` directory.
    - Click on a series name to expand or collapse its issues.
    - Use the "Expand All" or "Collapse All" button to change all series at once.
 
+## Debugging and Logging
+
+Comic Tracker includes robust debugging and logging utilities to help with development and troubleshooting.
+
+### Logger Utility
+
+The application uses a functional logging system with level-based filtering and contextual logging.
+
+#### Log Levels
+
+- **`debug`** - Detailed information for debugging (hidden in production by default)
+- **`info`** - General information about application flow
+- **`warn`** - Warning messages about potential issues
+- **`error`** - Error messages for failures and exceptions
+
+#### Usage in Browser Console
+
+```javascript
+// Enable debug mode to see all log levels
+enableDebugMode();
+
+// Disable debug mode (back to info/warn/error only)
+disableDebugMode();
+```
+
+#### Environment Configuration
+
+Set logging level via environment variable:
+
+```bash
+# .env file
+VITE_LOG_LEVEL=debug  # or info, warn, error, silent
+```
+
+#### Development vs Production
+
+- **Development**: Debug mode enabled by default, shows all logs
+- **Production**: Only shows `info`, `warn`, and `error` logs by default
+- **Runtime Control**: Use console commands to toggle debug mode without rebuilding
+
+#### Contextual Loggers
+
+The logger provides contextual logging for different application areas:
+
+- **`logger.comics.*`** - Comic-related operations (create, update, collect, grail)
+- **`logger.stats.*`** - Statistics and aggregation operations
+- **`logger.api.*`** - API requests and responses
+- **`logger.import.*`** - CSV import and data processing
+
+### API Debugger
+
+For detailed API request/response debugging and analysis.
+
+#### Browser Console Commands
+
+```javascript
+// Enable API call tracking and detailed logging
+apiDebugger.enable();
+
+// Disable API debugging
+apiDebugger.disable();
+
+// View recent API calls (last 10)
+apiDebugger.getCalls();
+
+// View only failed API calls
+apiDebugger.getFailedCalls();
+
+// Clear stored API call history
+apiDebugger.clear();
+
+// Generate and view debug report in console
+apiDebugger.report();
+
+// Download detailed debug report as text file
+apiDebugger.download();
+```
+
+#### Features
+
+- **Call History**: Stores last 50 API calls with full request/response data
+- **Performance Timing**: Tracks request duration for performance analysis
+- **Error Tracking**: Easy access to failed API calls and error patterns
+- **Debug Reports**: Downloadable reports for troubleshooting and support
+- **Automatic Activation**: Enabled in development mode by default
+
+#### Debug Report Contents
+
+- Request/response details for recent API calls
+- Performance timing information
+- Error summaries and stack traces
+- Request/response body data (truncated for readability)
+- Failed calls with detailed error information
+
+### Troubleshooting
+
+#### Common Debugging Workflows
+
+1. **Enable Debug Mode**:
+
+   ```javascript
+   enableDebugMode();
+   apiDebugger.enable();
+   ```
+
+2. **Reproduce Issue**: Perform the action that's causing problems
+
+3. **Check Logs**: Look for error messages or unexpected behavior in console
+
+4. **Analyze API Calls**:
+
+   ```javascript
+   // Check recent API activity
+   apiDebugger.getCalls();
+
+   // Look for failures
+   apiDebugger.getFailedCalls();
+   ```
+
+5. **Generate Report**: Download comprehensive debug report
+   ```javascript
+   apiDebugger.download();
+   ```
+
+#### Log Message Format
+
+```
+🔍 [Context] Debug message with data
+ℹ️ [Context] Info message with data
+⚠️ [Context] Warning message with data
+❌ [Context] Error message with data
+```
+
+#### Performance Monitoring
+
+API debugger automatically tracks request timing:
+
+```javascript
+// View performance data for recent calls
+apiDebugger.getCalls().map((call) => ({
+  url: call.url,
+  duration: call.duration,
+  status: call.status,
+}));
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

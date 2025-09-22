@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useCallback } from "react";
 import { Star, Check } from "lucide-react";
 import { Comic, FilterOption } from "../../../types";
 import {
@@ -7,6 +7,7 @@ import {
   useComicActions,
 } from "../../../hooks";
 import PaginationControls from "../PaginationControls";
+import { logger } from "../../../utils/logger";
 import * as S from "./styles";
 
 interface SeriesComicsListProps {
@@ -18,6 +19,7 @@ interface SeriesComicsListProps {
   onPageChange: (page: number) => void;
   totalIssues: number;
   filterOption: FilterOption;
+  onStatsRefresh?: (() => Promise<any>) | null;
 }
 
 const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
@@ -29,6 +31,7 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
   onPageChange,
   totalIssues,
   filterOption,
+  onStatsRefresh,
 }) => {
   const {
     comics: serverComics,
@@ -56,16 +59,25 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
     syncWithServer,
   } = useOptimisticComics(serverComics, {
     onUpdateSuccess: (updatedComic) => {
-      console.log("✅ Comic update confirmed:", updatedComic);
+      logger.comics.info("Comic update confirmed", updatedComic);
       // Silently refetch to ensure consistency
       silentRefetch().then((newComics) => {
         if (newComics) {
           syncWithServer(newComics);
         }
       });
+      // Refresh global stats when comics are updated
+      logger.stats.debug("Attempting to refresh stats", {
+        hasCallback: !!onStatsRefresh,
+        isFunction: typeof onStatsRefresh === "function",
+      });
+      if (onStatsRefresh && typeof onStatsRefresh === "function") {
+        onStatsRefresh();
+        logger.stats.info("Stats refreshed successfully");
+      }
     },
     onUpdateError: (error, comic) => {
-      console.error("❌ Comic update failed:", error, comic);
+      logger.comics.error("Comic update failed", { error, comic });
     },
   });
 
