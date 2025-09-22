@@ -35,6 +35,9 @@ const ComicList: React.FC<Props> = ({
     volume?: string;
   } | null>(null);
   const [seriesPages, setSeriesPages] = useState<Record<string, number>>({});
+  const [globalStatsRefresh, setGlobalStatsRefresh] = useState<
+    (() => Promise<any>) | null
+  >(null);
 
   // Use our new hook to fetch publisher summaries
   const {
@@ -129,6 +132,7 @@ const ComicList: React.FC<Props> = ({
         isAllExpanded={isAllExpanded}
         onToggleAll={toggleAll}
         filterOption={filterOption}
+        onStatsRefreshReady={setGlobalStatsRefresh}
       />
 
       {publishersLoading ? (
@@ -152,6 +156,7 @@ const ComicList: React.FC<Props> = ({
               onToggleFavoriteSeries={onToggleFavoriteSeries}
               getSeriesPage={getSeriesPage}
               onSeriesPageChange={handleSeriesPageChange}
+              onStatsRefresh={globalStatsRefresh}
             />
           ))}
         </S.PublisherGrid>

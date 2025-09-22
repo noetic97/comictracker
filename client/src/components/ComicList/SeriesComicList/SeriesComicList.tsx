@@ -18,6 +18,7 @@ interface SeriesComicsListProps {
   onPageChange: (page: number) => void;
   totalIssues: number;
   filterOption: FilterOption;
+  onStatsRefresh?: (() => Promise<any>) | null;
 }
 
 const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
@@ -29,6 +30,7 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
   onPageChange,
   totalIssues,
   filterOption,
+  onStatsRefresh,
 }) => {
   const {
     comics: serverComics,
@@ -63,6 +65,10 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
           syncWithServer(newComics);
         }
       });
+      // Refresh global stats when comics are updated
+      if (onStatsRefresh && typeof onStatsRefresh === "function") {
+        onStatsRefresh();
+      }
     },
     onUpdateError: (error, comic) => {
       console.error("❌ Comic update failed:", error, comic);
