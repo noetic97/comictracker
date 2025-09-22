@@ -7,6 +7,7 @@ import Header from "./components/Header/index.ts";
 import FilterSort from "./components/FilterSort/index.ts";
 import ComicList from "./components/ComicList/index.ts";
 import HamburgerMenu from "./components/HamburgerMenu/index.ts";
+import { logger } from "./utils/logger";
 import * as S from "./styles";
 import { apiService } from "./utils/apiService";
 import {
@@ -61,12 +62,14 @@ const ThemedAppWithLoading: React.FC = () => {
     const fetchInitialData = async () => {
       try {
         setLoadingPhase("data-loading");
-        console.log("🔄 Loading initial app data...");
+        logger.info("Loading initial app data");
 
         // Only load favorites and global settings - components will load their own comic data
         const favoritesResponse = await apiService.favorites.getAll();
 
-        console.log(`✅ Loaded ${favoritesResponse.length} favorite series`);
+        logger.info("Favorites loaded successfully", {
+          count: favoritesResponse.length,
+        });
 
         setFavoriteSeries(favoritesResponse);
         setError(null);
@@ -77,7 +80,7 @@ const ThemedAppWithLoading: React.FC = () => {
           setHasInitiallyLoaded(true);
         }, 300);
       } catch (err: any) {
-        console.error("Failed to load initial data:", err);
+        logger.error("Failed to load initial app data", err);
         setError("Failed to load app data. Please try again later.");
         setLoadingPhase("ready");
         setHasInitiallyLoaded(true);
@@ -103,9 +106,7 @@ const ThemedAppWithLoading: React.FC = () => {
         setLoadingPhase("background-refresh");
       }
 
-      console.log(
-        "🔄 Import completed, data will refresh automatically via hooks"
-      );
+      logger.import.info("Import completed, data will refresh automatically");
 
       setError(null);
       setImportStatus("Complete! ✅");
@@ -115,7 +116,7 @@ const ThemedAppWithLoading: React.FC = () => {
         setTimeout(() => setLoadingPhase("ready"), 500);
       }
     } catch (err: any) {
-      console.error("Failed to handle import:", err);
+      logger.import.error("Failed to handle import", err);
       setError("Import completed but refresh failed. Please reload the page.");
       setImportStatus("Error ❌");
       if (hasInitiallyLoaded) {
@@ -153,7 +154,7 @@ const ThemedAppWithLoading: React.FC = () => {
         setFavoriteSeries((prev) => [...prev, newFavorite]);
       }
     } catch (err: any) {
-      console.error("Failed to update favorite series:", err);
+      logger.error("Failed to update favorite series", err);
       setError("Failed to update favorite series. Please try again.");
     }
   };
@@ -210,7 +211,7 @@ const ThemedAppWithLoading: React.FC = () => {
   return (
     <ComicActionsErrorBoundary
       onError={(error, errorInfo) => {
-        console.error("🚨 Application crashed:", error, errorInfo);
+        logger.error("Application crashed", { error, errorInfo });
         setError(
           `Application error: ${error.message}. Please refresh the page.`
         );

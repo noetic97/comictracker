@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { FavoriteSeries, FilterOption, ViewMode } from "../../types";
 import { usePublisherSummaries, useExpandedState } from "../../hooks";
+import { logger } from "../../utils/logger";
 import * as S from "./styles";
 import ErrorMessage from "../shared/ErrorMessage";
 import ControlsSection from "./ControlsSection";
@@ -38,6 +39,14 @@ const ComicList: React.FC<Props> = ({
   const [globalStatsRefresh, setGlobalStatsRefresh] = useState<
     (() => Promise<any>) | null
   >(null);
+
+  // Debug logging for stats callback
+  React.useEffect(() => {
+    logger.stats.debug("Global stats refresh callback updated", {
+      hasCallback: !!globalStatsRefresh,
+      isFunction: typeof globalStatsRefresh === "function",
+    });
+  }, [globalStatsRefresh]);
 
   // Use our new hook to fetch publisher summaries
   const {
@@ -132,7 +141,9 @@ const ComicList: React.FC<Props> = ({
         isAllExpanded={isAllExpanded}
         onToggleAll={toggleAll}
         filterOption={filterOption}
-        onStatsRefreshReady={setGlobalStatsRefresh}
+        onStatsRefreshReady={(refreshFn) =>
+          setGlobalStatsRefresh(() => refreshFn)
+        }
       />
 
       {publishersLoading ? (

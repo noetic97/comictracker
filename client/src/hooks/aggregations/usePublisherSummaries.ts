@@ -1,6 +1,7 @@
 import { AggregationFilters, PublisherSummary } from "./types";
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { getApiBaseUrl, buildQueryParams } from "../utils";
+import { logger } from "../../utils/logger";
 
 /**
  * Hook for fetching publisher summaries
@@ -31,7 +32,7 @@ export const usePublisherSummaries = (filters: AggregationFilters = {}) => {
       setLoading(true);
       setError(null);
 
-      console.log("🔄 Fetching publishers with filters:", memoizedFilters);
+      logger.stats.debug("Fetching publishers", { filters: memoizedFilters });
 
       const params = buildQueryParams(memoizedFilters);
       const url = `${getApiBaseUrl()}/comics/publishers?${params}`;
@@ -48,9 +49,11 @@ export const usePublisherSummaries = (filters: AggregationFilters = {}) => {
       const data: PublisherSummary[] = await response.json();
       setPublishers(data);
 
-      console.log("✅ Publishers loaded:", data.length);
+      logger.stats.info("Publishers loaded successfully", {
+        count: data.length,
+      });
     } catch (err: any) {
-      console.error("❌ Error fetching publishers:", err);
+      logger.stats.error("Failed to fetch publishers", err);
       setError(err.message);
       setPublishers([]);
     } finally {

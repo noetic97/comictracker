@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { AggregationFilters, ComicStats } from "./types";
 import { getApiBaseUrl, buildQueryParams } from "../utils";
+import { logger } from "../../utils/logger";
 
 /**
  * Hook for fetching comic statistics
@@ -34,19 +35,24 @@ export const useComicStats = (filters: AggregationFilters = {}) => {
           setError(null);
         }
 
-        console.log("🔄 Fetching comic stats with filters:", memoizedFilters);
+        logger.stats.debug("Fetching comic stats", {
+          filters: memoizedFilters,
+        });
 
         // Convert filters to query parameters
         const params = buildQueryParams(memoizedFilters);
         const url = `${getApiBaseUrl()}/comics/stats?${params}`;
 
-        console.log("📡 Requesting:", url);
+        logger.api.debug("Stats API request", { url });
 
         const response = await fetch(url);
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("❌ Error response:", errorText);
+          logger.api.error("Stats API error response", {
+            status: response.status,
+            errorText,
+          });
           throw new Error(
             `Failed to fetch stats: ${response.status} - ${errorText}`
           );
@@ -55,10 +61,14 @@ export const useComicStats = (filters: AggregationFilters = {}) => {
         const data: ComicStats = await response.json();
         setStats(data);
 
-        console.log("✅ Stats loaded:", data);
+        logger.stats.info("Stats loaded successfully", {
+          total: data.total,
+          collected: data.collected,
+          grails: data.grails,
+        });
         return data;
       } catch (err: any) {
-        console.error("❌ Error fetching stats:", err);
+        logger.stats.error("Failed to fetch stats", err);
         if (!silent) {
           setError(err.message);
           setStats(null);

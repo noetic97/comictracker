@@ -1,3 +1,5 @@
+import { logger } from "./logger";
+
 export interface ApiCallDebugInfo {
   url: string;
   method: string;
@@ -29,13 +31,13 @@ export const apiDebugger = {
   enable() {
     isEnabled = true;
     localStorage.setItem("apiDebugger", "enabled");
-    console.log("🔍 API Debugger enabled");
+    logger.api.info("API Debugger enabled");
   },
 
   disable() {
     isEnabled = false;
     localStorage.removeItem("apiDebugger");
-    console.log("🔍 API Debugger disabled");
+    logger.api.info("API Debugger disabled");
   },
 
   logCall(info: Omit<ApiCallDebugInfo, "timestamp">) {
@@ -53,17 +55,14 @@ export const apiDebugger = {
       calls = calls.slice(-maxCalls);
     }
 
-    // Log to console in development
-    if (process.env.NODE_ENV === "development") {
-      console.group(`🌐 API Call: ${info.method} ${info.url}`);
-      console.log("Headers:", info.headers);
-      if (info.body) console.log("Body:", info.body);
-      if (info.status) console.log("Status:", info.status);
-      if (info.response) console.log("Response:", info.response);
-      if (info.error) console.error("Error:", info.error);
-      if (info.duration) console.log("Duration:", `${info.duration}ms`);
-      console.groupEnd();
-    }
+    // Use our logger for debug output (only when logger debug is enabled)
+    logger.api.debug(`API Call: ${info.method} ${info.url}`, {
+      duration: info.duration ? `${info.duration}ms` : undefined,
+      status: info.status,
+      hasBody: !!info.body,
+      hasResponse: !!info.response,
+      hasError: !!info.error,
+    });
   },
 
   getRecentCalls(count: number = 10): ApiCallDebugInfo[] {
@@ -82,7 +81,7 @@ export const apiDebugger = {
 
   clearCalls() {
     calls = [];
-    console.log("🔍 API Debug calls cleared");
+    logger.api.info("API Debug calls cleared");
   },
 
   generateDebugReport(): string {
