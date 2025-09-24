@@ -2,10 +2,10 @@ import { Handler } from "@netlify/functions";
 import { handleCors, createResponse, createErrorResponse } from "./utils/cors";
 import { withSupabaseRLS } from "./utils/supabase";
 import {
-  handleGetStats,
-  handleGetPublishers,
-  handleGetSeries,
-} from "./comics/aggregations";
+  getComicStats,
+  getPublisherSummaries,
+  getSeriesSummaries,
+} from "./services/comics";
 import { handleBulkImport } from "./comics/bulkOperations";
 import { validateComic, transformComicOutput } from "./comics/validation";
 
@@ -388,9 +388,9 @@ export const handler: Handler = async (event) => {
     console.log(`📡 Comics API: ${httpMethod} ${path}`);
 
     return await withSupabaseRLS(event, async (supabase, userContext) => {
-      // Handle aggregation endpoints
+      // Handle aggregation endpoints using new service
       if (route.isStats && httpMethod === "GET") {
-        return await handleGetStats(
+        return await getComicStats(
           supabase,
           userContext.userId,
           event.queryStringParameters
@@ -398,7 +398,7 @@ export const handler: Handler = async (event) => {
       }
 
       if (route.isPublishers && httpMethod === "GET") {
-        return await handleGetPublishers(
+        return await getPublisherSummaries(
           supabase,
           userContext.userId,
           event.queryStringParameters
@@ -406,7 +406,7 @@ export const handler: Handler = async (event) => {
       }
 
       if (route.isSeries && httpMethod === "GET") {
-        return await handleGetSeries(
+        return await getSeriesSummaries(
           supabase,
           userContext.userId,
           event.queryStringParameters
