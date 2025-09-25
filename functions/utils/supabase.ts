@@ -3,7 +3,7 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 export interface UserContext {
   userId: string;
   isAdmin: boolean;
-  email?: string;
+  email: string;
 }
 
 /**

@@ -4,6 +4,5 @@
 
 export * from "./sortingService";
 export * from "./aggregationsService";
-
-// TODO: Future services to be added in Phase 1A
-// export * from "./comicsService";
+export * from "./comicsService";
+export * from "./bulkService";
