@@ -4,19 +4,7 @@
  */
 
 import { SupabaseClient } from "@supabase/supabase-js";
-
-export interface DatabaseCounts {
-  comics: number;
-  favorites: number;
-  alerts: number;
-  total: number;
-}
-
-export interface ClearDatabaseResult {
-  message: string;
-  deleted: DatabaseCounts;
-  warning: string;
-}
+import { DatabaseCounts, ClearDatabaseResult } from "../../types/services";
 
 /**
  * Get counts of all data in the database

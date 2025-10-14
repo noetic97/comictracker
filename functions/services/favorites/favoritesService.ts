@@ -4,23 +4,11 @@
  */
 
 import { SupabaseClient } from "@supabase/supabase-js";
-
-export interface FavoriteSeriesData {
-  publisher: string;
-  series: string;
-  volume: string;
-}
-
-export interface FavoriteSeries extends FavoriteSeriesData {
-  id: string;
-  dateAdded: string; // Database returns ISO string
-  user_id: string;
-}
-
-export interface FavoriteCheckResult {
-  isFavorite: boolean;
-  favorite?: FavoriteSeries;
-}
+import {
+  FavoriteSeries,
+  FavoriteSeriesData,
+  FavoriteCheckResult,
+} from "../../types/services";
 
 /**
  * Get all favorite series for a user

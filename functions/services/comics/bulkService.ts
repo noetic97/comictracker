@@ -4,25 +4,8 @@
  */
 
 import { SupabaseClient } from "@supabase/supabase-js";
-import { validateComicBatch } from "../../comics/validation";
-
-export interface BulkImportResult {
-  processed: number;
-  created: number;
-  updated: number;
-  errors: number;
-  message: string;
-  processingTime: number;
-  rate: number;
-  validationErrors?: string[];
-  duplicatesSkipped?: number;
-}
-
-export interface BulkImportOptions {
-  validateComics?: boolean;
-  skipDuplicates?: boolean;
-  reportDetails?: boolean;
-}
+import { validateComicBatch } from "./validationService";
+import { BulkImportOptions, BulkImportResult } from "../../types/services";
 
 /**
  * Process bulk comic import with validation, deduplication, and proper created/updated tracking

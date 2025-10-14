@@ -1,5 +1,4 @@
 import { Handler } from "@netlify/functions";
-import { withPrisma } from "./utils/prisma";
 import { handleCors, createResponse } from "./utils/cors";
 import { createClient } from "@supabase/supabase-js";
 
@@ -9,11 +8,6 @@ interface HealthCheckResult {
   timestamp: string;
   latencyMs: number;
   database: {
-    prisma: {
-      connected: boolean;
-      latencyMs: number;
-      error?: string;
-    };
     supabase: {
       connected: boolean;
       latencyMs: number;
@@ -26,7 +20,6 @@ interface HealthCheckResult {
     environment: string;
     databaseUrl: string;
     supabaseUrl: string;
-    prismaVersion: string;
     nodeVersion: string;
     memoryUsage: NodeJS.MemoryUsage;
   };
@@ -42,11 +35,6 @@ export const handler: Handler = async (event) => {
   try {
     // Initialize results
     const dbResult = {
-      prisma: {
-        connected: false,
-        latencyMs: 0,
-        error: undefined as string | undefined,
-      },
       supabase: {
         connected: false,
         latencyMs: 0,
@@ -55,25 +43,6 @@ export const handler: Handler = async (event) => {
         error: undefined as string | undefined,
       },
     };
-
-    // Test Prisma connection
-    const prismaStartTime = Date.now();
-    try {
-      await withPrisma(async (prisma) => {
-        const result = await prisma.$queryRaw`SELECT 1 as ping`;
-        dbResult.prisma.connected = true;
-        dbResult.prisma.latencyMs = Date.now() - prismaStartTime;
-        console.log({ result });
-
-        if (debug) {
-          await prisma.comic.count();
-        }
-      });
-    } catch (error: any) {
-      dbResult.prisma.connected = false;
-      dbResult.prisma.latencyMs = Date.now() - prismaStartTime;
-      dbResult.prisma.error = error.message;
-    }
 
     // Test Supabase connection
     const supabaseStartTime = Date.now();
@@ -146,16 +115,13 @@ export const handler: Handler = async (event) => {
     let status: "healthy" | "degraded" | "down";
     let ok: boolean;
 
-    if (!dbResult.prisma.connected && !dbResult.supabase.connected) {
+    if (!dbResult.supabase.connected) {
       status = "down";
       ok = false;
-    } else if (!dbResult.prisma.connected || !dbResult.supabase.connected) {
+    } else if (!dbResult.supabase.connected) {
       status = "degraded";
       ok = true; // One connection working
-    } else if (
-      dbResult.prisma.latencyMs > 5000 ||
-      dbResult.supabase.latencyMs > 5000
-    ) {
+    } else if (dbResult.supabase.latencyMs > 5000) {
       status = "degraded";
       ok = true;
     } else {
@@ -179,7 +145,6 @@ export const handler: Handler = async (event) => {
           ? `${process.env.DATABASE_URL.split("@")[1] || "masked"}`
           : "not_set",
         supabaseUrl: process.env.SUPABASE_URL || "not_set",
-        prismaVersion: "5.17.0",
         nodeVersion: process.version,
         memoryUsage: process.memoryUsage(),
       };
@@ -195,11 +160,6 @@ export const handler: Handler = async (event) => {
       timestamp: new Date().toISOString(),
       latencyMs: Date.now() - startTime,
       database: {
-        prisma: {
-          connected: false,
-          latencyMs: 0,
-          error: error.message,
-        },
         supabase: {
           connected: false,
           latencyMs: 0,
@@ -215,7 +175,6 @@ export const handler: Handler = async (event) => {
         environment: process.env.NODE_ENV || "unknown",
         databaseUrl: "error_retrieving",
         supabaseUrl: process.env.SUPABASE_URL || "not_set",
-        prismaVersion: "5.17.0",
         nodeVersion: process.version,
         memoryUsage: process.memoryUsage(),
       };

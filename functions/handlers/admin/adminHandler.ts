@@ -11,12 +11,7 @@ import {
   clearUserData,
   getDatabaseCounts,
 } from "../../services/admin/adminService";
-
-export interface UserContext {
-  userId: string;
-  email: string;
-  isAdmin: boolean;
-}
+import { UserContext } from "../../types/handlers";
 
 /**
  * Handle DELETE requests for clearing database

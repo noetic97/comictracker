@@ -10,8 +10,8 @@ import {
   processBulkImport,
   processBulkUpdate,
   processBulkDelete,
-  BulkImportOptions,
-} from "../../services/comics";
+} from "../../services/comics/bulkService";
+import { BulkImportOptions } from "../../types/services";
 
 /**
  * Handle POST requests for bulk comic imports

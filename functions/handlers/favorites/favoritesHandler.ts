@@ -13,8 +13,8 @@ import {
   checkFavoriteExists,
   removeFavoriteByDetails,
   validateFavoriteInput,
-  FavoriteSeriesData,
 } from "../../services/favorites/favoritesService";
+import { FavoriteSeriesData } from "../../types/services";
 import { transformFromDatabase } from "../../utils/supabase";
 
 /**

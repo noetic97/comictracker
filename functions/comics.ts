@@ -10,7 +10,7 @@ import {
   getComicStats,
   getPublisherSummaries,
   getSeriesSummaries,
-} from "./services/comics";
+} from "./services/comics/aggregationsService";
 import {
   handleGetComics,
   handleCreateComic,

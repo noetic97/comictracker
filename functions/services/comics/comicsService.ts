@@ -4,35 +4,8 @@
  */
 
 import { SupabaseClient } from "@supabase/supabase-js";
-import { validateComic, transformComicOutput } from "../../comics/validation";
-
-export interface ComicQueryOptions {
-  publisher?: string;
-  series?: string;
-  volume?: string;
-  collected?: string;
-  isGrail?: string;
-  signed?: string;
-  grade?: string;
-  storageLocation?: string;
-  search?: string;
-  exact?: string;
-  page?: string;
-  limit?: string;
-  offset?: string;
-  order?: string;
-  favoriteSeriesOnly?: string;
-}
-
-export interface ComicQueryResult {
-  comics: any[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
-}
+import { validateComic, transformComicOutput } from "./validationService";
+import { ComicQueryOptions, ComicQueryResult } from "../../types/services";
 
 /**
  * Get comics with filtering, pagination, and sorting

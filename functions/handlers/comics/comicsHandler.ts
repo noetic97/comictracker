@@ -12,8 +12,8 @@ import {
   updateComic,
   toggleComicField,
   deleteComic,
-  ComicQueryOptions,
 } from "../../services/comics/comicsService";
+import { ComicQueryOptions } from "../../types/services";
 
 /**
  * Handle GET requests for comics with filtering and pagination

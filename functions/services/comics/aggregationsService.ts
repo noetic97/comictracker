@@ -15,7 +15,7 @@ import {
   ComicStats,
   PublisherSummary,
   SeriesSummary,
-} from "../../types/comics";
+} from "../../types/services";
 
 /**
  * Apply common filters to a Supabase query

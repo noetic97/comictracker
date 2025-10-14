@@ -3,7 +3,7 @@
  * Provides article-aware sorting that matches client-side sortingUtils.ts behavior
  */
 
-import { PublisherSummary } from "../../types/comics";
+import { PublisherSummary } from "../../types/services";
 
 // Common articles to ignore when sorting (matches client-side)
 const ARTICLES = ["the", "a", "an"];
