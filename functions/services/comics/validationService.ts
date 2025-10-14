@@ -1,80 +1,16 @@
-export interface ExtendedComicInput {
-  // Core fields (required)
-  publisher: string;
-  series: string;
-  issue: string;
+/**
+ * Validation Service - Centralized comic validation logic
+ * Moved from functions/comics/validation.ts for better organization
+ * Used by: bulkService, comicsService, and external validation needs
+ */
 
-  // Core optional fields
-  issueNumber?: string | number;
-  currentValue?: string | number;
-  volume?: string;
-  years?: string;
-  type?: string;
-
-  // Extended fields
-  pricePaid?: string | number;
-  grade?: string;
-  gradeDetails?: string;
-  storageLocation?: string;
-  notes?: string;
-  cert?: string;
-  signed?: boolean | string;
-  variantDetails?: string;
-  dateAdded?: string | Date;
-  issueDate?: string;
-  datePurchased?: string | Date;
-  storyTitle?: string;
-  description?: string;
-  writer?: string;
-  artist?: string;
-  coverArtist?: string;
-  letterer?: string;
-  firstAppearance?: string;
-  coverImageUrl?: string;
-  certificationCompany?: string;
-  collected?: boolean;
-  isGrail?: boolean;
-}
-
-export interface ValidationResult {
-  isValid: boolean;
-  errors: string[];
-  warnings?: string[];
-  data?: any;
-}
-
-export interface BulkValidationResult {
-  validComics: any[];
-  invalidComics?: any[];
-  validationErrors: string[];
-  warnings?: string[];
-  totalProcessed: number;
-  summary?: {
-    total: number;
-    valid: number;
-    invalid: number;
-    warningCount: number;
-    errorCount: number;
-  };
-}
-
-// Client-side validation options
-export interface ComicValidationOptions {
-  requireNumericIssue?: boolean;
-  allowEmptyVolume?: boolean;
-  allowEmptyType?: boolean;
-  transformData?: boolean;
-  isCSVData?: boolean; // Flag for CSV-specific processing
-}
-
-// CSV validation result
-export interface ComicValidationResult {
-  isValid: boolean;
-  comic?: any;
-  errors: string[];
-  warnings: string[];
-  skippedFields: string[];
-}
+import {
+  ComicValidationOptions,
+  ValidationResult,
+  BulkValidationResult,
+  ExtendedComicInput,
+  ComicValidationResult,
+} from "../../types/services";
 
 const isNonEmptyString = (v: any): boolean =>
   typeof v === "string" && v.trim().length > 0;
@@ -129,117 +65,30 @@ const parseNumeric = (
   return isNaN(parsed) ? defaultValue : parsed;
 };
 
-// Grade validation with common formats
-const COMMON_GRADES = new Set([
-  "10.0",
-  "9.9",
-  "9.8",
-  "9.6",
-  "9.4",
-  "9.2",
-  "9.0",
-  "8.5",
-  "8.0",
-  "7.5",
-  "7.0",
-  "6.5",
-  "6.0",
-  "5.5",
-  "5.0",
-  "4.5",
-  "4.0",
-  "3.5",
-  "3.0",
-  "2.5",
-  "2.0",
-  "1.8",
-  "1.5",
-  "1.0",
-  "0.5",
-  "NM",
-  "VF",
-  "FN",
-  "VG",
-  "GD",
-  "FR",
-  "PR",
-  "NM+",
-  "NM-",
-  "VF+",
-  "VF-",
-  "FN+",
-  "FN-",
-  "VG+",
-  "VG-",
-  "GD+",
-  "GD-",
-  "NM/M",
-  "VF/NM",
-]);
+const parseIssueNumber = (issue: any): number => {
+  if (typeof issue === "number") return issue;
+  if (!issue) return 1;
+
+  const str = String(issue).trim();
+  const num = parseFloat(str);
+  return isNaN(num) ? 1 : num;
+};
 
 const validateGrade = (
-  input: any
+  grade: any
 ): { value: string | null; warning?: string } => {
-  if (!input || input === "" || input === "null" || input === "N/A") {
-    return { value: null };
-  }
+  if (!grade) return { value: null };
 
-  const gradeStr = String(input).trim();
-  if (gradeStr.length === 0) {
-    return { value: null };
-  }
+  const gradeStr = String(grade).trim();
+  if (gradeStr === "") return { value: null };
 
-  // Check if it's a common format, warn if not
-  const upperGrade = gradeStr.toUpperCase();
-  if (!COMMON_GRADES.has(upperGrade)) {
-    return {
-      value: gradeStr,
-      warning: `Grade "${gradeStr}" is not a common format. Consider: 9.8, NM, VF, etc.`,
-    };
-  }
-
+  // Accept any non-empty string as a valid grade
   return { value: gradeStr };
 };
 
-// Issue number parsing with special cases
-const parseIssueNumber = (issue: string | number): number => {
-  if (typeof issue === "number") {
-    return issue;
-  }
-
-  if (!issue || typeof issue !== "string") {
-    return 0;
-  }
-
-  // Try to extract number from string
-  const match = issue.match(/(\d+)/);
-  if (match) {
-    return parseInt(match[1]);
-  }
-
-  // Special cases for non-numeric issues
-  const specialIssues: Record<string, number> = {
-    fcbd: -1,
-    ashcan: -2,
-    preview: -3,
-    annual: 1000, // Sort annuals after regular issues
-    special: 1001,
-    "one-shot": 1002,
-  };
-
-  const lowerIssue = issue.toLowerCase();
-  for (const [key, value] of Object.entries(specialIssues)) {
-    if (lowerIssue.includes(key)) {
-      return value;
-    }
-  }
-
-  return 0; // Default for unrecognized formats
-};
-
 /**
- * Unified validation function that handles both server and client validation
- * Supports CSV data parsing and transformation
+ * Main validation function for comics
+ * Supports both direct validation and CSV data transformation
  */
 export const validateComic = (
   data: any,
@@ -444,7 +293,7 @@ export const transformComicInput = (comic: ExtendedComicInput): any => {
     coverArtist: comic.coverArtist?.trim() || null,
     letterer: comic.letterer?.trim() || null,
     firstAppearance: comic.firstAppearance?.trim() || null,
-    coverImage_url: comic.coverImageUrl?.trim() || null,
+    coverImageUrl: comic.coverImageUrl?.trim() || null,
     certificationCompany: comic.certificationCompany?.trim() || null,
 
     // User state - auto-determine collected based on pricePaid
@@ -452,7 +301,7 @@ export const transformComicInput = (comic: ExtendedComicInput): any => {
       comic.collected ??
       (parseNumericField(comic.pricePaid) !== null &&
         parseNumericField(comic.pricePaid)! >= 0),
-    is_grail: Boolean(comic.isGrail),
+    isGrail: Boolean(comic.isGrail),
   };
 };
 
@@ -502,6 +351,7 @@ export const validateComicFields = (rawData: any): ComicValidationResult => {
 
   // Boolean fields
   data.signed = parseBooleanField(rawData.Signed);
+  data.variantDetails = parseText(rawData["Variant Details"]);
 
   // Date fields - using EXACT database column names (camelCase)
   data.dateAdded = parseDateField(rawData["Date Added"]);
@@ -520,7 +370,6 @@ export const validateComicFields = (rawData: any): ComicValidationResult => {
 
   // Additional fields - using EXACT database column names (camelCase)
   data.gradeDetails = parseText(rawData["Grade Details"]);
-  data.variantDetails = parseText(rawData["Variant Details"]);
   data.issueDate = parseText(rawData["Issue Date"]);
   data.letterer = parseText(rawData.Letterer);
   data.firstAppearance = parseText(rawData["First Appearance"]);

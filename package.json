@@ -13,10 +13,16 @@
     "build": "npm run build:staging",
     "build:staging": "npx prisma generate && cd client && npm run build",
     "build:prod": "npx prisma generate && npx prisma migrate deploy && cd client && npm run build",
+    "db:check-drift": "npx prisma db pull --preview && git diff --exit-code prisma/schema.prisma || echo 'Schema drift detected!'",
     "db:generate": "npx prisma generate",
+    "db:pull": "npx prisma db pull",
     "db:push": "npx prisma db push",
     "db:migrate": "npx prisma migrate deploy",
+    "db:reset-schema": "npx prisma db pull && npx prisma generate",
     "db:studio": "npx prisma studio",
+    "db:sync": "npm run db:pull && npm run db:generate",
+    "db:types": "npx supabase gen types typescript --project-id YOUR_PROJECT_ID",
+    "db:validate": "npx prisma validate",
     "netlify:dev": "npx netlify dev",
     "netlify:build": "npx netlify build",
     "type-check": "tsc --noEmit",
@@ -31,11 +37,11 @@
     "@types/node": "^22.0.2",
     "concurrently": "^8.2.2",
     "netlify-cli": "^17.10.1",
+    "@prisma/client": "^5.17.0",
     "supabase": "^2.40.7",
     "typescript": "^5.5.4"
   },
   "dependencies": {
-    "@prisma/client": "^5.17.0",
     "@supabase/supabase-js": "^2.57.4",
     "prisma": "^5.17.0"
   }

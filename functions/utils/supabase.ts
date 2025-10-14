@@ -1,10 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-
-export interface UserContext {
-  userId: string;
-  isAdmin: boolean;
-  email?: string;
-}
+import { UserContext } from "../types/handlers";
 
 /**
  * Get user context from the request

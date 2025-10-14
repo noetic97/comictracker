@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { SortOption, FilterOption, FavoriteSeries } from "./types";
+import { FilterOption, FavoriteSeries, SortOption } from "./types";
 import ComicActionsErrorBoundary from "./components/shared/ComicActionErrorBoundary";
 import ErrorMessage from "./components/shared/ErrorMessage";
 import ImportModal from "./components/ImportModal";
@@ -28,12 +28,16 @@ const ThemedAppWithLoading: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Global filter/sort state (used by all components)
+  // Global filter state (used by all components)
   const [filter, setFilter] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("series");
   const [filterOption, setFilterOption] = useState<FilterOption>("all");
-  const [hideCollected, setHideCollected] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("series");
   const [itemsPerPage, setItemsPerPage] = useState(25);
+
+  // Debug sortBy changes
+  useEffect(() => {
+    console.log("📊 App.tsx sortBy changed:", sortBy);
+  }, [sortBy]);
 
   // UI state
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -223,16 +227,14 @@ const ThemedAppWithLoading: React.FC = () => {
           <FilterSort
             filter={filter}
             setFilter={setFilter}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
             filterOption={filterOption}
             setFilterOption={setFilterOption}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
             itemsPerPage={itemsPerPage}
             setItemsPerPage={setItemsPerPage}
             isOpen={isFilterModalOpen}
             onClose={() => setIsFilterModalOpen(false)}
-            hideCollected={hideCollected}
-            setHideCollected={setHideCollected}
           />
         </S.HeaderContainer>
 
@@ -242,6 +244,8 @@ const ThemedAppWithLoading: React.FC = () => {
           itemsPerPage={itemsPerPage}
           setItemsPerPage={setItemsPerPage}
           filterOption={filterOption}
+          searchFilter={filter}
+          sortBy={sortBy}
           favoriteSeries={favoriteSeries}
           onToggleFavoriteSeries={handleToggleFavoriteSeries}
         />

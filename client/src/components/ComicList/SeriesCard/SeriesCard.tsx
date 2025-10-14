@@ -1,7 +1,7 @@
 import React from "react";
 import { Heart, Star, ExternalLink } from "lucide-react";
 import SeriesComicsList from "../SeriesComicList";
-import { FilterOption } from "../../../types";
+import { FilterOption, SortOption } from "../../../types";
 import { SeriesSummary } from "../../../hooks/aggregations/types";
 import Button from "../../shared/Button";
 import * as S from "./styles";
@@ -22,6 +22,8 @@ interface SeriesCardProps {
   isFavorite: boolean;
   onToggleFavorite: () => void;
   filterOption: FilterOption;
+  searchFilter: string;
+  sortBy: SortOption;
   onStatsRefresh?: (() => Promise<any>) | null;
 }
 
@@ -37,6 +39,8 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
   isFavorite,
   onToggleFavorite,
   filterOption,
+  searchFilter,
+  sortBy,
   onStatsRefresh,
 }) => {
   const handleDetailView = () => {
@@ -121,6 +125,8 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
             onPageChange={onPageChange}
             totalIssues={seriesSummary.issueCount}
             filterOption={filterOption}
+            searchFilter={searchFilter}
+            sortBy={sortBy}
             onStatsRefresh={onStatsRefresh}
           />
         )}

@@ -32,8 +32,8 @@ Comic Tracker is a web application designed to help comic book enthusiasts manag
 
 ### Prerequisites
 
-- Node.js (v14 or later)
-- npm (v6 or later)
+- Node.js (v22 or later)
+- npm (v10 or later)
 
 ### Installation
 
@@ -56,7 +56,7 @@ Comic Tracker is a web application designed to help comic book enthusiasts manag
    npm run dev
    ```
 
-4. Open your browser and navigate to `http://localhost:5173` (or the port shown in your terminal).
+4. Open your browser and navigate to `http://localhost:3000` (or the port shown in your terminal).
 
 ## Building for Production
 
@@ -234,6 +234,16 @@ apiDebugger.getCalls().map((call) => ({
   status: call.status,
 }));
 ```
+
+## Database Schema Maintenance
+
+Our Prisma schema stays synced with the live Supabase database using:
+
+- `npm run db:sync` - Pull changes and regenerate types
+- `npm run db:check-drift` - Detect schema drift
+- Weekly automated checks via GitHub Actions
+
+See [Schema Maintenance Guide](./docs/schema-maintenance.md) for full details.
 
 ## Contributing
 

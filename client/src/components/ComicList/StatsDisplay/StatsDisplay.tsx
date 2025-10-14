@@ -1,21 +1,32 @@
 import React from "react";
 import { useComicStats } from "../../../hooks";
-import { FilterOption } from "../../../types";
+import { FilterOption, FavoriteSeries, SortOption } from "../../../types";
 import * as S from "./styles";
 
 interface StatsDisplayProps {
   filterOption: FilterOption;
+  searchFilter: string;
+  sortBy: SortOption;
+  favoriteSeries: FavoriteSeries[];
   onSilentRefetchReady?: (silentRefetch: () => Promise<any>) => void;
 }
 
 const StatsDisplay: React.FC<StatsDisplayProps> = ({
   filterOption,
+  searchFilter,
+  sortBy,
+  favoriteSeries,
   onSilentRefetchReady,
 }) => {
   // Use our new hook to fetch stats based on current filter
-  const { stats, loading, error, silentRefetch } = useComicStats({
-    filterOption,
-  });
+  const { stats, loading, error, silentRefetch } = useComicStats(
+    {
+      filterOption,
+      search: searchFilter,
+      sortBy,
+    },
+    favoriteSeries
+  );
 
   // Expose silentRefetch to parent component
   React.useEffect(() => {

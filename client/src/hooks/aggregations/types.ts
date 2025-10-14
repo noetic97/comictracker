@@ -1,4 +1,4 @@
-import { FilterOption } from "../../types";
+import { FilterOption, SortOption } from "../../types";
 
 export interface AggregationFilters {
   publisher?: string;
@@ -11,6 +11,7 @@ export interface AggregationFilters {
   storageLocation?: string;
   search?: string;
   filterOption?: FilterOption;
+  sortBy?: SortOption;
 }
 
 export interface ComicStats {
