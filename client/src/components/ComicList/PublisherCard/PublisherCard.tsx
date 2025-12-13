@@ -87,16 +87,22 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
         onClick={() => onTogglePublisher(publisherSummary.publisher)}
       >
         <S.PublisherName>{publisherSummary.publisher}</S.PublisherName>
-        <div>
-          <S.SeriesCount>{publisherSummary.seriesCount} series</S.SeriesCount>
-          <div style={{ fontSize: "0.8rem", opacity: 0.8 }}>
-            {publisherSummary.totalComics} comics •{" "}
+        <S.PublisherCardCountsContainer>
+          <S.PublisherCardCounts>
+            {publisherSummary.seriesCount} series
+          </S.PublisherCardCounts>
+          <S.PublisherCardCounts>
+            {publisherSummary.totalComics} comics
+          </S.PublisherCardCounts>
+          <S.PublisherCardCounts>
             {publisherSummary.collectedComics} collected
-            {publisherSummary.grailComics > 0 && (
-              <> • {publisherSummary.grailComics} grails</>
-            )}
-          </div>
-        </div>
+          </S.PublisherCardCounts>
+          {publisherSummary.grailComics > 0 && (
+            <S.PublisherCardCounts>
+              {publisherSummary.grailComics} grails
+            </S.PublisherCardCounts>
+          )}
+        </S.PublisherCardCountsContainer>
       </S.PublisherButton>
 
       <S.SeriesList className={isExpanded ? "expanded" : ""}>

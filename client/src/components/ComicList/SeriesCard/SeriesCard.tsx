@@ -84,6 +84,9 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
           <S.SeriesStats>
             {seriesSummary.issueCount} issues • {seriesSummary.collectedCount}{" "}
             collected
+            {seriesSummary.grailCount > 0 && (
+              <> • {seriesSummary.grailCount} grails</>
+            )}
             {seriesSummary.totalValue > 0 && (
               <>
                 {" "}

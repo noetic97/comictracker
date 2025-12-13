@@ -78,12 +78,18 @@ export const PublisherButton = styled.button<{ $isExpanded: boolean }>`
 `;
 
 export const PublisherName = styled.span`
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   margin-bottom: 0.5rem;
 `;
 
-export const SeriesCount = styled.span`
-  font-size: 0.9rem;
+export const PublisherCardCountsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  align-items: flex-start;
+`;
+export const PublisherCardCounts = styled.span`
+  font-size: 0.8rem;
   opacity: 0.8;
 `;
 
