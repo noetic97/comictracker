@@ -1,103 +1,101 @@
 /**
  * Favorites Service - Core data access layer for favorite series operations
- * Extracted from functions/favorites.ts for better separation of concerns
+ * Uses Prisma (SQLite) instead of Supabase.
  */
 
-import { SupabaseClient } from "@supabase/supabase-js";
+import { PrismaClient } from "@prisma/client";
 import {
   FavoriteSeries,
   FavoriteSeriesData,
   FavoriteCheckResult,
 } from "../../types/services";
 
+function toFavoriteSeries(row: {
+  id: string;
+  userId: string;
+  publisher: string;
+  series: string;
+  volume: string;
+  dateAdded: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}): FavoriteSeries {
+  return {
+    id: row.id,
+    user_id: row.userId,
+    publisher: row.publisher,
+    series: row.series,
+    volume: row.volume,
+    dateAdded: row.dateAdded.toISOString(),
+  };
+}
+
 /**
  * Get all favorite series for a user
  */
 export const getAllFavorites = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string
 ): Promise<FavoriteSeries[]> => {
   console.log(`📚 Getting all favorites for user ${userId}`);
 
-  const { data: favorites, error } = await supabase
-    .from("favorite_series")
-    .select("*")
-    .eq("user_id", userId)
-    .order("dateAdded", { ascending: false });
+  const rows = await prisma.favoriteSeries.findMany({
+    where: { userId },
+    orderBy: { dateAdded: "desc" },
+  });
 
-  if (error) {
-    console.error("Get favorites error:", error);
-    throw new Error(`Failed to get favorites: ${error.message}`);
-  }
-
-  console.log(`✅ Found ${favorites?.length || 0} favorite series`);
-  return favorites || [];
+  console.log(`✅ Found ${rows.length} favorite series`);
+  return rows.map(toFavoriteSeries);
 };
 
 /**
  * Add a favorite series
  */
 export const addFavorite = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   favoriteData: FavoriteSeriesData
 ): Promise<FavoriteSeries> => {
   console.log(
-    `⭐ Adding favorite: ${favoriteData.publisher} - ${favoriteData.series} (${favoriteData.volume}) for user ${userId}`
+    `⭐ Adding favorite: ${favoriteData.publisher} - ${favoriteData.series} (${favoriteData.volume ?? ""}) for user ${userId}`
   );
 
-  // Check if it already exists
-  const existingFavorite = await checkFavoriteExists(
-    supabase,
-    userId,
-    favoriteData
-  );
-  if (existingFavorite.isFavorite) {
+  const existing = await checkFavoriteExists(prisma, userId, favoriteData);
+  if (existing.isFavorite && existing.favorite) {
     console.log(`⚠️ Favorite already exists`);
-    return existingFavorite.favorite!;
+    return existing.favorite;
   }
 
-  // Let PostgreSQL generate the ID using its default function
-  const favoriteWithMetadata = {
-    ...favoriteData,
-    user_id: userId,
-    // PostgreSQL will handle id and dateAdded with defaults
-  };
-
-  const { data: newFavorite, error: insertError } = await supabase
-    .from("favorite_series")
-    .insert([favoriteWithMetadata])
-    .select()
-    .single();
-
-  if (insertError) {
-    console.error("Insert favorite error:", insertError);
-    throw new Error(`Failed to add favorite: ${insertError.message}`);
-  }
+  const volume = favoriteData.volume ?? "";
+  const newFavorite = await prisma.favoriteSeries.create({
+    data: {
+      publisher: favoriteData.publisher,
+      series: favoriteData.series,
+      volume,
+      userId,
+    },
+  });
 
   console.log(`✅ Successfully added favorite with ID: ${newFavorite.id}`);
-  return newFavorite;
+  return toFavoriteSeries(newFavorite);
 };
 
 /**
  * Remove a favorite series by ID
  */
 export const removeFavorite = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   favoriteId: string
 ): Promise<void> => {
   console.log(`🗑️ Removing favorite: ${favoriteId} for user ${userId}`);
 
-  const { error: deleteError } = await supabase
-    .from("favorite_series")
-    .delete()
-    .eq("id", favoriteId)
-    .eq("user_id", userId);
+  const result = await prisma.favoriteSeries.deleteMany({
+    where: { id: favoriteId, userId },
+  });
 
-  if (deleteError) {
-    console.error("Delete favorite error:", deleteError);
-    throw new Error(`Failed to remove favorite: ${deleteError.message}`);
+  if (result.count === 0) {
+    throw new Error("Failed to remove favorite: not found");
   }
 
   console.log(`✅ Successfully removed favorite: ${favoriteId}`);
@@ -107,67 +105,61 @@ export const removeFavorite = async (
  * Check if a series is favorited
  */
 export const checkFavoriteExists = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   favoriteData: FavoriteSeriesData
 ): Promise<FavoriteCheckResult> => {
   console.log(
-    `🔍 Checking favorite: ${favoriteData.publisher} - ${favoriteData.series} (${favoriteData.volume}) for user ${userId}`
+    `🔍 Checking favorite: ${favoriteData.publisher} - ${favoriteData.series} (${favoriteData.volume ?? ""}) for user ${userId}`
   );
 
-  const { data: favorite, error } = await supabase
-    .from("favorite_series")
-    .select("*")
-    .eq("publisher", favoriteData.publisher)
-    .eq("series", favoriteData.series)
-    .eq("volume", favoriteData.volume)
-    .eq("user_id", userId)
-    .single();
-
-  if (error && error.code !== "PGRST116") {
-    // PGRST116 = no rows found
-    console.error("Error checking favorite:", error);
-    throw new Error(`Database error: ${error.message}`);
-  }
+  const volume = favoriteData.volume ?? "";
+  const favorite = await prisma.favoriteSeries.findFirst({
+    where: {
+      userId,
+      publisher: favoriteData.publisher,
+      series: favoriteData.series,
+      volume,
+    },
+  });
 
   const isFavorite = !!favorite;
   console.log(`✅ Favorite check result: ${isFavorite}`);
 
   return {
     isFavorite,
-    favorite: favorite || undefined,
+    favorite: favorite ? toFavoriteSeries(favorite) : undefined,
   };
 };
 
 /**
- * Remove favorite by series details (alternative to ID-based removal)
+ * Remove favorite by series details
  */
 export const removeFavoriteByDetails = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   favoriteData: FavoriteSeriesData
 ): Promise<void> => {
   console.log(
-    `🗑️ Removing favorite by details: ${favoriteData.publisher} - ${favoriteData.series} (${favoriteData.volume}) for user ${userId}`
+    `🗑️ Removing favorite by details: ${favoriteData.publisher} - ${favoriteData.series} (${favoriteData.volume ?? ""}) for user ${userId}`
   );
 
-  const { error: deleteError } = await supabase
-    .from("favorite_series")
-    .delete()
-    .eq("publisher", favoriteData.publisher)
-    .eq("series", favoriteData.series)
-    .eq("volume", favoriteData.volume)
-    .eq("user_id", userId);
+  const volume = favoriteData.volume ?? "";
+  const result = await prisma.favoriteSeries.deleteMany({
+    where: {
+      userId,
+      publisher: favoriteData.publisher,
+      series: favoriteData.series,
+      volume,
+    },
+  });
 
-  if (deleteError) {
-    console.error("Delete favorite by details error:", deleteError);
-    throw new Error(`Failed to remove favorite: ${deleteError.message}`);
+  if (result.count === 0) {
+    throw new Error("Failed to remove favorite by details: not found");
   }
 
   console.log(`✅ Successfully removed favorite by details`);
 };
-
-// Helper functions
 
 /**
  * Validate favorite series input data

@@ -465,8 +465,16 @@ export const validateComicFields = (rawData: any): ComicValidationResult => {
   };
 };
 
-// Normalizes comic data for consistent processing
+// Normalizes comic data for consistent processing and bulk import (preserve grade, pricePaid, etc.)
 export const normalizeComic = (comic: any) => {
+  const currentValue = parseFloat(comic["Current Value"] || comic.currentValue);
+  const pricePaidRaw =
+    comic.pricePaid != null && comic.pricePaid !== ""
+      ? parseFloat(String(comic.pricePaid).replace(/[\$,]/g, ""))
+      : NaN;
+  const pricePaid = Number.isFinite(pricePaidRaw) ? pricePaidRaw : null;
+  const isNum = (n: unknown) => typeof n === "number" && Number.isFinite(n);
+
   const normalized: any = {
     publisher: (comic.publisher || "").trim(),
     series: (comic.series || "").trim(),
@@ -475,9 +483,36 @@ export const normalizeComic = (comic: any) => {
     type: (comic.type || "").trim(),
     issue: (comic.issue || "").trim(),
     issueNumber: parseIssueNumber(comic.issueNumber || comic.issue),
-    currentValue: parseFloat(comic["Current Value"] || comic.currentValue) || 0,
-    collected: Boolean(comic.collected),
+    currentValue: isNum(currentValue) ? currentValue : 0,
+    collected: Boolean(
+      comic.collected ?? (isNum(pricePaid) && pricePaid >= 0)
+    ),
     isGrail: Boolean(comic.isGrail),
+    // Preserve optional fields for bulk import (grade, pricePaid, etc.)
+    grade: comic.grade?.trim() || null,
+    pricePaid,
+    gradeDetails: comic.gradeDetails?.trim() || null,
+    storageLocation: comic.storageLocation?.trim() || null,
+    notes: comic.notes?.trim() || null,
+    cert: comic.cert?.trim() || null,
+    signed: Boolean(
+      comic.signed === true ||
+        String(comic.signed).toLowerCase() === "true" ||
+        comic.signed === "1"
+    ),
+    variantDetails: comic.variantDetails?.trim() || null,
+    dateAdded: comic.dateAdded ?? null,
+    issueDate: comic.issueDate?.trim() || null,
+    datePurchased: comic.datePurchased ?? null,
+    storyTitle: comic.storyTitle?.trim() || null,
+    description: comic.description?.trim() || null,
+    writer: comic.writer?.trim() || null,
+    artist: comic.artist?.trim() || null,
+    coverArtist: comic.coverArtist?.trim() || null,
+    letterer: comic.letterer?.trim() || null,
+    firstAppearance: comic.firstAppearance?.trim() || null,
+    coverImageUrl: comic.coverImageUrl?.trim() || null,
+    certificationCompany: comic.certificationCompany?.trim() || null,
   };
 
   // Generate unique ID if not provided

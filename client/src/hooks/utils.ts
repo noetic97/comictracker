@@ -1,13 +1,8 @@
 import { AggregationFilters } from "./aggregations/types";
 
 export const getApiBaseUrl = (): string => {
-  // In development, use the dev server port (usually 8888 for Netlify Dev)
-  if (import.meta.env.DEV) {
-    return "http://localhost:9999/.netlify/functions";
-  }
-
-  // In production, use relative path
-  return "/.netlify/functions";
+  // Same as apiService: relative /api (proxied to API server in dev)
+  return import.meta.env.VITE_API_BASE_URL ?? "/api";
 };
 
 // Helper to build query parameters from filters

@@ -1,36 +1,31 @@
 /**
  * Admin Service - Core data access layer for admin operations
- * Extracted from functions/admin.ts for better separation of concerns
+ * Uses Prisma (SQLite) instead of Supabase.
  */
 
-import { SupabaseClient } from "@supabase/supabase-js";
+import { PrismaClient } from "@prisma/client";
 import { DatabaseCounts, ClearDatabaseResult } from "../../types/services";
 
 /**
  * Get counts of all data in the database
  */
 export const getDatabaseCounts = async (
-  supabase: SupabaseClient
+  prisma: PrismaClient
 ): Promise<DatabaseCounts> => {
   console.log("📊 Getting database counts for admin user");
 
-  // Get counts before deletion for reporting
-  const [comicsResult, favoritesResult, alertsResult] = await Promise.all([
-    supabase.from("comics").select("*", { count: "exact", head: true }),
-    supabase
-      .from("favorite_series")
-      .select("*", { count: "exact", head: true }),
-    supabase.from("alert_logs").select("*", { count: "exact", head: true }),
+  const [comics, favorites, alerts] = await Promise.all([
+    prisma.comic.count(),
+    prisma.favoriteSeries.count(),
+    prisma.alertLog.count(),
   ]);
 
-  const counts = {
-    comics: comicsResult.count || 0,
-    favorites: favoritesResult.count || 0,
-    alerts: alertsResult.count || 0,
-    total: 0,
+  const counts: DatabaseCounts = {
+    comics,
+    favorites,
+    alerts,
+    total: comics + favorites + alerts,
   };
-
-  counts.total = counts.comics + counts.favorites + counts.alerts;
 
   console.log(
     `📊 Found ${counts.comics} comics, ${counts.favorites} favorites, ${counts.alerts} alerts (${counts.total} total)`
@@ -41,47 +36,18 @@ export const getDatabaseCounts = async (
 
 /**
  * Clear all data from the database
- * WARNING: This deletes ALL data from ALL users (single-tenant safe only)
  */
 export const clearAllDatabaseData = async (
-  supabase: SupabaseClient
+  prisma: PrismaClient
 ): Promise<ClearDatabaseResult> => {
   console.log("🗑️ Starting database clear operation");
 
-  // TODO: CRITICAL - Multi-user safety update needed!
-  // When adding multiple users, this function needs to be updated to either:
-  // 1. Only delete the current admin user's data, OR
-  // 2. Add an additional confirmation parameter like ?confirmGlobalDelete=true
-  // 3. Split into separate endpoints: /admin/clear-my-data vs /admin/clear-all-data
-  // Current behavior: DELETES ALL DATA FROM ALL USERS (single-tenant safe only)
+  const originalCounts = await getDatabaseCounts(prisma);
 
-  // Get counts before deletion for reporting
-  const originalCounts = await getDatabaseCounts(supabase);
-
-  // Delete all data using service role (bypasses RLS)
-  const [deleteComics, deleteFavorites, deleteAlerts] = await Promise.all([
-    supabase.from("comics").delete().neq("id", ""), // Delete all comics
-    supabase.from("favorite_series").delete().neq("id", ""), // Delete all favorites
-    supabase.from("alert_logs").delete().neq("id", ""), // Delete all alerts
-  ]);
-
-  // Check for errors
-  if (deleteComics.error) {
-    console.error("Error deleting comics:", deleteComics.error);
-    throw new Error(`Failed to delete comics: ${deleteComics.error.message}`);
-  }
-
-  if (deleteFavorites.error) {
-    console.error("Error deleting favorites:", deleteFavorites.error);
-    throw new Error(
-      `Failed to delete favorites: ${deleteFavorites.error.message}`
-    );
-  }
-
-  if (deleteAlerts.error) {
-    console.error("Error deleting alerts:", deleteAlerts.error);
-    throw new Error(`Failed to delete alerts: ${deleteAlerts.error.message}`);
-  }
+  await prisma.alertLog.deleteMany({});
+  await prisma.comic.deleteMany({});
+  await prisma.favoriteSeries.deleteMany({});
+  await prisma.user.deleteMany({});
 
   console.log(`✅ Successfully cleared database`);
 
@@ -93,65 +59,30 @@ export const clearAllDatabaseData = async (
 };
 
 /**
- * Clear only the current user's data (safer multi-user approach)
- * TODO: Implement when multi-user support is added
+ * Clear only the current user's data
  */
 export const clearUserData = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string
 ): Promise<ClearDatabaseResult> => {
   console.log(`🗑️ Starting user data clear operation for user ${userId}`);
 
-  // Get user's counts before deletion
-  const [comicsResult, favoritesResult, alertsResult] = await Promise.all([
-    supabase
-      .from("comics")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId),
-    supabase
-      .from("favorite_series")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId),
-    supabase
-      .from("alert_logs")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId),
+  const [comics, favorites, alerts] = await Promise.all([
+    prisma.comic.count({ where: { userId } }),
+    prisma.favoriteSeries.count({ where: { userId } }),
+    prisma.alertLog.count({ where: { userId } }),
   ]);
 
-  const userCounts = {
-    comics: comicsResult.count || 0,
-    favorites: favoritesResult.count || 0,
-    alerts: alertsResult.count || 0,
-    total: 0,
+  const userCounts: DatabaseCounts = {
+    comics,
+    favorites,
+    alerts,
+    total: comics + favorites + alerts,
   };
 
-  userCounts.total =
-    userCounts.comics + userCounts.favorites + userCounts.alerts;
-
-  // Delete user's data only
-  const [deleteComics, deleteFavorites, deleteAlerts] = await Promise.all([
-    supabase.from("comics").delete().eq("user_id", userId),
-    supabase.from("favorite_series").delete().eq("user_id", userId),
-    supabase.from("alert_logs").delete().eq("user_id", userId),
-  ]);
-
-  // Check for errors
-  if (deleteComics.error) {
-    console.error("Error deleting user comics:", deleteComics.error);
-    throw new Error(`Failed to delete comics: ${deleteComics.error.message}`);
-  }
-
-  if (deleteFavorites.error) {
-    console.error("Error deleting user favorites:", deleteFavorites.error);
-    throw new Error(
-      `Failed to delete favorites: ${deleteFavorites.error.message}`
-    );
-  }
-
-  if (deleteAlerts.error) {
-    console.error("Error deleting user alerts:", deleteAlerts.error);
-    throw new Error(`Failed to delete alerts: ${deleteAlerts.error.message}`);
-  }
+  await prisma.alertLog.deleteMany({ where: { userId } });
+  await prisma.comic.deleteMany({ where: { userId } });
+  await prisma.favoriteSeries.deleteMany({ where: { userId } });
 
   console.log(`✅ Successfully cleared user data for ${userId}`);
 

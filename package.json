@@ -6,13 +6,16 @@
     "client"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:client\" \"npm run dev:functions\"",
+    "kill-dev-ports": "lsof -ti:3000 | xargs kill -9 2>/dev/null; lsof -ti:3001 | xargs kill -9 2>/dev/null; lsof -ti:3002 | xargs kill -9 2>/dev/null; echo Done",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "cd client && npm run dev",
+    "dev:server": "tsx watch server/index.ts",
     "dev:functions": "netlify functions:serve",
     "dev:netlify": "netlify dev",
     "build": "npm run build:staging",
     "build:staging": "npx prisma generate && cd client && npm run build",
     "build:prod": "npx prisma generate && npx prisma migrate deploy && cd client && npm run build",
+    "start": "tsx server/index.ts",
     "db:check-drift": "npx prisma db pull --preview && git diff --exit-code prisma/schema.prisma || echo 'Schema drift detected!'",
     "db:generate": "npx prisma generate",
     "db:pull": "npx prisma db pull",
@@ -20,6 +23,7 @@
     "db:migrate": "npx prisma migrate deploy",
     "db:reset-schema": "npx prisma db pull && npx prisma generate",
     "db:studio": "npx prisma studio",
+    "db:check-grade-pricepaid": "npx tsx scripts/check-grade-pricepaid.ts",
     "db:sync": "npm run db:pull && npm run db:generate",
     "db:types": "npx supabase gen types typescript --project-id YOUR_PROJECT_ID",
     "db:validate": "npx prisma validate",
@@ -27,22 +31,22 @@
     "netlify:build": "npx netlify build",
     "type-check": "tsc --noEmit",
     "test:api": "npm run test:api:health",
-    "test:api:health": "curl -s http://localhost:9999/.netlify/functions/health | jq",
-    "test:api:comics": "curl -s http://localhost:9999/.netlify/functions/comics?limit=5 | jq",
-    "test:api:favorites": "curl -s http://localhost:9999/.netlify/functions/favorites | jq",
+    "test:api:health": "curl -s http://localhost:3001/api/health | jq",
+    "test:api:comics": "curl -s http://localhost:3001/api/comics?limit=5 | jq",
+    "test:api:favorites": "curl -s http://localhost:3001/api/favorites | jq",
     "docs:rls": "echo 'See docs/rls-documentation.md for RLS setup instructions'"
   },
   "devDependencies": {
-    "@netlify/functions": "^2.4.1",
+    "@prisma/client": "^5.22.0",
+    "@types/express": "^4.17.21",
     "@types/node": "^22.0.2",
+    "tsx": "^4.19.0",
     "concurrently": "^8.2.2",
-    "netlify-cli": "^17.10.1",
-    "@prisma/client": "^5.17.0",
-    "supabase": "^2.40.7",
+    "prisma": "^5.22.0",
     "typescript": "^5.5.4"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.4",
-    "prisma": "^5.17.0"
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0"
   }
 }

@@ -1,17 +1,56 @@
 /**
  * Bulk Service - Core data access layer for bulk comic operations
- * Extracted from functions/comics/bulkOperations.ts for better separation of concerns
+ * Uses Prisma (SQLite) instead of Supabase.
+ *
+ * "Copy" = one physical copy of a comic. Same (publisher, series, volume, issue, type)
+ * with different grade, pricePaid, dateAdded, or storageLocation → separate copies.
+ * Identical on all of those → same copy (dedupe / update).
  */
 
-import { SupabaseClient } from "@supabase/supabase-js";
+import { PrismaClient } from "@prisma/client";
 import { validateComicBatch } from "./validationService";
 import { BulkImportOptions, BulkImportResult } from "../../types/services";
+
+/** Build a key that identifies one owned copy (for dedupe and match-against-DB). */
+function copyKey(comic: {
+  publisher: string;
+  series: string;
+  volume?: string | null;
+  issue: string;
+  type?: string | null;
+  grade?: string | null;
+  pricePaid?: number | null;
+  dateAdded?: Date | string | null;
+  storageLocation?: string | null;
+}): string {
+  const grade = (comic.grade ?? "").toString().trim();
+  const pricePaid =
+    comic.pricePaid != null && comic.pricePaid !== ""
+      ? String(comic.pricePaid)
+      : "n";
+  const dateAdded =
+    comic.dateAdded != null && comic.dateAdded !== ""
+      ? new Date(comic.dateAdded as any).toISOString()
+      : "";
+  const storageLocation = (comic.storageLocation ?? "").toString().trim();
+  return [
+    comic.publisher,
+    comic.series,
+    comic.volume ?? "",
+    comic.issue,
+    comic.type ?? "",
+    grade,
+    pricePaid,
+    dateAdded,
+    storageLocation,
+  ].join("|");
+}
 
 /**
  * Process bulk comic import with validation, deduplication, and proper created/updated tracking
  */
 export const processBulkImport = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   comicsToCreate: any[],
   options: BulkImportOptions = {}
@@ -29,7 +68,6 @@ export const processBulkImport = async (
   );
   const startTime = Date.now();
 
-  // Validate the bulk request
   const validation = validateComicBatch(comicsToCreate);
 
   if (
@@ -41,13 +79,8 @@ export const processBulkImport = async (
     );
   }
 
-  // Process and clean comics data
-  const processedComics = await processComicsForDatabase(
-    validation.validComics,
-    userId
-  );
+  const processedComics = processComicsForDatabase(validation.validComics, userId);
 
-  // Deduplicate comics within the file if requested
   const { deduplicatedComics, duplicatesSkipped } = skipDuplicates
     ? deduplicateComics(processedComics)
     : { deduplicatedComics: processedComics, duplicatesSkipped: 0 };
@@ -56,252 +89,242 @@ export const processBulkImport = async (
     console.log(
       `✅ Processed comics: ${deduplicatedComics.length} unique, ${duplicatesSkipped} file duplicates skipped`
     );
-    logSampleComic(deduplicatedComics[0]);
+    if (deduplicatedComics[0]) logSampleComic(deduplicatedComics[0]);
   }
 
-  // Determine which comics are new vs existing
-  const { newComics, existingComics } = await categorizeComics(
-    supabase,
+  const { newComics, existingWithIds } = await categorizeComics(
+    prisma,
     userId,
     deduplicatedComics
   );
 
   if (reportDetails) {
     console.log(
-      `📊 Import breakdown: ${newComics.length} new, ${existingComics.length} updates`
+      `📊 Import breakdown: ${newComics.length} new, ${existingWithIds.length} updates (matched by copy key)`
     );
   }
 
-  // Perform the database upsert
-  const upsertResult = await performBulkUpsert(supabase, deduplicatedComics);
+  const { created, updated } = await performBulkCreateAndUpdate(
+    prisma,
+    userId,
+    newComics,
+    existingWithIds
+  );
+  const insertedCount = created + updated;
 
-  const endTime = Date.now();
-  const totalTime = endTime - startTime;
-  const processed = upsertResult.insertedComics?.length || 0;
+  const totalTime = Date.now() - startTime;
 
   const result: BulkImportResult = {
-    processed: processed,
-    created: newComics.length,
-    updated: existingComics.length,
+    processed: insertedCount,
+    created,
+    updated,
     errors: validation.validationErrors.length,
-    message: buildImportMessage(
-      newComics.length,
-      existingComics.length,
-      duplicatesSkipped
-    ),
+    message: buildImportMessage(created, updated, duplicatesSkipped),
     processingTime: totalTime,
-    rate: Math.round(processed / (totalTime / 1000)),
+    rate: Math.round(insertedCount / (totalTime / 1000)),
     validationErrors: validation.validationErrors.slice(0, 10),
     duplicatesSkipped,
   };
 
   console.log(
-    `🎉 Import complete: ${result.created} created, ${result.updated} updated, ${duplicatesSkipped} file duplicates skipped`
+    `🎉 Import complete: ${created} created, ${updated} updated, ${duplicatesSkipped} file duplicates skipped`
   );
 
   return result;
 };
 
 /**
- * Process and clean comics data for database insertion
+ * Process and clean comics data for database insertion (Prisma camelCase).
+ * Only known schema fields are set (no id, originalIndex, or extras that could trigger upsert/ON CONFLICT).
  */
-const processComicsForDatabase = async (
-  validComics: any[],
-  userId: string
-): Promise<any[]> => {
-  return validComics.map((comic: any) => ({
-    // Core fields (exact database column names)
-    publisher: comic.publisher,
-    series: comic.series,
-    volume: comic.volume || "",
-    years: comic.years || "",
-    type: comic.type || "",
-    issue: comic.issue,
-    issueNumber: comic.issueNumber || 1,
+function processComicsForDatabase(validComics: any[], userId: string): any[] {
+  return validComics.map((comic: any) => {
+    const base: Record<string, unknown> = {
+      publisher: comic.publisher,
+      series: comic.series,
+      volume: comic.volume || "",
+      years: comic.years || "",
+      type: comic.type || "",
+      issue: comic.issue,
+      issueNumber: comic.issueNumber ?? 1,
+      currentValue: comic.currentValue ?? 0,
+      pricePaid: comic.pricePaid ?? null,
+      grade: comic.grade ?? null,
+      gradeDetails: comic.gradeDetails ?? null,
+      storageLocation: comic.storageLocation ?? null,
+      notes: comic.notes ?? null,
+      cert: comic.cert ?? null,
+      signed: Boolean(comic.signed),
+      variantDetails: comic.variantDetails ?? null,
+      dateAdded: comic.dateAdded ?? null,
+      issueDate: comic.issueDate ?? null,
+      datePurchased: comic.datePurchased ?? null,
+      storyTitle: comic.storyTitle ?? null,
+      description: comic.description ?? null,
+      writer: comic.writer ?? null,
+      artist: comic.artist ?? null,
+      coverArtist: comic.coverArtist ?? null,
+      letterer: comic.letterer ?? null,
+      firstAppearance: comic.firstAppearance ?? null,
+      coverImageUrl: comic.coverImageUrl ?? null,
+      certificationCompany: comic.certificationCompany ?? null,
+      collected: Boolean(comic.collected),
+      isGrail: Boolean(comic.isGrail),
+      userId,
+    };
+    return base as any;
+  });
+}
 
-    // Financial fields (exact database column names)
-    currentValue: comic.currentValue || 0,
-    pricePaid: comic.pricePaid || null,
-
-    // Physical/ownership fields (exact database column names)
-    grade: comic.grade || null,
-    gradeDetails: comic.gradeDetails || null,
-    storageLocation: comic.storageLocation || null,
-    notes: comic.notes || null,
-    cert: comic.cert || null,
-    signed: Boolean(comic.signed),
-    variantDetails: comic.variantDetails || null,
-
-    // Date fields (exact database column names)
-    dateAdded: comic.dateAdded || null,
-    issueDate: comic.issueDate || null,
-    datePurchased: comic.datePurchased || null,
-
-    // Creative team fields (exact database column names)
-    storyTitle: comic.storyTitle || null,
-    description: comic.description || null,
-    writer: comic.writer || null,
-    artist: comic.artist || null,
-    coverArtist: comic.coverArtist || null,
-    letterer: comic.letterer || null,
-    firstAppearance: comic.firstAppearance || null,
-    coverImageUrl: comic.coverImageUrl || null,
-    certificationCompany: comic.certificationCompany || null,
-
-    // User state (exact database column names)
-    collected: Boolean(comic.collected),
-    isGrail: Boolean(comic.isGrail),
-
-    // System fields
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-
-    // Foreign key (only field that's snake_case)
-    user_id: userId,
-  }));
-};
-
-/**
- * Remove duplicate comics within the import batch
- */
-const deduplicateComics = (comics: any[]) => {
+/** Within-file dedupe: only collapse rows that are the same copy (same grade, pricePaid, dateAdded, storageLocation). */
+function deduplicateComics(comics: any[]) {
   const deduplicatedComics: any[] = [];
-  const seen = new Set();
+  const seen = new Set<string>();
   let duplicatesSkipped = 0;
 
   for (const comic of comics) {
-    // Create unique key based on the database constraint
-    const uniqueKey = `${comic.publisher}|${comic.series}|${comic.volume}|${comic.issue}|${comic.type}`;
-
-    if (!seen.has(uniqueKey)) {
-      seen.add(uniqueKey);
+    const key = copyKey(comic);
+    if (!seen.has(key)) {
+      seen.add(key);
       deduplicatedComics.push(comic);
     } else {
       duplicatesSkipped++;
       console.log(
-        `🔄 Skipping duplicate comic: ${comic.publisher} - ${comic.series} #${comic.issue}`
+        `🔄 Skipping duplicate copy: ${comic.publisher} - ${comic.series} #${comic.issue} (same grade/price/date/pile)`
       );
     }
   }
 
   return { deduplicatedComics, duplicatesSkipped };
-};
+}
 
-/**
- * Categorize comics as new vs existing in the database
- */
-const categorizeComics = async (
-  supabase: SupabaseClient,
+/** Match against DB by copy key; return new vs existing (with id for updates). */
+async function categorizeComics(
+  prisma: PrismaClient,
   userId: string,
   comics: any[]
-) => {
-  // Get existing comics for comparison
-  const existingComicsQuery = await supabase
-    .from("comics")
-    .select("publisher,series,volume,issue,type")
-    .eq("user_id", userId);
+) {
+  const existing = await prisma.comic.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      publisher: true,
+      series: true,
+      volume: true,
+      issue: true,
+      type: true,
+      grade: true,
+      pricePaid: true,
+      dateAdded: true,
+      storageLocation: true,
+    },
+  });
 
-  if (existingComicsQuery.error) {
-    console.error("Error fetching existing comics:", existingComicsQuery.error);
-    throw new Error(
-      `Failed to check existing comics: ${existingComicsQuery.error.message}`
-    );
-  }
-
-  const existingComicsSet = new Set();
-  if (existingComicsQuery.data) {
-    existingComicsQuery.data.forEach((comic) => {
-      const key = `${comic.publisher}|${comic.series}|${comic.volume}|${comic.issue}|${comic.type}`;
-      existingComicsSet.add(key);
+  const keyToId = new Map<string, string>();
+  for (const c of existing) {
+    const key = copyKey({
+      publisher: c.publisher,
+      series: c.series,
+      volume: c.volume,
+      issue: c.issue,
+      type: c.type,
+      grade: c.grade,
+      pricePaid: c.pricePaid,
+      dateAdded: c.dateAdded,
+      storageLocation: c.storageLocation,
     });
+    keyToId.set(key, c.id);
   }
 
-  // Separate comics into new vs existing
-  const existingComics: any[] = [];
   const newComics: any[] = [];
+  const existingWithIds: Array<{ comic: any; existingId: string }> = [];
 
-  comics.forEach((comic) => {
-    const key = `${comic.publisher}|${comic.series}|${comic.volume}|${comic.issue}|${comic.type}`;
-    if (existingComicsSet.has(key)) {
-      existingComics.push(comic);
+  for (const comic of comics) {
+    const key = copyKey(comic);
+    const existingId = keyToId.get(key);
+    if (existingId != null) {
+      existingWithIds.push({ comic, existingId });
     } else {
       newComics.push(comic);
     }
-  });
-
-  return { newComics, existingComics };
-};
-
-/**
- * Perform the actual database upsert operation
- */
-const performBulkUpsert = async (supabase: SupabaseClient, comics: any[]) => {
-  const { data: insertedComics, error: insertError } = await supabase
-    .from("comics")
-    .upsert(comics, {
-      onConflict: "publisher,series,volume,issue,type,user_id",
-      ignoreDuplicates: false, // Update existing records
-    })
-    .select();
-
-  if (insertError) {
-    console.error("Bulk upsert error:", insertError);
-    throw new Error(`Bulk upsert failed: ${insertError.message}`);
   }
 
-  return { insertedComics };
-};
+  return { newComics, existingWithIds };
+}
 
 /**
- * Build a descriptive message for import results
+ * Create new copies and update existing ones by id (no unique constraint on comic identity).
+ * Uses individual create() calls because createMany() is not supported for SQLite in Prisma.
  */
-const buildImportMessage = (
+async function performBulkCreateAndUpdate(
+  prisma: PrismaClient,
+  userId: string,
+  newComics: any[],
+  existingWithIds: Array<{ comic: any; existingId: string }>
+): Promise<{ created: number; updated: number }> {
+  let created = 0;
+  let updated = 0;
+
+  if (newComics.length > 0) {
+    console.log(`📥 [BULK] Inserting ${newComics.length} new comics via create() (SQLite)`);
+    try {
+      for (const comic of newComics) {
+        await prisma.comic.create({ data: comic });
+        created++;
+      }
+      console.log(`📥 [BULK] create completed: ${created} created`);
+    } catch (createErr: any) {
+      console.error("[BULK] create failed:", createErr?.message ?? createErr);
+      console.error("[BULK] Error name:", createErr?.name);
+      console.error("[BULK] Full error (for debugging):", createErr);
+      throw createErr;
+    }
+  }
+
+  for (const { comic, existingId } of existingWithIds) {
+    const { userId: _uid, ...data } = comic;
+    await prisma.comic.update({
+      where: { id: existingId },
+      data,
+    });
+    updated++;
+  }
+
+  return { created, updated };
+}
+
+function buildImportMessage(
   created: number,
   updated: number,
   duplicatesSkipped: number
-): string => {
+): string {
   const parts: string[] = [];
-
   if (created > 0) parts.push(`${created} created`);
   if (updated > 0) parts.push(`${updated} updated`);
   if (duplicatesSkipped > 0)
     parts.push(`${duplicatesSkipped} duplicates skipped`);
-
   return parts.length > 0 ? parts.join(", ") : "No changes made";
-};
+}
 
-/**
- * Log sample comic data for debugging
- */
-const logSampleComic = (comic: any) => {
+function logSampleComic(comic: any) {
   if (comic) {
     console.log(`🔍 Sample comic field names:`, Object.keys(comic));
     console.log(`📋 Sample comic data:`, JSON.stringify(comic, null, 2));
   }
-};
+}
 
-/**
- * Handle bulk comic updates (placeholder for future implementation)
- */
 export const processBulkUpdate = async (
-  supabase: SupabaseClient,
-  userId: string,
-  updates: any[]
+  _prisma: PrismaClient,
+  _userId: string,
+  _updates: any[]
 ): Promise<BulkImportResult> => {
-  // Future implementation for bulk updates
-  // This could be used for bulk status changes, bulk edits, etc.
   throw new Error("Bulk updates not yet implemented");
 };
 
-/**
- * Handle bulk comic deletion (placeholder for future implementation)
- */
 export const processBulkDelete = async (
-  supabase: SupabaseClient,
-  userId: string,
-  criteria: any
+  _prisma: PrismaClient,
+  _userId: string,
+  _criteria: any
 ): Promise<BulkImportResult> => {
-  // Future implementation for bulk deletes
-  // This could be used for clearing collections, deleting by criteria, etc.
   throw new Error("Bulk deletes not yet implemented");
 };

@@ -1,4 +1,8 @@
-import { HandlerResponse } from "@netlify/functions";
+export type HandlerResponse = {
+  statusCode: number;
+  headers?: Record<string, string>;
+  body: string;
+};
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*", // Will be more restrictive in production

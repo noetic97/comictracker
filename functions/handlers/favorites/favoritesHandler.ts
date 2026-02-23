@@ -4,7 +4,7 @@
  * Handles HTTP request/response logic and delegates to services
  */
 
-import { SupabaseClient } from "@supabase/supabase-js";
+import { PrismaClient } from "@prisma/client";
 import { createResponse, createErrorResponse } from "../../utils/cors";
 import {
   getAllFavorites,
@@ -15,22 +15,17 @@ import {
   validateFavoriteInput,
 } from "../../services/favorites/favoritesService";
 import { FavoriteSeriesData } from "../../types/services";
-import { transformFromDatabase } from "../../utils/supabase";
 
 /**
  * Handle GET requests for favorites
  */
 export const handleGetFavorites = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string
 ) => {
   try {
-    const favorites = await getAllFavorites(supabase, userId);
-
-    // Transform for frontend (convert user_id to userId, etc.)
-    const transformedFavorites = favorites.map(transformFromDatabase);
-
-    return createResponse(200, transformedFavorites);
+    const favorites = await getAllFavorites(prisma, userId);
+    return createResponse(200, favorites);
   } catch (error: any) {
     console.error("Get favorites error:", error);
     return createErrorResponse(500, error.message);
@@ -41,12 +36,11 @@ export const handleGetFavorites = async (
  * Handle POST requests for adding favorites
  */
 export const handleAddFavorite = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   body: any
 ) => {
   try {
-    // Validate input
     const validationErrors = validateFavoriteInput(body);
     if (validationErrors.length > 0) {
       return createResponse(422, {
@@ -55,19 +49,14 @@ export const handleAddFavorite = async (
       });
     }
 
-    // Normalize volume field
     const favoriteData: FavoriteSeriesData = {
       publisher: body.publisher.trim(),
       series: body.series.trim(),
       volume: (body.volume || "").trim(),
     };
 
-    const newFavorite = await addFavorite(supabase, userId, favoriteData);
-
-    // Transform for frontend
-    const transformedFavorite = transformFromDatabase(newFavorite);
-
-    return createResponse(201, transformedFavorite);
+    const newFavorite = await addFavorite(prisma, userId, favoriteData);
+    return createResponse(201, newFavorite);
   } catch (error: any) {
     console.error("Add favorite error:", error);
 
@@ -89,12 +78,12 @@ export const handleAddFavorite = async (
  * Handle DELETE requests for removing favorites by ID
  */
 export const handleRemoveFavorite = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   favoriteId: string
 ) => {
   try {
-    await removeFavorite(supabase, userId, favoriteId);
+    await removeFavorite(prisma, userId, favoriteId);
     return createResponse(204, null);
   } catch (error: any) {
     console.error("Remove favorite error:", error);
@@ -111,7 +100,7 @@ export const handleRemoveFavorite = async (
  * Handle GET requests for checking if a series is favorited
  */
 export const handleCheckFavorite = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   queryParams: any
 ) => {
@@ -131,17 +120,8 @@ export const handleCheckFavorite = async (
       volume,
     };
 
-    const result = await checkFavoriteExists(supabase, userId, favoriteData);
-
-    // Transform favorite if it exists
-    const transformedResult = {
-      ...result,
-      favorite: result.favorite
-        ? transformFromDatabase(result.favorite)
-        : undefined,
-    };
-
-    return createResponse(200, transformedResult);
+    const result = await checkFavoriteExists(prisma, userId, favoriteData);
+    return createResponse(200, result);
   } catch (error: any) {
     console.error("Check favorite error:", error);
     return createErrorResponse(500, error.message);
@@ -152,12 +132,11 @@ export const handleCheckFavorite = async (
  * Handle DELETE requests for removing favorites by series details
  */
 export const handleRemoveFavoriteByDetails = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   body: any
 ) => {
   try {
-    // Validate input
     const validationErrors = validateFavoriteInput(body);
     if (validationErrors.length > 0) {
       return createResponse(422, {
@@ -172,7 +151,7 @@ export const handleRemoveFavoriteByDetails = async (
       volume: (body.volume || "").trim(),
     };
 
-    await removeFavoriteByDetails(supabase, userId, favoriteData);
+    await removeFavoriteByDetails(prisma, userId, favoriteData);
     return createResponse(204, null);
   } catch (error: any) {
     console.error("Remove favorite by details error:", error);

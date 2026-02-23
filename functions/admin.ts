@@ -3,15 +3,14 @@
  * Delegates business logic to handlers and services
  */
 
-import { Handler } from "@netlify/functions";
-import { withSupabaseRLS } from "./utils/supabase";
-import { handleCors, createErrorResponse } from "./utils/cors";
+import { withPrisma } from "./utils/db";
+import { handleCors, createErrorResponse, HandlerResponse } from "./utils/cors";
 import { handleClearDatabase, handleGetDatabaseStats } from "./handlers/admin";
 
 /**
  * Main handler - routing only
  */
-export const handler: Handler = async (event) => {
+export const handler = async (event: any): Promise<HandlerResponse> => {
   const corsResponse = handleCors(event);
   if (corsResponse) return corsResponse;
 
@@ -20,19 +19,17 @@ export const handler: Handler = async (event) => {
 
     console.log(`📡 Admin API: ${httpMethod} ${event.path}`);
 
-    return await withSupabaseRLS(event, async (supabase, userContext) => {
+    return await withPrisma(event, async (prisma, userContext) => {
       switch (httpMethod) {
         case "DELETE":
-          // Clear database operation
           return await handleClearDatabase(
-            supabase,
+            prisma,
             userContext,
             event.queryStringParameters
           );
 
         case "GET":
-          // Get database statistics (future enhancement)
-          return await handleGetDatabaseStats(supabase, userContext);
+          return await handleGetDatabaseStats(prisma, userContext);
 
         default:
           return createErrorResponse(405, "Method not allowed");

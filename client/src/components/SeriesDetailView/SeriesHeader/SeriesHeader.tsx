@@ -7,6 +7,7 @@ interface SeriesHeaderProps {
   publisher: string;
   series: string;
   volume?: string;
+  seriesYears?: string;
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onBack: () => void;
@@ -16,6 +17,7 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({
   publisher,
   series,
   volume,
+  seriesYears,
   isFavorite,
   onToggleFavorite,
   onBack,
@@ -43,6 +45,9 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({
           </S.FavoriteButton>
         </S.CompactSeriesTitle>
         <S.CompactPublisher>{publisher}</S.CompactPublisher>
+        {seriesYears && (
+          <S.CompactSeriesYears>{seriesYears}</S.CompactSeriesYears>
+        )}
       </S.TitleSection>
     </S.HeaderTop>
   );

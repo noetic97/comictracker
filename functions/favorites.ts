@@ -3,9 +3,8 @@
  * Delegates business logic to handlers and services
  */
 
-import { Handler } from "@netlify/functions";
-import { handleCors, createErrorResponse } from "./utils/cors";
-import { withSupabaseRLS } from "./utils/supabase";
+import { handleCors, createErrorResponse, HandlerResponse } from "./utils/cors";
+import { withPrisma } from "./utils/db";
 import {
   handleGetFavorites,
   handleAddFavorite,
@@ -38,7 +37,7 @@ const parseFavoritesRoute = (path: string) => {
 /**
  * Main handler - routing only
  */
-export const handler: Handler = async (event) => {
+export const handler = async (event: any): Promise<HandlerResponse> => {
   const corsResponse = handleCors(event);
   if (corsResponse) return corsResponse;
 
@@ -48,19 +47,17 @@ export const handler: Handler = async (event) => {
 
     console.log(`📡 Favorites API: ${httpMethod} ${path}`);
 
-    return await withSupabaseRLS(event, async (supabase, userContext) => {
+    return await withPrisma(event, async (prisma, userContext) => {
       switch (httpMethod) {
         case "GET":
           if (route.isCheckEndpoint) {
-            // Check if a series is favorited
             return await handleCheckFavorite(
-              supabase,
+              prisma,
               userContext.userId,
               event.queryStringParameters
             );
           } else {
-            // Get all favorites
-            return await handleGetFavorites(supabase, userContext.userId);
+            return await handleGetFavorites(prisma, userContext.userId);
           }
 
         case "POST":
@@ -70,18 +67,16 @@ export const handler: Handler = async (event) => {
           } catch {
             return createErrorResponse(400, "Invalid JSON body");
           }
-          return await handleAddFavorite(supabase, userContext.userId, body);
+          return await handleAddFavorite(prisma, userContext.userId, body);
 
         case "DELETE":
           if (route.favoriteId) {
-            // Remove by ID
             return await handleRemoveFavorite(
-              supabase,
+              prisma,
               userContext.userId,
               route.favoriteId
             );
           } else {
-            // Remove by series details (body contains publisher/series/volume)
             let deleteBody: any = {};
             try {
               deleteBody = event.body ? JSON.parse(event.body) : {};
@@ -89,7 +84,7 @@ export const handler: Handler = async (event) => {
               return createErrorResponse(400, "Invalid JSON body");
             }
             return await handleRemoveFavoriteByDetails(
-              supabase,
+              prisma,
               userContext.userId,
               deleteBody
             );

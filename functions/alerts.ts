@@ -1,5 +1,4 @@
-import { Handler } from "@netlify/functions";
-import { withSupabaseRLS } from "./utils/supabase";
+import { withPrisma } from "./utils/db";
 import { handleCors, createResponse, createErrorResponse } from "./utils/cors";
 
 interface AlertRequest {
@@ -14,7 +13,7 @@ interface AlertRequest {
 const alertHistory = new Map<string, number>();
 const RATE_LIMIT_MINUTES = 60; // Only send alerts once per hour per type
 
-export const handler: Handler = async (event) => {
+export const handler = async (event: any) => {
   const corsResponse = handleCors(event);
   if (corsResponse) return corsResponse;
 
@@ -57,7 +56,7 @@ export const handler: Handler = async (event) => {
       });
     }
 
-    return await withSupabaseRLS(event, async (supabase, userContext) => {
+    return await withPrisma(event, async (prisma, userContext) => {
       // Prepare alert message
       const timestamp = alertData.timestamp || new Date().toISOString();
       const fullMessage = `🚨 Comic Tracker Alert
@@ -116,32 +115,22 @@ ${
           : "Email: not configured";
       }
 
-      // Store alert in database using correct column names
+      // Store alert in database (SQLite: metadata is string)
       try {
-        const alertRecord = {
-          message: alertData.message,
-          severity: alertData.severity,
-          source: alertData.source,
-          metadata: alertData.metadata || null,
-          telegramSent, // DB column is "telegramSent" (camelCase)
-          emailSent, // DB column is "emailSent" (camelCase)
-          sentAt: new Date().toISOString(), // DB column is "sentAt" (camelCase)
-          user_id: userContext.isAdmin ? null : userContext.userId, // System alerts have null user_id
-        };
-
-        const { error: insertError } = await supabase
-          .from("alert_logs")
-          .insert([alertRecord]);
-
-        if (insertError) {
-          console.error("Failed to store alert in database:", insertError);
-          // Don't fail the whole operation if DB storage fails
-        } else {
-          console.log("📝 Alert stored in database");
-        }
+        await prisma.alertLog.create({
+          data: {
+            message: alertData.message,
+            severity: alertData.severity,
+            source: alertData.source,
+            metadata: alertData.metadata != null ? JSON.stringify(alertData.metadata) : null,
+            telegramSent,
+            emailSent,
+            userId: userContext.isAdmin ? null : userContext.userId,
+          },
+        });
+        console.log("📝 Alert stored in database");
       } catch (dbError: any) {
         console.error("Database storage error:", dbError);
-        // Continue with the response even if DB storage fails
       }
 
       console.log("📝 Alert processed:", {

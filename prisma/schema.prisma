@@ -1,23 +1,22 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x", "rhel-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email          String           @unique
-  createdAt      DateTime?        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  lastSignInAt   DateTime?        @map("last_sign_in_at") @db.Timestamptz(6)
-  displayName    String?          @map("display_name")
-  avatarUrl      String?          @map("avatar_url")
-  isActive       Boolean?         @default(true) @map("is_active")
-  emailVerified  Boolean?         @default(false) @map("email_verified")
+  id             String            @id @default(uuid())
+  email          String            @unique
+  createdAt      DateTime?         @default(now()) @map("created_at")
+  updatedAt      DateTime?         @default(now()) @updatedAt @map("updated_at")
+  lastSignInAt   DateTime?         @map("last_sign_in_at")
+  displayName    String?           @map("display_name")
+  avatarUrl      String?           @map("avatar_url")
+  isActive       Boolean?          @default(true) @map("is_active")
+  emailVerified  Boolean?          @default(false) @map("email_verified")
   alertLogs      AlertLog[]
   comics         Comic[]
   favoriteSeries FavoriteSeries[]
@@ -27,14 +26,14 @@ model User {
 }
 
 model Comic {
-  id                   String    @id @default(dbgenerated("('c'::text || substr(md5((random())::text), 1, 24))"))
+  id                   String    @id @default(cuid())
   publisher            String
   series               String
   volume               String    @default("")
   years                String    @default("")
   type                 String    @default("")
   issue                String
-  issueNumber          Float     @db.Real
+  issueNumber          Float
   currentValue         Float
   collected            Boolean   @default(false)
   isGrail              Boolean   @default(false)
@@ -60,12 +59,13 @@ model Comic {
   variantDetails       String?
   writer               String?
   grade                String?
-  userId               String    @map("user_id") @db.Uuid
+  userId               String    @map("user_id")
   user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([publisher, series, volume, issue, type, userId], name: "publisher_series_volume_issue_type_user", map: "publisher_series_volume_issue_type_user")
-  @@unique([publisher, series, volume, issue, type])
+  // No unique on (publisher, series, volume, issue, type) so we can store multiple copies
+  // when grade, pricePaid, dateAdded, or storageLocation differ (see bulk import copyKey)
   @@index([userId])
+  @@index([userId, publisher, series, volume, issue, type])
   @@index([publisher, series, issue])
   @@index([series])
   @@index([collected])
@@ -81,18 +81,17 @@ model Comic {
 }
 
 model FavoriteSeries {
-  id        String   @id @default(dbgenerated("('c'::text || substr(md5((random())::text), 1, 24))"))
+  id        String   @id @default(cuid())
   publisher String
   series    String
   volume    String   @default("")
   dateAdded DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
-  userId    String   @map("user_id") @db.Uuid
+  userId    String   @map("user_id")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([publisher, series, volume, userId], name: "publisher_series_volume_user", map: "publisher_series_volume_user")
-  @@unique([publisher, series, volume])
+  @@unique([publisher, series, volume, userId], name: "publisher_series_volume_user")
   @@index([userId])
   @@index([publisher, series])
   @@map("favorite_series")
@@ -103,12 +102,12 @@ model AlertLog {
   message      String
   severity     String
   source       String
-  metadata     Json?
+  metadata     String?  // JSON string
   telegramSent Boolean  @default(false)
   emailSent    Boolean  @default(false)
   sentAt       DateTime @default(now())
   createdAt    DateTime @default(now())
-  userId       String?  @map("user_id") @db.Uuid
+  userId       String?  @map("user_id")
   user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId])

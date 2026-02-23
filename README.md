@@ -19,8 +19,11 @@ Comic Tracker is a web application designed to help comic book enthusiasts manag
   - Styled Components (for styling)
 - **State Management:**
   - React Hooks (useState, useEffect, useMemo)
+- **Backend:**
+  - Node.js + Express (API server)
+  - Prisma + SQLite (database)
 - **Data Persistence:**
-  - IndexedDB (via idb library)
+  - SQLite (via Prisma); optional IndexedDB for offline
 - **CSV Parsing:**
   - PapaParse
 - **Icons:**
@@ -50,23 +53,47 @@ Comic Tracker is a web application designed to help comic book enthusiasts manag
    npm install
    ```
 
-3. Start the development server:
+3. Set up the database (optional; defaults to `file:./prisma/dev.db`):
+
+   ```
+   # .env (optional)
+   DATABASE_URL="file:./prisma/dev.db"
+   DEFAULT_USER_EMAIL="user@comictracker.local"
+   ```
+
+4. Run database migrations (creates SQLite DB if needed):
+
+   ```
+   npx prisma migrate deploy
+   ```
+
+5. Start the development server (client on port 3000, API on port 3001):
 
    ```
    npm run dev
    ```
 
-4. Open your browser and navigate to `http://localhost:3000` (or the port shown in your terminal).
+6. Open your browser at `http://localhost:3000`. The client proxies `/api` to the Node server.
 
 ## Building for Production
 
-To create a production build:
+Build the client and run the server locally:
 
 ```
-npm run build
+npm run build          # builds client to client/dist
+npm run start          # runs API + static server on PORT (default 3001)
 ```
 
-The built files will be in the `dist` directory.
+Serve the app at `http://localhost:3001` (or set `PORT`). The server serves the SPA and the API at `/api`.
+
+## Exposing with nginx + DuckDNS (optional)
+
+To access the app outside your network:
+
+1. Run the app (e.g. `npm run start`) on a host.
+2. Point [DuckDNS](https://www.duckdns.org/) at your public IP.
+3. Configure nginx as a reverse proxy to `http://127.0.0.1:3001` (or your `PORT`).
+4. Use HTTPS (e.g. Let's Encrypt) if desired. No code changes required.
 
 ## Usage
 
@@ -235,15 +262,12 @@ apiDebugger.getCalls().map((call) => ({
 }));
 ```
 
-## Database Schema Maintenance
+## Database (SQLite + Prisma)
 
-Our Prisma schema stays synced with the live Supabase database using:
-
-- `npm run db:sync` - Pull changes and regenerate types
-- `npm run db:check-drift` - Detect schema drift
-- Weekly automated checks via GitHub Actions
-
-See [Schema Maintenance Guide](./docs/schema-maintenance.md) for full details.
+- **Location:** SQLite file at `prisma/dev.db` (or `DATABASE_URL`).
+- **Migrations:** `npx prisma migrate deploy` to apply; `npx prisma migrate dev --name <name>` to create new migrations.
+- **Reset:** Delete `prisma/dev.db` and run `npx prisma migrate deploy` to start fresh.
+- **Studio:** `npx prisma studio` to browse and edit data.
 
 ## Contributing
 

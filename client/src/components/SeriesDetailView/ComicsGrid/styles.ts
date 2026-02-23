@@ -217,11 +217,16 @@ export const CompactComicDetails = styled.div`
 
 export const ComicMetaLine = styled.div`
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
   align-items: center;
   font-size: 0.875rem;
   color: ${({ theme }) => theme.colors.foreground};
   opacity: 0.9;
+`;
+
+export const ComicMetaItem = styled.span`
+  color: ${({ theme }) => theme.colors.foreground};
 `;
 
 export const ComicValue = styled.span`

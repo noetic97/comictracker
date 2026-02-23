@@ -91,7 +91,7 @@ const FilterSort: React.FC<Props> = memo(
             <option value={25}>25</option>
             <option value={50}>50</option>
             <option value={100}>100</option>
-            <option value={10000}>All</option>
+            <option value={50000}>All</option>
           </S.StyledSelect>
 
           {/* TODO: Add hide collected toggle support to server-side API */}

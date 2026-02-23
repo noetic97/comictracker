@@ -16,7 +16,13 @@ const ViewControls: React.FC<ViewControlsProps> = ({
   onItemsPerPageChange,
   onCurrentPageReset,
 }) => {
-  const itemsPerPageOptions = [10, 25, 50, 100, "All"];
+  const itemsPerPageOptions: { value: number; label: string }[] = [
+    { value: 10, label: "10" },
+    { value: 25, label: "25" },
+    { value: 50, label: "50" },
+    { value: 100, label: "100" },
+    { value: 50000, label: "All" },
+  ];
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     onItemsPerPageChange(newItemsPerPage);
@@ -43,8 +49,8 @@ const ViewControls: React.FC<ViewControlsProps> = ({
           onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
         >
           {itemsPerPageOptions.map((option) => (
-            <option key={option} value={option}>
-              {option}
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
           ))}
         </S.CompactSelect>

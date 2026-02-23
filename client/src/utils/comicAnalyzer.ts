@@ -105,6 +105,17 @@ export const analyzeComics = async (
 ): Promise<AnalysisResult> => {
   const { dbComics, dbLookup } = await loadDatabaseComics();
 
+  // Log DB state for debugging (browser devtools console)
+  const dbCount = dbComics.length;
+  if (typeof window !== "undefined") {
+    console.log("[comicAnalyzer] Comics in database:", dbCount);
+    if (dbCount === 0) {
+      console.log(
+        "[comicAnalyzer] Collection is empty—all file rows will show as missing until you import."
+      );
+    }
+  }
+
   const missing: MissingComic[] = [];
   const duplicatesInFile: DuplicateComic[] = [];
   const invalidComics: InvalidComic[] = [];
@@ -171,6 +182,13 @@ export const analyzeComics = async (
         typeMismatches.push(typeMismatch);
       }
 
+      const reason =
+        typeMismatch
+          ? `Type mismatch - exists as: ${typeMismatch.databaseTypes.join(", ")}`
+          : dbCount === 0
+            ? "Not found in database (collection is empty—import this file to add comics)"
+            : "Not found in database";
+
       missing.push({
         publisher: comic.publisher,
         series: comic.series,
@@ -178,11 +196,7 @@ export const analyzeComics = async (
         issue: comic.issue,
         type: comic.type || "",
         currentValue: parseFloat(comic["Current Value"]) || 0,
-        reason: typeMismatch
-          ? `Type mismatch - exists as: ${typeMismatch.databaseTypes.join(
-              ", "
-            )}`
-          : "Not found in database",
+        reason,
         fileIndex: index,
       });
     }

@@ -1,60 +1,34 @@
-# Note: curl -w values must be captured with -o to a file to avoid concatenating the body with the status/time, which caused bogus http_code like {"ok":true}200
+# Optional: Health check for self-hosted deployment (e.g. behind nginx + DuckDNS).
+# Set HEALTH_URL and ALERT_URL secrets to your deployed /api/health and /api/alerts.
 
 name: Health Monitor
 
 on:
   schedule:
-    # Run every hour (can adjust later)
     - cron: "0 * * * *"
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
 
 env:
-  STAGING_HEALTH_URL: ${{ secrets.STAGING_HEALTH_URL }}
-  STAGING_ALERT_URL: ${{ secrets.STAGING_ALERT_URL }}
-  PRODUCTION_HEALTH_URL: ${{ secrets.PRODUCTION_HEALTH_URL }}
-  PRODUCTION_ALERT_URL: ${{ secrets.PRODUCTION_ALERT_URL }}
-  STAGING_SUPABASE_HEARTBEAT_URL: ${{ secrets.STAGING_SUPABASE_HEARTBEAT_URL }}
-  PRODUCTION_SUPABASE_HEARTBEAT_URL: ${{ secrets.PRODUCTION_SUPABASE_HEARTBEAT_URL }}
+  HEALTH_URL: ${{ secrets.HEALTH_URL }}
+  ALERT_URL: ${{ secrets.ALERT_URL }}
 
 jobs:
   health-check:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
-    strategy:
-      matrix:
-        environment: [staging, production]
-      fail-fast: false # Continue checking other environments if one fails
+    if: ${{ env.HEALTH_URL != '' }}
 
     steps:
-      - name: Set environment URLs
-        run: |
-          if [ "${{ matrix.environment }}" = "staging" ]; then
-            echo "HEALTH_URL=${{ env.STAGING_HEALTH_URL }}" >> $GITHUB_ENV
-            echo "ALERT_URL=${{ env.STAGING_ALERT_URL }}" >> $GITHUB_ENV
-            echo "SUPABASE_HEARTBEAT_URL=${{ env.STAGING_SUPABASE_HEARTBEAT_URL }}" >> $GITHUB_ENV
-            echo "SUPABASE_ANON_KEY=${{ secrets.STAGING_SUPABASE_ANON_KEY }}" >> $GITHUB_ENV
-          else
-            echo "HEALTH_URL=${{ env.PRODUCTION_HEALTH_URL }}" >> $GITHUB_ENV
-            echo "ALERT_URL=${{ env.PRODUCTION_ALERT_URL }}" >> $GITHUB_ENV
-            echo "SUPABASE_HEARTBEAT_URL=${{ env.PRODUCTION_SUPABASE_HEARTBEAT_URL }}" >> $GITHUB_ENV
-            echo "SUPABASE_ANON_KEY=${{ secrets.PRODUCTION_SUPABASE_ANON_KEY }}" >> $GITHUB_ENV
-          fi
-
       - name: Check Health Endpoint
         id: health_check
         run: |
           set -euo pipefail
-          echo "🏥 Checking health for ${{ matrix.environment }}..."
           BODY_FILE=$(mktemp)
           CODE_TIME=$(curl -sS -m 30 -o "$BODY_FILE" -w "%{http_code} %{time_total}" "$HEALTH_URL" || echo "000 30.0")
           http_code=$(echo "$CODE_TIME" | awk '{print $1}')
           response_time=$(echo "$CODE_TIME" | awk '{print $2}')
           response_body=$(cat "$BODY_FILE" 2>/dev/null || echo "")
           rm -f "$BODY_FILE"
-          echo "HTTP Code: $http_code"
-          echo "Response Time: ${response_time}s"
-          echo "Response (first 400 bytes):"; echo "$response_body" | head -c 400 || true; echo
           echo "http_code=$http_code" >> $GITHUB_OUTPUT
           echo "response_time=$response_time" >> $GITHUB_OUTPUT
           printf "response_body<<EOF\n%s\nEOF\n" "$response_body" >> $GITHUB_OUTPUT
@@ -65,7 +39,6 @@ jobs:
         run: |
           set -euo pipefail
           response='${{ steps.health_check.outputs.response_body }}'
-          # Default values
           ok=false
           status="unknown"
           db_connected=false
@@ -76,200 +49,14 @@ jobs:
             db_connected=$(echo "$response" | jq -r '.database.connected // false' 2>/dev/null || echo false)
             db_latency=$(echo "$response" | jq -r '.database.latencyMs // 0' 2>/dev/null || echo 0)
           fi
-          echo "Service OK: $ok"
-          echo "Status: $status"
-          echo "DB Connected: $db_connected"
-          echo "DB Latency: ${db_latency}ms"
           echo "ok=$ok" >> $GITHUB_OUTPUT
           echo "status=$status" >> $GITHUB_OUTPUT
           echo "db_connected=$db_connected" >> $GITHUB_OUTPUT
           echo "db_latency=$db_latency" >> $GITHUB_OUTPUT
 
-      - name: Log Success
-        if: steps.health_check.outputs.http_code == '200' && steps.parse_health.outputs.ok == 'true'
+      - name: Send Alert on Failure
+        if: failure() && env.ALERT_URL != ''
         run: |
-          echo "✅ ${{ matrix.environment }} is healthy!"
-          echo "  Status: ${{ steps.parse_health.outputs.status }}"
-          echo "  DB Connected: ${{ steps.parse_health.outputs.db_connected }}"
-          echo "  DB Latency: ${{ steps.parse_health.outputs.db_latency }}ms"
-          echo "  Response Time: ${{ steps.health_check.outputs.response_time }}s"
-
-      - name: Send Alert for HTTP Error
-        if: steps.health_check.outputs.http_code != '200'
-        run: |
-          echo "🚨 HTTP Error detected for ${{ matrix.environment }}"
-
-          # Determine severity based on HTTP code
-          if [ "${{ steps.health_check.outputs.http_code }}" = "000" ]; then
-            severity="critical"
-            message="Health endpoint completely unreachable (timeout or network error)"
-          elif [ "${{ steps.health_check.outputs.http_code }}" = "404" ]; then
-            severity="error"
-            message="Health endpoint not found (HTTP 404)"
-          elif [ "${{ steps.health_check.outputs.http_code }}" = "500" ]; then
-            severity="critical"
-            message="Health endpoint server error (HTTP 500)"
-          else
-            severity="warning"
-            message="Health endpoint returned unexpected HTTP code: ${{ steps.health_check.outputs.http_code }}"
-          fi
-
-          # Send alert
           curl -X POST "$ALERT_URL" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"message\": \"$message\",
-              \"severity\": \"$severity\",
-              \"source\": \"github-actions-${{ matrix.environment }}\",
-              \"metadata\": {
-                \"http_code\": \"${{ steps.health_check.outputs.http_code }}\",
-                \"response_time\": \"${{ steps.health_check.outputs.response_time }}\",
-                \"environment\": \"${{ matrix.environment }}\",
-                \"workflow_run\": \"${{ github.run_id }}\"
-              }
-            }" || echo "Failed to send alert"
-
-      - name: Backup Check - Supabase Direct
-        id: supabase_check
-        if: steps.health_check.outputs.http_code != '200' || steps.parse_health.outputs.ok == 'false'
-        run: |
-          set -euo pipefail
-          echo "🔄 Primary health check failed, trying Supabase direct heartbeat..."
-          if [ -z "$SUPABASE_HEARTBEAT_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
-            echo "⚠️ Supabase heartbeat not configured; skipping."
-            echo "supabase_ok=false" >> $GITHUB_OUTPUT
-            echo "supabase_reason=not_configured" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          BODY=$(mktemp)
-          CODE_TIME=$(curl -sS -m 30 -o "$BODY" -w "%{http_code} %{time_total}" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            -H "content-type: application/json" \
-            -X POST \
-            -d '{}' \
-            "$SUPABASE_HEARTBEAT_URL")
-          sup_code=$(echo "$CODE_TIME" | awk '{print $1}')
-          sup_time=$(echo "$CODE_TIME" | awk '{print $2}')
-          sup_body=$(cat "$BODY" 2>/dev/null || echo "")
-          rm -f "$BODY"
-          echo "Supabase HTTP Code: $sup_code"
-          echo "Supabase Response Time: ${sup_time}s"
-          echo "Supabase Response (first 400 bytes):"; echo "$sup_body" | head -c 400 || true; echo
-          if [ "$sup_code" = "200" ] && command -v jq >/dev/null 2>&1; then
-            sup_ok=$(echo "$sup_body" | jq -r '.ok // false' 2>/dev/null || echo false)
-            sup_db=$(echo "$sup_body" | jq -r '.database.connected // false' 2>/dev/null || echo false)
-          else
-            sup_ok=false
-            sup_db=false
-          fi
-          echo "supabase_ok=$sup_ok" >> $GITHUB_OUTPUT
-          echo "supabase_db_connected=$sup_db" >> $GITHUB_OUTPUT
-          echo "supabase_response_time=$sup_time" >> $GITHUB_OUTPUT
-          if [ "$sup_code" = "200" ] && [ "$sup_ok" = "true" ] && [ "$sup_db" = "true" ]; then
-            echo "supabase_reason=netlify_issue" >> $GITHUB_OUTPUT
-          elif [ "$sup_code" != "200" ]; then
-            echo "supabase_reason=heartbeat_failed" >> $GITHUB_OUTPUT
-          else
-            echo "supabase_reason=database_issue" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Send Enhanced Alert with Backup Results
-        if: failure() && steps.supabase_check.outcome != 'skipped'
-        run: |
-          echo "🚨 Sending enhanced alert with backup check results..."
-
-          # Determine the root cause based on both checks
-          if [ "${{ steps.supabase_check.outputs.supabase_reason }}" = "netlify_issue" ]; then
-            severity="warning"
-            message="Netlify function layer issue detected - Database is accessible via Supabase but not through Netlify functions"
-            root_cause="netlify_layer"
-          elif [ "${{ steps.supabase_check.outputs.supabase_reason }}" = "database_issue" ]; then
-            severity="critical"
-            message="Database connectivity issue - Both Netlify and Supabase direct access failing"
-            root_cause="database"
-          else
-            severity="critical" 
-            message="Complete system failure - All monitoring endpoints unreachable"
-            root_cause="complete_failure"
-          fi
-
-          curl -X POST "$ALERT_URL" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"message\": \"$message\",
-              \"severity\": \"$severity\",
-              \"source\": \"github-actions-enhanced-${{ matrix.environment }}\",
-              \"metadata\": {
-                \"root_cause\": \"$root_cause\",
-                \"primary_check\": {
-                  \"http_code\": \"${{ steps.health_check.outputs.http_code }}\",
-                  \"ok\": \"${{ steps.parse_health.outputs.ok }}\",
-                  \"status\": \"${{ steps.parse_health.outputs.status }}\",
-                  \"response_time\": \"${{ steps.health_check.outputs.response_time }}\"
-                },
-                \"backup_check\": {
-                  \"supabase_ok\": \"${{ steps.supabase_check.outputs.supabase_ok }}\",
-                  \"supabase_db_connected\": \"${{ steps.supabase_check.outputs.supabase_db_connected }}\",
-                  \"supabase_response_time\": \"${{ steps.supabase_check.outputs.supabase_response_time }}\",
-                  \"reason\": \"${{ steps.supabase_check.outputs.supabase_reason }}\"
-                },
-                \"environment\": \"${{ matrix.environment }}\",
-                \"workflow_run\": \"${{ github.run_id }}\"
-              }
-            }" || echo "Failed to send enhanced alert"
-
-      - name: Send Alert for Service Down
-        if: steps.health_check.outputs.http_code == '200' && steps.parse_health.outputs.ok == 'false'
-        run: |
-          echo "🚨 Service down detected for ${{ matrix.environment }}"
-
-          # Determine severity based on what's failing
-          if [ "${{ steps.parse_health.outputs.db_connected }}" = "false" ]; then
-            severity="critical"
-            message="Database is disconnected"
-          elif [ "${{ steps.parse_health.outputs.status }}" = "down" ]; then
-            severity="critical"
-            message="Service reports down status"
-          else
-            severity="warning"
-            message="Service reports unhealthy status: ${{ steps.parse_health.outputs.status }}"
-          fi
-
-          # Send alert
-          curl -X POST "$ALERT_URL" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"message\": \"$message\",
-              \"severity\": \"$severity\",
-              \"source\": \"github-actions-${{ matrix.environment }}\",
-              \"metadata\": {
-                \"status\": \"${{ steps.parse_health.outputs.status }}\",
-                \"db_connected\": \"${{ steps.parse_health.outputs.db_connected }}\",
-                \"db_latency\": \"${{ steps.parse_health.outputs.db_latency }}\",
-                \"response_time\": \"${{ steps.health_check.outputs.response_time }}\",
-                \"environment\": \"${{ matrix.environment }}\",
-                \"workflow_run\": \"${{ github.run_id }}\",
-                \"response_body\": ${{ toJson(steps.health_check.outputs.response_body) }}
-              }
-            }" || echo "Failed to send alert"
-
-      - name: Send Alert for Degraded Performance
-        if: steps.health_check.outputs.http_code == '200' && steps.parse_health.outputs.ok == 'true' && steps.parse_health.outputs.status == 'degraded'
-        run: |
-          echo "⚠️ Performance degradation detected for ${{ matrix.environment }}"
-
-          curl -X POST "$ALERT_URL" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"message\": \"Service is responding slowly (DB latency: ${{ steps.parse_health.outputs.db_latency }}ms)\",
-              \"severity\": \"warning\",
-              \"source\": \"github-actions-${{ matrix.environment }}\",
-              \"metadata\": {
-                \"status\": \"${{ steps.parse_health.outputs.status }}\",
-                \"db_latency\": \"${{ steps.parse_health.outputs.db_latency }}\",
-                \"response_time\": \"${{ steps.health_check.outputs.response_time }}\",
-                \"environment\": \"${{ matrix.environment }}\",
-                \"workflow_run\": \"${{ github.run_id }}\"
-              }
-            }" || echo "Failed to send alert"
+            -d "{\"message\": \"Health check failed\", \"severity\": \"critical\", \"source\": \"github-actions\"}" || true
