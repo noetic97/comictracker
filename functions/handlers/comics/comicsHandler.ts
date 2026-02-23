@@ -4,7 +4,7 @@
  * Handles HTTP request/response logic and delegates to services
  */
 
-import { SupabaseClient } from "@supabase/supabase-js";
+import { PrismaClient } from "@prisma/client";
 import { createResponse, createErrorResponse } from "../../utils/cors";
 import {
   queryComics,
@@ -12,20 +12,27 @@ import {
   updateComic,
   toggleComicField,
   deleteComic,
+  getComicById,
 } from "../../services/comics/comicsService";
 import { ComicQueryOptions } from "../../types/services";
 
 /**
- * Handle GET requests for comics with filtering and pagination
+ * Handle GET requests for comics with filtering and pagination, or single comic by ID
  */
 export const handleGetComics = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
-  queryParams: any
+  queryParams: any,
+  comicId?: string
 ) => {
   try {
+    if (comicId) {
+      const comic = await getComicById(prisma, userId, comicId);
+      if (!comic) return createErrorResponse(404, "Comic not found");
+      return createResponse(200, comic);
+    }
     const result = await queryComics(
-      supabase,
+      prisma,
       userId,
       queryParams as ComicQueryOptions
     );
@@ -40,12 +47,12 @@ export const handleGetComics = async (
  * Handle POST requests for creating comics
  */
 export const handleCreateComic = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   body: any
 ) => {
   try {
-    const newComic = await createComic(supabase, userId, body);
+    const newComic = await createComic(prisma, userId, body);
     return createResponse(201, newComic);
   } catch (error: any) {
     console.error("Create comic error:", error);
@@ -66,13 +73,13 @@ export const handleCreateComic = async (
  * Handle PUT requests for updating comics
  */
 export const handleUpdateComic = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   comicId: string,
   body: any
 ) => {
   try {
-    const updatedComic = await updateComic(supabase, userId, comicId, body);
+    const updatedComic = await updateComic(prisma, userId, comicId, body);
     return createResponse(200, updatedComic);
   } catch (error: any) {
     console.error("Update comic error:", error);
@@ -89,7 +96,7 @@ export const handleUpdateComic = async (
  * Handle PATCH requests for toggle operations (collect/grail)
  */
 export const handleToggleAction = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   comicId: string,
   action: string
@@ -109,7 +116,7 @@ export const handleToggleAction = async (
     }
 
     const updatedComic = await toggleComicField(
-      supabase,
+      prisma,
       userId,
       comicId,
       field
@@ -130,12 +137,12 @@ export const handleToggleAction = async (
  * Handle DELETE requests for deleting comics
  */
 export const handleDeleteComic = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   comicId: string
 ) => {
   try {
-    await deleteComic(supabase, userId, comicId);
+    await deleteComic(prisma, userId, comicId);
     return createResponse(204, null);
   } catch (error: any) {
     console.error("Delete comic error:", error);

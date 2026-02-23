@@ -44,3 +44,7 @@ supabase/.temp
 # test results folder
 client/coverage
 tsconfig.tsbuildinfo
+
+# SQLite
+prisma/*.db
+prisma/*.db-journal

@@ -224,10 +224,17 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
               )}
             </S.ComicTitle>
             <S.ComicMeta data-sc="ComicMeta">
-              <span>Years: {comic.years}</span>
-              <S.ComicValue>
-                ${comic.currentValue?.toLocaleString()}
-              </S.ComicValue>
+              {comic.grade != null && (
+                <span>Grade: {comic.grade}</span>
+              )}
+              {comic.pricePaid != null && (
+                <span>Paid: ${comic.pricePaid.toLocaleString()}</span>
+              )}
+              {comic.currentValue != null && (
+                <S.ComicValue>
+                  Value: ${comic.currentValue.toLocaleString()}
+                </S.ComicValue>
+              )}
             </S.ComicMeta>
           </S.ComicInfo>
           <S.ComicActions>

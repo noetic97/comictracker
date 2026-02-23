@@ -61,7 +61,8 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
     currentPage,
     itemsPerPage,
     true, // always enabled for detail view
-    { filterOption, search: searchFilter, sortBy } // pass global filters
+    // In series detail always sort by issue number so all issues appear in order (e.g. 538, 539, 540)
+    { filterOption, search: searchFilter, sortBy: "issueNumber" }
   );
 
   // Fetch series-specific stats using the same filters
@@ -283,6 +284,7 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
           publisher={publisher}
           series={series}
           volume={volume}
+          seriesYears={sortedComics[0]?.years}
           isFavorite={isFavorite}
           onToggleFavorite={onToggleFavorite}
           onBack={onBack}

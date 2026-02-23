@@ -1,17 +1,20 @@
 /**
  * Comics Service - Core data access layer for comic CRUD operations
- * Extracted from functions/comics.ts for better separation of concerns
+ * Uses Prisma (SQLite) instead of Supabase.
  */
 
-import { SupabaseClient } from "@supabase/supabase-js";
+import { PrismaClient } from "@prisma/client";
 import { validateComic, transformComicOutput } from "./validationService";
 import { ComicQueryOptions, ComicQueryResult } from "../../types/services";
+
+type ComicWhere = Parameters<PrismaClient["comic"]["findMany"]>[0]["where"];
+type ComicOrderBy = Parameters<PrismaClient["comic"]["findMany"]>[0]["orderBy"];
 
 /**
  * Get comics with filtering, pagination, and sorting
  */
 export const queryComics = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   options: ComicQueryOptions = {}
 ): Promise<ComicQueryResult> => {
@@ -44,301 +47,112 @@ export const queryComics = async (
     `📋 Getting comics for user ${userId}, page ${pageNum}, limit ${limitNum}`
   );
 
-  // Base query with user filter
-  let query = supabase
-    .from("comics")
-    .select("*", { count: "exact" })
-    .eq("user_id", userId);
+  const andClauses: ComicWhere[] = [];
 
-  // Apply filters
-  query = applyComicFilters(query, {
-    publisher,
-    series,
-    volume,
-    collected,
-    isGrail,
-    signed,
-    grade,
-    storageLocation,
-    search,
-    exact,
-  });
-
-  // Handle favorite series filter
+  // Favorite series filter: restrict to (publisher, series, volume) in user's favorites
   if (favoriteSeriesOnly === "true") {
-    const favoritesQuery = await buildFavoriteSeriesFilter(supabase, userId);
-    if (favoritesQuery === null) {
-      // No favorites found, return empty result
+    const favs = await prisma.favoriteSeries.findMany({
+      where: { userId },
+      select: { publisher: true, series: true, volume: true },
+    });
+    if (favs.length === 0) {
       return {
         comics: [],
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total: 0,
-          pages: 0,
-        },
+        pagination: { page: pageNum, limit: limitNum, total: 0, pages: 0 },
       };
     }
-    // Apply the favorites filter
-    query = query.or(favoritesQuery);
+    andClauses.push({
+      OR: favs.map((f) => ({
+        publisher: f.publisher,
+        series: f.series,
+        volume: f.volume ?? "",
+      })),
+    });
   }
 
-  // Apply ordering
-  query = applyComicOrdering(query, order);
-
-  // Apply pagination
-  query = query.range(offsetNum, offsetNum + limitNum - 1);
-
-  const { data: comics, error, count } = await query;
-
-  if (error) {
-    console.error("Supabase query error:", error);
-    throw new Error(`Database error: ${error.message}`);
+  if (search) {
+    andClauses.push({
+      OR: [
+        { publisher: { contains: search } },
+        { series: { contains: search } },
+        { issue: { contains: search } },
+      ],
+    });
   }
 
-  // Transform comics for frontend
-  const transformedComics = (comics || []).map(transformComicOutput);
+  const where: ComicWhere = { userId };
+  if (andClauses.length) {
+    where.AND = andClauses;
+  }
 
-  console.log(`✅ Found ${transformedComics.length} comics (${count} total)`);
+  // Apply filters
+  if (publisher) {
+    if (exact === "true") {
+      where.publisher = publisher;
+    } else {
+      where.publisher = { contains: publisher };
+    }
+  }
+  if (series) {
+    if (exact === "true") {
+      where.series = series;
+    } else {
+      where.series = { contains: series };
+    }
+  }
+  if (volume) {
+    if (exact === "true") {
+      where.volume = volume;
+    } else {
+      where.volume = { contains: volume };
+    }
+  }
+  if (collected === "true") where.collected = true;
+  if (collected === "false") where.collected = false;
+  if (isGrail === "true") where.isGrail = true;
+  if (signed === "true") where.signed = true;
+  if (grade) where.grade = grade;
+  if (storageLocation) {
+    where.storageLocation = { contains: storageLocation };
+  }
+
+  const orderBy = buildOrderBy(order);
+
+  const [comics, total] = await Promise.all([
+    prisma.comic.findMany({
+      where,
+      orderBy,
+      skip: offsetNum,
+      take: limitNum,
+    }),
+    prisma.comic.count({ where }),
+  ]);
+
+  const transformedComics = comics.map((c) =>
+    transformComicOutput({ ...c, user_id: c.userId })
+  );
+
+  console.log(`✅ Found ${transformedComics.length} comics (${total} total)`);
 
   return {
     comics: transformedComics,
     pagination: {
       page: pageNum,
       limit: limitNum,
-      total: count || 0,
-      pages: Math.ceil((count || 0) / limitNum),
+      total,
+      pages: Math.ceil(total / limitNum),
     },
   };
 };
 
-/**
- * Create a new comic
- */
-export const createComic = async (
-  supabase: SupabaseClient,
-  userId: string,
-  comicData: any
-): Promise<any> => {
-  const validation = validateComic(comicData);
+function buildOrderBy(order?: string): ComicOrderBy {
+  const defaultOrder: ComicOrderBy = [
+    { series: "asc" },
+    { issueNumber: "asc" },
+    { id: "asc" },
+  ];
+  if (!order) return defaultOrder;
 
-  if (!validation.isValid) {
-    throw new Error(`Validation failed: ${validation.errors.join(", ")}`);
-  }
-
-  // Add user_id (snake_case in DB) to the validated data
-  const dataWithUserId = {
-    ...validation.data,
-    user_id: userId,
-  };
-
-  const { data: newComic, error: createError } = await supabase
-    .from("comics")
-    .insert([dataWithUserId])
-    .select()
-    .single();
-
-  if (createError) {
-    console.error("Create comic error:", createError);
-    throw new Error(`Failed to create comic: ${createError.message}`);
-  }
-
-  return transformComicOutput(newComic);
-};
-
-/**
- * Update a comic
- */
-export const updateComic = async (
-  supabase: SupabaseClient,
-  userId: string,
-  comicId: string,
-  updates: any
-): Promise<any> => {
-  const { data: updatedComic, error: updateError } = await supabase
-    .from("comics")
-    .update(updates)
-    .eq("id", comicId)
-    .eq("user_id", userId)
-    .select()
-    .single();
-
-  if (updateError) {
-    console.error("Update comic error:", updateError);
-    throw new Error(`Failed to update comic: ${updateError.message}`);
-  }
-
-  return transformComicOutput(updatedComic);
-};
-
-/**
- * Toggle a comic's boolean field (collected, isGrail)
- */
-export const toggleComicField = async (
-  supabase: SupabaseClient,
-  userId: string,
-  comicId: string,
-  field: "collected" | "isGrail"
-): Promise<any> => {
-  console.log(`🔄 Toggling ${field} for comic ${comicId} (user ${userId})`);
-
-  // Get the comic first
-  const { data: comic, error: fetchError } = await supabase
-    .from("comics")
-    .select("*")
-    .eq("id", comicId)
-    .eq("user_id", userId)
-    .single();
-
-  if (fetchError || !comic) {
-    console.error("Fetch comic error:", fetchError);
-    throw new Error("Comic not found");
-  }
-
-  // Build update data
-  const updateData: any = {};
-  if (field === "collected") {
-    updateData.collected = !comic.collected;
-  } else if (field === "isGrail") {
-    updateData.isGrail = !comic.isGrail;
-  } else {
-    throw new Error(`Invalid field: ${field}. Use 'collected' or 'isGrail'`);
-  }
-
-  const { data: updatedComic, error: updateError } = await supabase
-    .from("comics")
-    .update(updateData)
-    .eq("id", comicId)
-    .eq("user_id", userId)
-    .select()
-    .single();
-
-  if (updateError) {
-    console.error("Toggle comic error:", updateError);
-    throw new Error(`Failed to toggle ${field}: ${updateError.message}`);
-  }
-
-  return transformComicOutput(updatedComic);
-};
-
-/**
- * Delete a comic
- */
-export const deleteComic = async (
-  supabase: SupabaseClient,
-  userId: string,
-  comicId: string
-): Promise<void> => {
-  const { error: deleteError } = await supabase
-    .from("comics")
-    .delete()
-    .eq("id", comicId)
-    .eq("user_id", userId);
-
-  if (deleteError) {
-    console.error("Delete comic error:", deleteError);
-    throw new Error(`Failed to delete comic: ${deleteError.message}`);
-  }
-};
-
-// Helper functions
-
-/**
- * Apply common filters to a comic query
- */
-const applyComicFilters = (query: any, filters: any) => {
-  const {
-    publisher,
-    series,
-    volume,
-    collected,
-    isGrail,
-    signed,
-    grade,
-    storageLocation,
-    search,
-    exact,
-  } = filters;
-
-  if (publisher) {
-    if (exact === "true") {
-      query = query.eq("publisher", publisher);
-    } else {
-      query = query.ilike("publisher", `%${publisher}%`);
-    }
-  }
-
-  if (series) {
-    if (exact === "true") {
-      query = query.eq("series", series);
-    } else {
-      query = query.ilike("series", `%${series}%`);
-    }
-  }
-
-  if (volume) {
-    if (exact === "true") {
-      query = query.eq("volume", volume);
-    } else {
-      query = query.ilike("volume", `%${volume}%`);
-    }
-  }
-
-  if (collected === "true") query = query.eq("collected", true);
-  if (collected === "false") query = query.eq("collected", false);
-  if (isGrail === "true") query = query.eq("isGrail", true);
-  if (signed === "true") query = query.eq("signed", true);
-  if (grade) query = query.eq("grade", grade);
-  if (storageLocation) {
-    query = query.ilike("storageLocation", `%${storageLocation}%`);
-  }
-
-  if (search) {
-    query = query.or(
-      `publisher.ilike.%${search}%,series.ilike.%${search}%,issue.ilike.%${search}%`
-    );
-  }
-
-  return query;
-};
-
-/**
- * Build favorite series filter expression (without modifying query)
- */
-const buildFavoriteSeriesFilter = async (
-  supabase: SupabaseClient,
-  userId: string
-): Promise<string | null> => {
-  const { data: favs, error: favErr } = await supabase
-    .from("favorite_series")
-    .select("publisher, series, volume")
-    .eq("user_id", userId);
-
-  if (favErr) {
-    console.error("Favorites fetch error:", favErr);
-    throw new Error(`Failed to load favorites: ${favErr.message}`);
-  }
-
-  if (!favs || favs.length === 0) {
-    return null; // Signal no favorites
-  }
-
-  // Build OR expression of favored series (publisher/series[/volume])
-  const groups = favs.map((f: any) => {
-    const parts = [`publisher.eq.${f.publisher}`, `series.eq.${f.series}`];
-    if (f.volume && String(f.volume).length > 0) {
-      parts.push(`volume.eq.${f.volume}`);
-    }
-    return `and(${parts.join(",")})`;
-  });
-
-  return groups.join(",");
-};
-
-/**
- * Apply ordering to comic query
- */
-const applyComicOrdering = (query: any, order?: string) => {
   const whitelist = new Set([
     "series",
     "publisher",
@@ -352,24 +166,115 @@ const applyComicOrdering = (query: any, order?: string) => {
     "isGrail",
     "id",
   ]);
-
-  if (!order) {
-    // Default ordering: series → issue number → id
-    return query
-      .order("series", { ascending: true })
-      .order("issueNumber", { ascending: true })
-      .order("id", { ascending: true });
-  }
-
   const parts = order.split(",").map((s) => s.trim());
+  const out: ComicOrderBy = [];
   for (const part of parts) {
     const [col, dir] = part.split(".");
     if (whitelist.has(col)) {
-      query = query.order(col, {
-        ascending: (dir ?? "asc") === "asc",
-      });
+      out.push({ [col]: (dir ?? "asc") === "asc" ? "asc" : "desc" });
     }
   }
+  return out.length ? out : defaultOrder;
+}
 
-  return query;
+/**
+ * Create a new comic
+ */
+export const createComic = async (
+  prisma: PrismaClient,
+  userId: string,
+  comicData: any
+): Promise<any> => {
+  const validation = validateComic(comicData);
+  if (!validation.isValid) {
+    throw new Error(`Validation failed: ${validation.errors.join(", ")}`);
+  }
+
+  const data = validation.data as any;
+  const newComic = await prisma.comic.create({
+    data: {
+      ...data,
+      userId,
+    },
+  });
+  return transformComicOutput({ ...newComic, user_id: newComic.userId });
+};
+
+/**
+ * Update a comic
+ */
+export const updateComic = async (
+  prisma: PrismaClient,
+  userId: string,
+  comicId: string,
+  updates: any
+): Promise<any> => {
+  const updatedComic = await prisma.comic.updateMany({
+    where: { id: comicId, userId },
+    data: updates,
+  });
+  if (updatedComic.count === 0) {
+    throw new Error("Comic not found");
+  }
+  const comic = await prisma.comic.findUniqueOrThrow({
+    where: { id: comicId, userId },
+  });
+  return transformComicOutput({ ...comic, user_id: comic.userId });
+};
+
+/**
+ * Toggle a comic's boolean field (collected, isGrail)
+ */
+export const toggleComicField = async (
+  prisma: PrismaClient,
+  userId: string,
+  comicId: string,
+  field: "collected" | "isGrail"
+): Promise<any> => {
+  const comic = await prisma.comic.findFirst({
+    where: { id: comicId, userId },
+  });
+  if (!comic) throw new Error("Comic not found");
+
+  const updateData: any =
+    field === "collected"
+      ? { collected: !comic.collected }
+      : { isGrail: !comic.isGrail };
+
+  const updated = await prisma.comic.update({
+    where: { id: comicId },
+    data: updateData,
+  });
+  return transformComicOutput({ ...updated, user_id: updated.userId });
+};
+
+/**
+ * Delete a comic
+ */
+export const deleteComic = async (
+  prisma: PrismaClient,
+  userId: string,
+  comicId: string
+): Promise<void> => {
+  const result = await prisma.comic.deleteMany({
+    where: { id: comicId, userId },
+  });
+  if (result.count === 0) {
+    throw new Error(`Failed to delete comic: Comic not found`);
+  }
+};
+
+/**
+ * Get a single comic by ID
+ */
+export const getComicById = async (
+  prisma: PrismaClient,
+  userId: string,
+  comicId: string
+): Promise<any | null> => {
+  const comic = await prisma.comic.findFirst({
+    where: { id: comicId, userId },
+  });
+  if (!comic) return null;
+  return transformComicOutput({ ...comic, user_id: comic.userId });
 };

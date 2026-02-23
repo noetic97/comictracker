@@ -4,7 +4,7 @@
  * Handles HTTP request/response logic and delegates to services
  */
 
-import { SupabaseClient } from "@supabase/supabase-js";
+import { PrismaClient } from "@prisma/client";
 import { createResponse, createErrorResponse } from "../../utils/cors";
 import {
   processBulkImport,
@@ -17,14 +17,13 @@ import { BulkImportOptions } from "../../types/services";
  * Handle POST requests for bulk comic imports
  */
 export const handleBulkImport = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   body: any
 ) => {
   try {
     const { comics: comicsToCreate, options = {} } = body;
 
-    // Validate request body
     if (!Array.isArray(comicsToCreate)) {
       return createErrorResponse(
         400,
@@ -41,10 +40,9 @@ export const handleBulkImport = async (
     }
 
     console.log(
-      `📦 Bulk import requested: ${comicsToCreate.length} comics for user ${userId}`
+      `📦 [BULK] Import requested: ${comicsToCreate.length} comics for user ${userId} (using createMany, not upsert)`
     );
 
-    // Set default options
     const importOptions: BulkImportOptions = {
       validateComics: true,
       skipDuplicates: true,
@@ -52,9 +50,8 @@ export const handleBulkImport = async (
       ...options,
     };
 
-    // Process the bulk import
     const result = await processBulkImport(
-      supabase,
+      prisma,
       userId,
       comicsToCreate,
       importOptions
@@ -62,9 +59,12 @@ export const handleBulkImport = async (
 
     return createResponse(201, result);
   } catch (error: any) {
-    console.error("Bulk import error:", error);
+    console.error("Bulk import error:", error?.message ?? error);
+    console.error("Bulk import error stack:", error?.stack);
+    if (error?.meta) console.error("Bulk import error meta:", error.meta);
+    if (error?.code) console.error("Bulk import error code:", error.code);
 
-    if (error.message.includes("Validation failed")) {
+    if (error?.message?.includes("Validation failed")) {
       return createResponse(422, {
         error: "Validation failed",
         errors: error.message.split(": ")[1]?.split(", ") || [error.message],
@@ -84,7 +84,7 @@ export const handleBulkImport = async (
  * Future implementation for bulk status changes, bulk edits, etc.
  */
 export const handleBulkUpdate = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   body: any
 ) => {
@@ -102,7 +102,7 @@ export const handleBulkUpdate = async (
       `🔄 Bulk update requested: ${updates.length} updates for user ${userId}`
     );
 
-    const result = await processBulkUpdate(supabase, userId, updates);
+    const result = await processBulkUpdate(prisma, userId, updates);
     return createResponse(200, result);
   } catch (error: any) {
     console.error("Bulk update error:", error);
@@ -120,7 +120,7 @@ export const handleBulkUpdate = async (
  * Future implementation for clearing collections, deleting by criteria, etc.
  */
 export const handleBulkDelete = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userId: string,
   body: any
 ) => {
@@ -136,7 +136,7 @@ export const handleBulkDelete = async (
 
     console.log(`🗑️ Bulk delete requested for user ${userId}:`, criteria);
 
-    const result = await processBulkDelete(supabase, userId, criteria);
+    const result = await processBulkDelete(prisma, userId, criteria);
     return createResponse(200, result);
   } catch (error: any) {
     console.error("Bulk delete error:", error);
@@ -154,8 +154,8 @@ export const handleBulkDelete = async (
  * Future implementation for tracking long-running bulk operations
  */
 export const handleBulkStatus = async (
-  supabase: SupabaseClient,
-  userId: string,
+  _prisma: PrismaClient,
+  _userId: string,
   operationId: string
 ) => {
   try {

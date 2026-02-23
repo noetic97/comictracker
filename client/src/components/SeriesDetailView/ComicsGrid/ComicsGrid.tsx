@@ -56,12 +56,21 @@ const ComicsGrid: React.FC<ComicsGridProps> = ({
           </S.ComicHeader>
 
           <S.CompactComicDetails>
-            <S.ComicMetaLine>
-              <span>{comic.years}</span>
-              <S.ComicValue>
-                ${comic.currentValue?.toLocaleString()}
-              </S.ComicValue>
-            </S.ComicMetaLine>
+            {(comic.grade != null || comic.pricePaid != null || comic.currentValue != null) && (
+              <S.ComicMetaLine>
+                {comic.grade != null && (
+                  <S.ComicMetaItem>Grade: {comic.grade}</S.ComicMetaItem>
+                )}
+                {comic.pricePaid != null && (
+                  <S.ComicMetaItem>Paid: ${comic.pricePaid.toLocaleString()}</S.ComicMetaItem>
+                )}
+                {comic.currentValue != null && (
+                  <S.ComicValue>
+                    Value: ${comic.currentValue.toLocaleString()}
+                  </S.ComicValue>
+                )}
+              </S.ComicMetaLine>
+            )}
           </S.CompactComicDetails>
         </S.CompactComicCard>
       ))}

@@ -4,7 +4,7 @@
  * Handles HTTP request/response logic and delegates to services
  */
 
-import { SupabaseClient } from "@supabase/supabase-js";
+import { PrismaClient } from "@prisma/client";
 import { createResponse, createErrorResponse } from "../../utils/cors";
 import {
   clearAllDatabaseData,
@@ -19,12 +19,11 @@ import { UserContext } from "../../types/handlers";
  * TODO: Add support for user-specific clearing when multi-user is implemented
  */
 export const handleClearDatabase = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userContext: UserContext,
   queryParams: any = {}
 ) => {
   try {
-    // Verify admin permissions
     if (!userContext.isAdmin) {
       return createErrorResponse(
         403,
@@ -34,17 +33,13 @@ export const handleClearDatabase = async (
 
     console.log("🗑️ Admin clear database requested by:", userContext.email);
 
-    // Check for future multi-user safety parameter
-    const confirmGlobalDelete = queryParams?.confirmGlobalDelete;
     const userOnly = queryParams?.userOnly;
 
     if (userOnly === "true") {
-      // Future: Clear only user's data (safer for multi-user)
-      const result = await clearUserData(supabase, userContext.userId);
+      const result = await clearUserData(prisma, userContext.userId);
       return createResponse(200, result);
     } else {
-      // Current: Clear all data (single-tenant mode)
-      const result = await clearAllDatabaseData(supabase);
+      const result = await clearAllDatabaseData(prisma);
       return createResponse(200, result);
     }
   } catch (error: any) {
@@ -58,11 +53,10 @@ export const handleClearDatabase = async (
  * Future enhancement: Could be useful for admin dashboard
  */
 export const handleGetDatabaseStats = async (
-  supabase: SupabaseClient,
+  prisma: PrismaClient,
   userContext: UserContext
 ) => {
   try {
-    // Verify admin permissions
     if (!userContext.isAdmin) {
       return createErrorResponse(
         403,
@@ -70,7 +64,7 @@ export const handleGetDatabaseStats = async (
       );
     }
 
-    const counts = await getDatabaseCounts(supabase);
+    const counts = await getDatabaseCounts(prisma);
 
     return createResponse(200, {
       counts,

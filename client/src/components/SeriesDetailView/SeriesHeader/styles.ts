@@ -54,3 +54,11 @@ export const CompactPublisher = styled.h2`
   font-weight: normal;
   opacity: 0.9;
 `;
+
+export const CompactSeriesYears = styled.span`
+  display: block;
+  font-size: 0.875rem;
+  margin: 0.25rem 0 0 0;
+  color: ${({ theme }) => theme.colors.foreground};
+  opacity: 0.85;
+`;

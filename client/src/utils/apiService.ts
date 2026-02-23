@@ -2,7 +2,7 @@ import { Comic, FavoriteSeries } from "../types";
 import { debugFetch, apiDebugger } from "./apiDebugger";
 import { logger } from "./logger";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/.netlify/functions";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
 const createApiError = (
   status: number,

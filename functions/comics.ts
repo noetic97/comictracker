@@ -3,9 +3,8 @@
  * Delegates business logic to handlers and services
  */
 
-import { Handler } from "@netlify/functions";
-import { handleCors, createErrorResponse } from "./utils/cors";
-import { withSupabaseRLS } from "./utils/supabase";
+import { handleCors, createErrorResponse, HandlerResponse } from "./utils/cors";
+import { withPrisma } from "./utils/db";
 import {
   getComicStats,
   getPublisherSummaries,
@@ -47,7 +46,7 @@ const parseComicRoute = (path: string) => {
 /**
  * Main handler - routing only
  */
-export const handler: Handler = async (event) => {
+export const handler = async (event: any): Promise<HandlerResponse> => {
   const corsResponse = handleCors(event);
   if (corsResponse) return corsResponse;
 
@@ -57,11 +56,11 @@ export const handler: Handler = async (event) => {
 
     console.log(`📡 Comics API: ${httpMethod} ${path}`);
 
-    return await withSupabaseRLS(event, async (supabase, userContext) => {
+    return await withPrisma(event, async (prisma, userContext) => {
       // Handle aggregation endpoints using services
       if (route.isStats && httpMethod === "GET") {
         return await getComicStats(
-          supabase,
+          prisma,
           userContext.userId,
           event.queryStringParameters
         );
@@ -69,7 +68,7 @@ export const handler: Handler = async (event) => {
 
       if (route.isPublishers && httpMethod === "GET") {
         return await getPublisherSummaries(
-          supabase,
+          prisma,
           userContext.userId,
           event.queryStringParameters
         );
@@ -77,7 +76,7 @@ export const handler: Handler = async (event) => {
 
       if (route.isSeries && httpMethod === "GET") {
         return await getSeriesSummaries(
-          supabase,
+          prisma,
           userContext.userId,
           event.queryStringParameters
         );
@@ -91,16 +90,17 @@ export const handler: Handler = async (event) => {
         } catch {
           return createErrorResponse(400, "Invalid JSON body");
         }
-        return await handleBulkImport(supabase, userContext.userId, body);
+        return await handleBulkImport(prisma, userContext.userId, body);
       }
 
       // Handle regular CRUD operations using handlers
       switch (httpMethod) {
         case "GET":
           return await handleGetComics(
-            supabase,
+            prisma,
             userContext.userId,
-            event.queryStringParameters
+            event.queryStringParameters,
+            route.comicId
           );
 
         case "POST":
@@ -110,7 +110,7 @@ export const handler: Handler = async (event) => {
           } catch {
             return createErrorResponse(400, "Invalid JSON body");
           }
-          return await handleCreateComic(supabase, userContext.userId, body);
+          return await handleCreateComic(prisma, userContext.userId, body);
 
         case "PATCH":
           if (!route.comicId) {
@@ -120,7 +120,7 @@ export const handler: Handler = async (event) => {
             );
           }
           return await handleToggleAction(
-            supabase,
+            prisma,
             userContext.userId,
             route.comicId,
             route.action || ""
@@ -140,7 +140,7 @@ export const handler: Handler = async (event) => {
             return createErrorResponse(400, "Invalid JSON body");
           }
           return await handleUpdateComic(
-            supabase,
+            prisma,
             userContext.userId,
             route.comicId,
             updateBody
@@ -154,7 +154,7 @@ export const handler: Handler = async (event) => {
             );
           }
           return await handleDeleteComic(
-            supabase,
+            prisma,
             userContext.userId,
             route.comicId
           );
