@@ -45,6 +45,8 @@ supabase/.temp
 client/coverage
 tsconfig.tsbuildinfo
 
-# SQLite
+# SQLite (dev-comics.db, prod-comics.db, etc.)
 prisma/*.db
+prisma/**/*.db
 prisma/*.db-journal
+prisma/**/*.db-journal

@@ -31,6 +31,14 @@ Comic Tracker is a web application designed to help comic book enthusiasts manag
 - **Progressive Web App:**
   - Custom Service Worker
 
+## Authentication and data access
+
+The app is **single-tenant** with one default user. There is no Row Level Security; all API operations are scoped to that user in application code.
+
+- **Default user:** Created automatically from `DEFAULT_USER_EMAIL` (env or `user@comictracker.local`). See `functions/utils/db.ts` (`ensureDefaultUser`).
+- **Database:** SQLite via Prisma (no Supabase or Postgres).
+- For multi-user later, add auth (e.g. JWT) and pass `userId` from the token; services already take `userId` for all queries.
+
 ## Getting Started
 
 ### Prerequisites
@@ -53,13 +61,15 @@ Comic Tracker is a web application designed to help comic book enthusiasts manag
    npm install
    ```
 
-3. Set up the database (optional; defaults to `file:./prisma/dev.db`):
+3. Set up the database (optional; defaults to `file:./prisma/dev-comics.db`):
 
    ```
    # .env (optional)
-   DATABASE_URL="file:./prisma/dev.db"
+   DATABASE_URL="file:./prisma/dev-comics.db"
    DEFAULT_USER_EMAIL="user@comictracker.local"
    ```
+   For production use a different file (e.g. `file:./prisma/prod-comics.db`) and set `DATABASE_URL` accordingly.  
+   **If you had a DB at `prisma/prisma/dev.db`:** it has been copied to `prisma/dev-comics.db`. After confirming the app works, you can delete the `prisma/prisma` folder.
 
 4. Run database migrations (creates SQLite DB if needed):
 
@@ -84,7 +94,9 @@ npm run build          # builds client to client/dist
 npm run start          # runs API + static server on PORT (default 3001)
 ```
 
-Serve the app at `http://localhost:3001` (or set `PORT`). The server serves the SPA and the API at `/api`.
+Serve the app at `http://localhost:3001` (or set `PORT`). The server serves the SPA from `client/dist` and the API at `/api`.
+
+**Build output:** Only `client/dist` is used (Vite’s output). A root `dist/` folder is not used; you can delete it if present.
 
 ## Exposing with nginx + DuckDNS (optional)
 
@@ -94,6 +106,11 @@ To access the app outside your network:
 2. Point [DuckDNS](https://www.duckdns.org/) at your public IP.
 3. Configure nginx as a reverse proxy to `http://127.0.0.1:3001` (or your `PORT`).
 4. Use HTTPS (e.g. Let's Encrypt) if desired. No code changes required.
+
+## GitHub Actions
+
+- **Health Monitor** (`.github/workflows/health-monitor.yml`): Optional. Runs on a schedule and pings your deployed `/api/health` if you set the `HEALTH_URL` repo secret (e.g. `https://your-duckdns.example.com/api/health`). Optionally set `ALERT_URL` to POST alerts on failure. If neither secret is set, the job is skipped.
+- **Schema drift check**: Removed; it was for comparing against remote Supabase/Postgres. With SQLite + Prisma, the source of truth is `prisma/schema.prisma` and migrations in the repo. Use `npm run db:check-drift` locally against a DB if needed.
 
 ## Usage
 

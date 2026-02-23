@@ -18,7 +18,7 @@ try {
 
 // Default SQLite DB if no DATABASE_URL (so Prisma can connect without .env)
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "file:./prisma/dev.db";
+  process.env.DATABASE_URL = "file:./prisma/dev-comics.db";
 }
 // Resolve relative file: URLs to absolute path so DB opens regardless of cwd
 const dbUrl = process.env.DATABASE_URL;

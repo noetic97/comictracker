@@ -1,5 +1,5 @@
 # Optional: Health check for self-hosted deployment (e.g. behind nginx + DuckDNS).
-# Set HEALTH_URL and ALERT_URL secrets to your deployed /api/health and /api/alerts.
+# Only runs when HEALTH_URL is set in repo secrets. Set HEALTH_URL and optionally ALERT_URL to use.
 
 name: Health Monitor
 

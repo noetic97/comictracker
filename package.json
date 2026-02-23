@@ -10,8 +10,6 @@
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "cd client && npm run dev",
     "dev:server": "tsx watch server/index.ts",
-    "dev:functions": "netlify functions:serve",
-    "dev:netlify": "netlify dev",
     "build": "npm run build:staging",
     "build:staging": "npx prisma generate && cd client && npm run build",
     "build:prod": "npx prisma generate && npx prisma migrate deploy && cd client && npm run build",
@@ -25,16 +23,12 @@
     "db:studio": "npx prisma studio",
     "db:check-grade-pricepaid": "npx tsx scripts/check-grade-pricepaid.ts",
     "db:sync": "npm run db:pull && npm run db:generate",
-    "db:types": "npx supabase gen types typescript --project-id YOUR_PROJECT_ID",
     "db:validate": "npx prisma validate",
-    "netlify:dev": "npx netlify dev",
-    "netlify:build": "npx netlify build",
     "type-check": "tsc --noEmit",
     "test:api": "npm run test:api:health",
     "test:api:health": "curl -s http://localhost:3001/api/health | jq",
     "test:api:comics": "curl -s http://localhost:3001/api/comics?limit=5 | jq",
-    "test:api:favorites": "curl -s http://localhost:3001/api/favorites | jq",
-    "docs:rls": "echo 'See docs/rls-documentation.md for RLS setup instructions'"
+    "test:api:favorites": "curl -s http://localhost:3001/api/favorites | jq"
   },
   "devDependencies": {
     "@prisma/client": "^5.22.0",
