@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Star, Check } from "lucide-react";
+import { Star, Check, Pencil } from "lucide-react";
 import { Comic, FilterOption, SortOption } from "../../../types";
 import {
   useSeriesComics,
@@ -7,6 +7,7 @@ import {
   useComicActions,
 } from "../../../hooks";
 import PaginationControls from "../PaginationControls";
+import EditComicModal from "../../EditComicModal";
 import { logger } from "../../../utils/logger";
 import * as S from "./styles";
 
@@ -38,6 +39,8 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
   onStatsRefresh,
 }) => {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [editComic, setEditComic] = useState<Comic | null>(null);
+  const [openedEditForGrail, setOpenedEditForGrail] = useState(false);
   const {
     comics: serverComics,
     loading,
@@ -150,10 +153,18 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
       if (!result) {
         // Revert on failure
         revertUpdate(id, comic);
+      } else if (result.collected) {
+        setOpenedEditForGrail(false);
+        setEditComic(result);
       }
     },
     [comics, comicActions, applyOptimisticUpdate, revertUpdate, isUpdating]
   );
+
+  const handleOpenEdit = useCallback((c: Comic) => {
+    setOpenedEditForGrail(false);
+    setEditComic(c);
+  }, []);
 
   const handleToggleGrail = useCallback(
     async (id: string) => {
@@ -175,9 +186,30 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
       if (!result) {
         // Revert on failure
         revertUpdate(id, comic);
+      } else if (result.isGrail) {
+        setOpenedEditForGrail(true);
+        setEditComic(result);
       }
     },
     [comics, comicActions, applyOptimisticUpdate, revertUpdate, isUpdating]
+  );
+
+  const handleEditClose = useCallback(() => {
+    if (openedEditForGrail && editComic?.isGrail) {
+      handleToggleGrail(editComic.id);
+    }
+    setEditComic(null);
+    setOpenedEditForGrail(false);
+  }, [openedEditForGrail, editComic, handleToggleGrail]);
+
+  const handleEditSave = useCallback(
+    (updatedComic: Comic) => {
+      updateComic({ ...updatedComic, isGrail: updatedComic.isGrail ?? false });
+      confirmUpdate(updatedComic);
+      setEditComic(null);
+      setOpenedEditForGrail(false);
+    },
+    [confirmUpdate, updateComic]
   );
 
   const totalPages = Math.max(1, Math.ceil(totalIssues / itemsPerPage));
@@ -202,6 +234,12 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
         transition: "opacity 150ms ease",
       }}
     >
+      <EditComicModal
+        isOpen={!!editComic}
+        onClose={handleEditClose}
+        comic={editComic}
+        onSave={handleEditSave}
+      />
       {comics.map((comic) => (
         <S.ComicItem
           key={comic.id}
@@ -238,6 +276,16 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
             </S.ComicMeta>
           </S.ComicInfo>
           <S.ComicActions>
+            <S.ActionButton
+              onClick={() => handleOpenEdit(comic)}
+              disabled={isUpdating(comic.id)}
+              title="Edit details"
+              style={{
+                cursor: isUpdating(comic.id) ? "not-allowed" : "pointer",
+              }}
+            >
+              <Pencil size={16} />
+            </S.ActionButton>
             <S.ActionButton
               onClick={() => handleToggleGrail(comic.id)}
               $isActive={comic.isGrail}

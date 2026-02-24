@@ -1,21 +1,43 @@
-import React from "react";
-import { Star, Check } from "lucide-react";
+import React, { useState, useCallback } from "react";
+import { Star, Check, Pencil } from "lucide-react";
 import { Comic } from "../../../types";
+import GradeScaleModal from "../../GradeScaleModal";
 import * as S from "./styles";
 
 interface ComicsGridProps {
   comics: Comic[];
   onCollect: (id: string) => void;
   onToggleGrail: (id: string) => void;
+  onEdit: (comic: Comic) => void;
 }
 
 const ComicsGrid: React.FC<ComicsGridProps> = ({
   comics,
   onCollect,
   onToggleGrail,
+  onEdit,
 }) => {
+  const [selectedComicForGradeScale, setSelectedComicForGradeScale] = useState<Comic | null>(null);
+
+  const handleValueClick = useCallback((e: React.MouseEvent, comic: Comic) => {
+    e.stopPropagation();
+    setSelectedComicForGradeScale(comic);
+  }, []);
+
+  const handleValueKeyDown = useCallback((e: React.KeyboardEvent, comic: Comic) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setSelectedComicForGradeScale(comic);
+    }
+  }, []);
+
   return (
     <S.GridContainer data-sc="ComicsGrid">
+      <GradeScaleModal
+        isOpen={!!selectedComicForGradeScale}
+        onClose={() => setSelectedComicForGradeScale(null)}
+        comic={selectedComicForGradeScale}
+      />
       {comics.map((comic) => (
         <S.CompactComicCard
           key={comic.id}
@@ -30,6 +52,12 @@ const ComicsGrid: React.FC<ComicsGridProps> = ({
                 <S.TypeBadge $type={comic.type}>{comic.type}</S.TypeBadge>
               )}
               <S.ComicActions>
+                <S.ActionButton
+                  onClick={() => onEdit(comic)}
+                  title="Edit details"
+                >
+                  <Pencil size={16} />
+                </S.ActionButton>
                 <S.ActionButton
                   onClick={() => onToggleGrail(comic.id)}
                   $isActive={comic.isGrail}
@@ -65,9 +93,16 @@ const ComicsGrid: React.FC<ComicsGridProps> = ({
                   <S.ComicMetaItem>Paid: ${comic.pricePaid.toLocaleString()}</S.ComicMetaItem>
                 )}
                 {comic.currentValue != null && (
-                  <S.ComicValue>
+                  <S.ComicValueButton
+                    type="button"
+                    onClick={(e) => handleValueClick(e, comic)}
+                    onKeyDown={(e) => handleValueKeyDown(e, comic)}
+                    role="button"
+                    tabIndex={0}
+                    title="View estimated pricing by grade"
+                  >
                     Value: ${comic.currentValue.toLocaleString()}
-                  </S.ComicValue>
+                  </S.ComicValueButton>
                 )}
               </S.ComicMetaLine>
             )}

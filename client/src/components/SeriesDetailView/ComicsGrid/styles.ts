@@ -24,7 +24,8 @@ export const CompactComicCard = styled.div<{
   $collected: boolean;
   $isGrail?: boolean;
 }>`
-  background-color: ${({ theme }) => theme.colors.card};
+  background-color: ${({ theme, $collected, $isGrail }) =>
+    $isGrail ? theme.colors.card : $collected ? `${theme.colors.primary}14` : theme.colors.card};
   border-radius: var(--radius);
   padding: 0.75rem;
   transition: all 0.3s ease;
@@ -232,4 +233,27 @@ export const ComicMetaItem = styled.span`
 export const ComicValue = styled.span`
   font-weight: bold;
   color: ${({ theme }) => theme.colors.accent};
+`;
+
+export const ComicValueButton = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: bold;
+  color: ${({ theme }) => theme.colors.accent};
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    opacity: 0.9;
+    text-decoration-thickness: 2px;
+  }
+
+  &:focus {
+    outline: 2px solid ${({ theme }) => theme.colors.primary};
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 `;

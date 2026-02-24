@@ -11,6 +11,7 @@ import SeriesHeader from "./SeriesHeader";
 import CollapsibleStatsSection from "./CollapsibleStatsSection";
 import ViewControls from "./ViewControls";
 import ComicsGrid from "./ComicsGrid";
+import EditComicModal from "../EditComicModal";
 import * as S from "./styles";
 
 interface SeriesDetailViewProps {
@@ -46,6 +47,8 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isStatsCollapsed, setIsStatsCollapsed] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [editComic, setEditComic] = useState<Comic | null>(null);
+  const [openedEditForGrail, setOpenedEditForGrail] = useState(false);
 
   // Use hooks to fetch series-specific data
   const {
@@ -190,10 +193,18 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
       if (!result) {
         // Revert on failure
         revertUpdate(id, comic);
+      } else if (result.collected) {
+        setOpenedEditForGrail(false);
+        setEditComic(result);
       }
     },
     [comics, comicActions, applyOptimisticUpdate, revertUpdate, isUpdating]
   );
+
+  const handleOpenEdit = useCallback((c: Comic) => {
+    setOpenedEditForGrail(false);
+    setEditComic(c);
+  }, []);
 
   const handleToggleGrail = useCallback(
     async (id: string) => {
@@ -215,9 +226,30 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
       if (!result) {
         // Revert on failure
         revertUpdate(id, comic);
+      } else if (result.isGrail) {
+        setOpenedEditForGrail(true);
+        setEditComic(result);
       }
     },
     [comics, comicActions, applyOptimisticUpdate, revertUpdate, isUpdating]
+  );
+
+  const handleEditClose = useCallback(() => {
+    if (openedEditForGrail && editComic?.isGrail) {
+      handleToggleGrail(editComic.id);
+    }
+    setEditComic(null);
+    setOpenedEditForGrail(false);
+  }, [openedEditForGrail, editComic, handleToggleGrail]);
+
+  const handleEditSave = useCallback(
+    (updatedComic: Comic) => {
+      updateComic({ ...updatedComic, isGrail: updatedComic.isGrail ?? false });
+      confirmUpdate(updatedComic);
+      setEditComic(null);
+      setOpenedEditForGrail(false);
+    },
+    [confirmUpdate, updateComic]
   );
 
   // Sort comics (keep existing sorting logic)
@@ -308,6 +340,12 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
           onCurrentPageReset={() => setCurrentPage(1)}
         />
       </S.CompactHeader>
+      <EditComicModal
+        isOpen={!!editComic}
+        onClose={handleEditClose}
+        comic={editComic}
+        onSave={handleEditSave}
+      />
       <div
         style={{
           opacity: isTransitioning ? 0.7 : 1,
@@ -315,12 +353,10 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
         }}
       >
         <ComicsGrid
-          // key={`${publisher}|${series}|${
-          //   volume || ""
-          // }|${filterOption}|${searchFilter}|${itemsPerPage}`}
           comics={sortedComics}
           onCollect={handleCollect}
           onToggleGrail={handleToggleGrail}
+          onEdit={handleOpenEdit}
         />
       </div>
 

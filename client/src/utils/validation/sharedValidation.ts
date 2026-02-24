@@ -5,6 +5,7 @@
  */
 
 import { Comic } from "../../types/comic";
+import { matchGradeFromInput } from "../gradeScale";
 
 // Re-export types that can be safely shared
 export interface ComicValidationOptions {
@@ -322,76 +323,21 @@ export const validateComicFields = (rawData: any): ComicValidationResult => {
     return isNaN(parsed.getTime()) ? null : parsed;
   };
 
-  // Grade validation with common formats
-  const COMMON_GRADES = new Set([
-    "10.0",
-    "9.9",
-    "9.8",
-    "9.6",
-    "9.4",
-    "9.2",
-    "9.0",
-    "8.5",
-    "8.0",
-    "7.5",
-    "7.0",
-    "6.5",
-    "6.0",
-    "5.5",
-    "5.0",
-    "4.5",
-    "4.0",
-    "3.5",
-    "3.0",
-    "2.5",
-    "2.0",
-    "1.8",
-    "1.5",
-    "1.0",
-    "0.5",
-    "NM",
-    "VF",
-    "FN",
-    "VG",
-    "GD",
-    "FR",
-    "PR",
-    "NM+",
-    "NM-",
-    "VF+",
-    "VF-",
-    "FN+",
-    "FN-",
-    "VG+",
-    "VG-",
-    "GD+",
-    "GD-",
-    "NM/M",
-    "VF/NM",
-  ]);
-
+  // Grade: only allow values that match pricing scale; discard and report if not
   const validateGrade = (
     input: any
   ): { value: string | null; warning?: string } => {
     if (!input || input === "" || input === "null" || input === "N/A") {
       return { value: null };
     }
-
     const gradeStr = String(input).trim();
-    if (gradeStr.length === 0) {
-      return { value: null };
-    }
-
-    // Check if it's a common format, warn if not
-    const upperGrade = gradeStr.toUpperCase();
-    if (!COMMON_GRADES.has(upperGrade)) {
-      return {
-        value: gradeStr,
-        warning: `Grade "${gradeStr}" is not a common format. Consider: 9.8, NM, VF, etc.`,
-      };
-    }
-
-    return { value: gradeStr };
+    if (gradeStr.length === 0) return { value: null };
+    const canonical = matchGradeFromInput(gradeStr);
+    if (canonical) return { value: canonical };
+    return {
+      value: null,
+      warning: `Grade "${gradeStr}" not in allowed list, skipped`,
+    };
   };
 
   // Required fields - fail fast if missing

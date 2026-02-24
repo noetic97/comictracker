@@ -44,6 +44,7 @@ export interface Comic {
   // User state (existing)
   collected: boolean;
   isGrail?: boolean;
+  grailReason?: string; // Why this is a key (first appearance, printing error, etc.)
 }
 
 export interface FavoriteSeries {

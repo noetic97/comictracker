@@ -74,16 +74,56 @@ const parseIssueNumber = (issue: any): number => {
   return isNaN(num) ? 1 : num;
 };
 
+/** Canonical grade labels (must match client gradeScale.ts for pricing) */
+const VALID_GRADE_LABELS = [
+  "Gem Mint", "Mint", "Mint -", "Near Mint +", "Near Mint", "Near Mint -",
+  "Very Fine/Near Mint", "Very Fine +", "Very Fine", "Very Fine -",
+  "Fine/Very Fine", "Fine +", "Fine", "Fine -", "Very Good/Fine", "Very Good +",
+  "Very Good", "Very Good -", "Good/Very Good", "Good +", "Good", "Good -",
+  "Fair/Good", "Fair", "Poor",
+];
+
+/** Normalize for comparison: trim, lowercase, collapse spaces */
+const normalizeGrade = (s: string): string =>
+  s.trim().toLowerCase().replace(/\s+/g, " ");
+
+/**
+ * Match input to a canonical grade label. Returns the label if match, else null.
+ * Used so grade aligns with pricing scale; non-matching values are discarded and reported.
+ */
+function matchGrade(input: any): string | null {
+  if (input == null || input === "") return null;
+  const str = String(input).trim();
+  if (!str) return null;
+  const norm = normalizeGrade(str);
+  for (const label of VALID_GRADE_LABELS) {
+    if (normalizeGrade(label) === norm) return label;
+  }
+  const numMatch = str.match(/\b(10\.0|9\.\d|8\.\d|7\.\d|6\.\d|5\.\d|4\.\d|3\.\d|2\.\d|1\.\d|0\.5)\b/);
+  if (numMatch) {
+    const num = parseFloat(numMatch[1]);
+    const gradeNumerics = [10, 9.9, 9.8, 9.6, 9.4, 9.2, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.8, 1.4, 1, 0.5];
+    const idx = gradeNumerics.findIndex((n) => Math.abs(n - num) < 0.01);
+    if (idx >= 0 && idx < VALID_GRADE_LABELS.length) return VALID_GRADE_LABELS[idx];
+  }
+  return null;
+}
+
 const validateGrade = (
-  grade: any
+  grade: any,
+  prefix = ""
 ): { value: string | null; warning?: string } => {
   if (!grade) return { value: null };
 
   const gradeStr = String(grade).trim();
   if (gradeStr === "") return { value: null };
 
-  // Accept any non-empty string as a valid grade
-  return { value: gradeStr };
+  const canonical = matchGrade(gradeStr);
+  if (canonical) return { value: canonical };
+  return {
+    value: null,
+    warning: `${prefix}Grade "${gradeStr}" not in allowed list, skipped`,
+  };
 };
 
 /**
@@ -172,6 +212,17 @@ export const validateComic = (
       warnings.push(`${prefix}Invalid current value "${data.currentValue}"`);
     } else if (value < 0) {
       warnings.push(`${prefix}Negative current value "${value}"`);
+    }
+  }
+
+  // Grade: only allow enum values (pricing scale); discard and report if not matching
+  if (data.grade != null && String(data.grade).trim() !== "") {
+    const canonical = matchGrade(data.grade);
+    if (canonical === null) {
+      warnings.push(`${prefix}Grade "${data.grade}" not in allowed list, skipped`);
+      data.grade = null;
+    } else {
+      data.grade = canonical;
     }
   }
 
@@ -302,6 +353,7 @@ export const transformComicInput = (comic: ExtendedComicInput): any => {
       (parseNumericField(comic.pricePaid) !== null &&
         parseNumericField(comic.pricePaid)! >= 0),
     isGrail: Boolean(comic.isGrail),
+    grailReason: comic.grailReason?.trim() || null,
   };
 };
 

@@ -15,8 +15,12 @@ export const ComicItem = styled.div<{
     if ($collected) return `${theme.colors.primary}20`;
     return "transparent";
   }};
-  border-left: ${({ theme, $isGrail }) =>
-    $isGrail ? `4px solid ${theme.colors.accent}` : "4px solid transparent"};
+  border-left: ${({ theme, $isGrail, $collected }) =>
+    $isGrail
+      ? `4px solid ${theme.colors.accent}`
+      : $collected
+      ? `4px solid ${theme.colors.primary}`
+      : "4px solid transparent"};
 `;
 
 export const ComicInfo = styled.div`

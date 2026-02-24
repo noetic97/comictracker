@@ -2,6 +2,29 @@ import { PrismaClient } from "@prisma/client";
 import { UserContext } from "../types/handlers";
 
 let prismaInstance: PrismaClient | null = null;
+let grailReasonColumnChecked = false;
+
+/**
+ * Ensure comics table has grailReason column (for DBs created before the migration).
+ * Safe to call multiple times; runs at most once per process.
+ */
+async function ensureGrailReasonColumn(prisma: PrismaClient): Promise<void> {
+  if (grailReasonColumnChecked) return;
+  grailReasonColumnChecked = true;
+  try {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE comics ADD COLUMN grailReason TEXT`
+    );
+    console.log("Added missing column: comics.grailReason");
+  } catch (err: any) {
+    const msg = String(err?.message ?? err);
+    if (msg.includes("duplicate column") || msg.includes("already exists")) {
+      // Column already there
+      return;
+    }
+    console.warn("ensureGrailReasonColumn:", msg);
+  }
+}
 
 /**
  * Get a singleton Prisma client instance.
@@ -34,6 +57,8 @@ export const getUserContext = async (
  * Ensure default user exists and return context.
  */
 async function ensureDefaultUser(prisma: PrismaClient): Promise<UserContext> {
+  await ensureGrailReasonColumn(prisma);
+
   const defaultEmail =
     process.env.DEFAULT_USER_EMAIL || "user@comictracker.local";
 
