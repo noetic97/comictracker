@@ -34,11 +34,6 @@ const ThemedAppWithLoading: React.FC = () => {
   const [sortBy, setSortBy] = useState<SortOption>("series");
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
-  // Debug sortBy changes
-  useEffect(() => {
-    console.log("📊 App.tsx sortBy changed:", sortBy);
-  }, [sortBy]);
-
   // UI state
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -223,7 +218,11 @@ const ThemedAppWithLoading: React.FC = () => {
     >
       <S.AppContainer data-sc="AppContainer">
         <S.HeaderContainer data-sc="S.HeaderContainer">
-          <Header onFilterClick={toggleFilterModal} onMenuClick={toggleMenu} />
+          <Header
+            onFilterClick={toggleFilterModal}
+            onMenuClick={toggleMenu}
+            isFilterOpen={isFilterModalOpen}
+          />
           <FilterSort
             filter={filter}
             setFilter={setFilter}

@@ -5,9 +5,14 @@ import * as S from "./styles";
 interface Props {
   onFilterClick: () => void;
   onMenuClick: () => void;
+  isFilterOpen?: boolean;
 }
 
-const Header: React.FC<Props> = ({ onFilterClick, onMenuClick }) => {
+const Header: React.FC<Props> = ({
+  onFilterClick,
+  onMenuClick,
+  isFilterOpen = false,
+}) => {
   return (
     <S.HeaderContainer data-sc="HeaderContainer">
       <S.LogoContainer data-sc="LogoContainer">
@@ -17,7 +22,13 @@ const Header: React.FC<Props> = ({ onFilterClick, onMenuClick }) => {
         <S.StyledTitle data-sc="StyledTitle">Comic Want List</S.StyledTitle>
       </S.LogoContainer>
       <S.IconContainer data-sc="IconContainer">
-        <S.IconButton onClick={onFilterClick} data-sc="IconButton">
+        <S.IconButton
+          onClick={onFilterClick}
+          $isActive={isFilterOpen}
+          aria-expanded={isFilterOpen}
+          aria-label={isFilterOpen ? "Close filters" : "Open filters"}
+          data-sc="IconButton"
+        >
           <Filter size={24} />
         </S.IconButton>
         <S.IconButton onClick={onMenuClick} data-sc="IconButton">

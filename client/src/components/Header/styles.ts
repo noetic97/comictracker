@@ -53,10 +53,15 @@ export const StyledTitle = styled.h1`
   }
 `;
 
-export const IconButton = styled.button`
-  background: none;
-  border: none;
-  color: ${({ theme }) => theme.colors.foreground};
+export const IconButton = styled.button<{ $isActive?: boolean }>`
+  background: ${({ theme, $isActive }) =>
+    $isActive ? theme.colors.primary + "22" : "none"};
+  border: 1px solid
+    ${({ theme, $isActive }) =>
+      $isActive ? theme.colors.primary : "transparent"};
+  border-radius: var(--radius, 6px);
+  color: ${({ theme, $isActive }) =>
+    $isActive ? theme.colors.primary : theme.colors.foreground};
   cursor: pointer;
   padding: 0.5rem;
   display: flex;

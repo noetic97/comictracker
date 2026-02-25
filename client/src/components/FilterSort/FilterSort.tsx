@@ -64,10 +64,7 @@ const FilterSort: React.FC<Props> = memo(
           <S.FilterLabel>Sort by</S.FilterLabel>
           <S.StyledSelect
             value={sortBy}
-            onChange={(e) => {
-              console.log("🔄 FilterSort sortBy changed:", e.target.value);
-              setSortBy(e.target.value as SortOption);
-            }}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
             data-sc="SortBySelect"
           >
             <option value="series">Series</option>
@@ -91,7 +88,7 @@ const FilterSort: React.FC<Props> = memo(
             <option value={25}>25</option>
             <option value={50}>50</option>
             <option value={100}>100</option>
-            <option value={50000}>All</option>
+            <option value={2000}>2000 (max)</option>
           </S.StyledSelect>
 
           {/* TODO: Add hide collected toggle support to server-side API */}

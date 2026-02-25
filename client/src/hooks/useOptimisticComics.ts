@@ -42,7 +42,6 @@ export const useOptimisticComics = (
       console.error("Cannot apply optimistic update: comic missing ID");
       return;
     }
-
     setOptimisticUpdates((prev) => {
       const next = new Map(prev);
       next.set(comic.id, comic);

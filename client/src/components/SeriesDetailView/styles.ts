@@ -4,6 +4,7 @@ export const SeriesDetailContainer = styled.div`
   padding: 0.5rem;
   max-width: 1200px;
   margin: 0 auto;
+  overflow-x: hidden;
 `;
 
 export const CompactHeader = styled.div`

@@ -2,10 +2,13 @@ import styled from "styled-components";
 
 export const FilterSortContainer = styled.div<{ $isOpen: boolean }>`
   position: absolute;
-  top: 60px; // Adjust based on your header height
+  top: 60px;
   left: 0;
   right: 0;
   background-color: ${({ theme }) => theme.colors.background};
+  border: 1px solid
+    ${({ theme, $isOpen }) => ($isOpen ? theme.colors.primary : theme.colors.border)};
+  border-radius: var(--radius, 6px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   padding: 1rem;

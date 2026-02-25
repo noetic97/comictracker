@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import * as S from "./styles";
 
@@ -47,7 +48,7 @@ const Modal: React.FC<ModalProps> = ({
     }
   };
 
-  return (
+  const modalContent = (
     <S.ModalOverlay onClick={handleBackdropClick}>
       <S.ModalContent $size={size} onClick={(e) => e.stopPropagation()}>
         <S.ModalHeader>
@@ -64,6 +65,8 @@ const Modal: React.FC<ModalProps> = ({
       </S.ModalContent>
     </S.ModalOverlay>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default Modal;

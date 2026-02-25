@@ -200,8 +200,17 @@ export const createComic = async (
   return transformComicOutput({ ...newComic, user_id: newComic.userId });
 };
 
+/** Fields allowed to be updated via PUT; isGrail only changed via PATCH. collected allowed for "uncollect and clear" flow. */
+const PUT_ALLOWED_FIELDS = new Set([
+  "collected", "pricePaid", "grade", "datePurchased", "notes", "grailReason",
+  "artist", "writer", "storageLocation", "firstAppearance", "variantDetails",
+  "cert", "signed", "coverImageUrl", "issueDate", "certificationCompany",
+  "gradeDetails", "storyTitle", "coverArtist", "letterer", "description", "dateAdded",
+]);
+
 /**
- * Update a comic
+ * Update a comic (partial update). Only whitelisted fields are applied; isGrail
+ * is only changed via PATCH. collected is allowed for "uncollect and clear" flow.
  */
 export const updateComic = async (
   prisma: PrismaClient,
@@ -209,9 +218,22 @@ export const updateComic = async (
   comicId: string,
   updates: any
 ): Promise<any> => {
+  const data: any = {};
+  for (const key of Object.keys(updates || {})) {
+    if (PUT_ALLOWED_FIELDS.has(key)) {
+      data[key] = updates[key];
+    }
+  }
+  if (Object.keys(data).length === 0) {
+    const comic = await prisma.comic.findFirst({
+      where: { id: comicId, userId },
+    });
+    if (!comic) throw new Error("Comic not found");
+    return transformComicOutput({ ...comic, user_id: comic.userId });
+  }
   const updatedComic = await prisma.comic.updateMany({
     where: { id: comicId, userId },
-    data: updates,
+    data,
   });
   if (updatedComic.count === 0) {
     throw new Error("Comic not found");

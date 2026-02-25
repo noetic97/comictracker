@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { Star, Check, Pencil } from "lucide-react";
 import { Comic } from "../../../types";
 import GradeScaleModal from "../../GradeScaleModal";
+import { formatCurrency } from "../../../utils/formatters";
 import * as S from "./styles";
 
 interface ComicsGridProps {
@@ -90,7 +91,7 @@ const ComicsGrid: React.FC<ComicsGridProps> = ({
                   <S.ComicMetaItem>Grade: {comic.grade}</S.ComicMetaItem>
                 )}
                 {comic.pricePaid != null && (
-                  <S.ComicMetaItem>Paid: ${comic.pricePaid.toLocaleString()}</S.ComicMetaItem>
+                  <S.ComicMetaItem>Paid: {formatCurrency(comic.pricePaid)}</S.ComicMetaItem>
                 )}
                 {comic.currentValue != null && (
                   <S.ComicValueButton
@@ -101,7 +102,7 @@ const ComicsGrid: React.FC<ComicsGridProps> = ({
                     tabIndex={0}
                     title="View estimated pricing by grade"
                   >
-                    Value: ${comic.currentValue.toLocaleString()}
+                    Value: {formatCurrency(comic.currentValue)}
                   </S.ComicValueButton>
                 )}
               </S.ComicMetaLine>

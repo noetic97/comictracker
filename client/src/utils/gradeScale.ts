@@ -122,12 +122,19 @@ function getScaleEntryForGrade(gradeStr: string | undefined): GradeScaleEntry | 
   }
 
   const normalized = normalizeGradeLabel(trimmed);
+  // Prefer exact match; for prefix match only allow "input starts with label" so e.g. "Near Mint"
+  // matches 9.4 "Near Mint" and not 9.6 "Near Mint +" (which would wrongly use multiplier 1.1).
+  let best: GradeScaleEntry | null = null;
+  let bestLen = 0;
   for (const entry of GRADE_SCALE) {
     const entryLabelNorm = normalizeGradeLabel(entry.label);
     if (normalized === entryLabelNorm) return entry;
-    if (normalized.startsWith(entryLabelNorm) || entryLabelNorm.startsWith(normalized)) return entry;
+    if (normalized.startsWith(entryLabelNorm) && entryLabelNorm.length > bestLen) {
+      best = entry;
+      bestLen = entryLabelNorm.length;
+    }
   }
-  return null;
+  return best;
 }
 
 /**
@@ -135,12 +142,14 @@ function getScaleEntryForGrade(gradeStr: string | undefined): GradeScaleEntry | 
  * The comic's currentValue is the value *at its grade*. So we reverse: base_9_4 = currentValue / multiplier(grade).
  * - No currentValue -> null.
  * - No grade or grade not on scale -> treat currentValue as 9.4 (e.g. want list).
- * - Grade matches scale -> baseValue_9_4 = currentValue / multiplier(grade).
+ * - Grade is 9.4 (Near Mint) -> baseline is currentValue (no division).
+ * - Other grade on scale -> baseValue_9_4 = currentValue / multiplier(grade).
  */
 export function getBaseValue9_4(comic: Comic): number | null {
   if (comic.currentValue == null || comic.currentValue === undefined)
     return null;
   const entry = getScaleEntryForGrade(comic.grade);
   if (!entry || entry.multiplier === 0) return comic.currentValue;
+  if (entry.gradeNumeric === 9.4) return comic.currentValue;
   return comic.currentValue / entry.multiplier;
 }

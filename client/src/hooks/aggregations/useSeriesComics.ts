@@ -80,9 +80,10 @@ export const useSeriesComics = (
           params.set("order", "series.asc,issueNumber.asc,id.asc");
         }
 
-        const offset = (page - 1) * perPage;
+        const limit = Math.min(perPage, 2000);
+        const offset = (page - 1) * limit;
         params.set("offset", String(offset));
-        params.set("limit", String(perPage));
+        params.set("limit", String(limit));
 
         const extra = buildQueryParams(extraFilters);
         if (extra) {

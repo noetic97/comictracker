@@ -43,6 +43,16 @@ export const GrailBadge = styled.span`
   align-items: center;
 `;
 
+export const IssueTypeBadge = styled.span`
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: ${({ theme }) => theme.colors.foreground};
+  opacity: 0.85;
+  background: ${({ theme }) => theme.colors.border};
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+`;
+
 export const ComicMeta = styled.div`
   display: flex;
   justify-content: space-between;

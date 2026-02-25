@@ -5,8 +5,6 @@ import { logger } from "../../../utils/logger";
 import * as S from "./styles";
 
 interface ControlsSectionProps {
-  isAllExpanded: boolean;
-  onToggleAll: () => void;
   filterOption: FilterOption;
   searchFilter: string;
   sortBy: SortOption;
@@ -15,8 +13,6 @@ interface ControlsSectionProps {
 }
 
 const ControlsSection: React.FC<ControlsSectionProps> = ({
-  isAllExpanded,
-  onToggleAll,
   filterOption,
   searchFilter,
   sortBy,
@@ -40,10 +36,6 @@ const ControlsSection: React.FC<ControlsSectionProps> = ({
   return (
     <S.ControlsContainer>
       <S.ControlsRow>
-        <S.ToggleButton onClick={onToggleAll}>
-          {isAllExpanded ? "Collapse All" : "Expand All"}
-        </S.ToggleButton>
-
         <StatsDisplay
           filterOption={filterOption}
           searchFilter={searchFilter}

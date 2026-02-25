@@ -2,18 +2,20 @@ import styled from "styled-components";
 
 export const GridContainer = styled.div`
   display: grid;
+  /* Equal-width columns: as many as fit with min 280px, each gets same fraction so no column grows more than others */
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 0.75rem;
   margin-bottom: 1rem;
   padding: 0.25rem 0;
+  min-width: 0;
 
-  /* Mobile optimization: 2 cards per row instead of 1 */
+  /* Mobile: enforce 2 equal columns (50% each) */
   @media (max-width: 767px) {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
   }
 
-  /* Very small screens: still use single column */
+  /* Very small screens: single column */
   @media (max-width: 425px) {
     grid-template-columns: 1fr;
     gap: 0.5rem;
@@ -24,6 +26,8 @@ export const CompactComicCard = styled.div<{
   $collected: boolean;
   $isGrail?: boolean;
 }>`
+  min-width: 0; /* Let grid cell constrain width; prevent content from growing column */
+  overflow: hidden;
   background-color: ${({ theme, $collected, $isGrail }) =>
     $isGrail ? theme.colors.card : $collected ? `${theme.colors.primary}14` : theme.colors.card};
   border-radius: var(--radius);

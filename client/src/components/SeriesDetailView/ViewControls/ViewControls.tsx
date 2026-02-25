@@ -21,7 +21,7 @@ const ViewControls: React.FC<ViewControlsProps> = ({
     { value: 25, label: "25" },
     { value: 50, label: "50" },
     { value: 100, label: "100" },
-    { value: 50000, label: "All" },
+    { value: 2000, label: "2000 (max)" },
   ];
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {

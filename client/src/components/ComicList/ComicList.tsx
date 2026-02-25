@@ -77,8 +77,6 @@ const ComicList: React.FC<Props> = ({
   const {
     expandedPublishers,
     expandedSeries,
-    isAllExpanded,
-    toggleAll,
     togglePublisher,
     toggleSeries,
   } = useExpandedState(groupedComics);
@@ -153,8 +151,6 @@ const ComicList: React.FC<Props> = ({
       )}
 
       <ControlsSection
-        isAllExpanded={isAllExpanded}
-        onToggleAll={toggleAll}
         filterOption={filterOption}
         searchFilter={searchFilter}
         sortBy={sortBy}

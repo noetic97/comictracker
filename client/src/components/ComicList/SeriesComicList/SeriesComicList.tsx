@@ -6,10 +6,22 @@ import {
   useOptimisticComics,
   useComicActions,
 } from "../../../hooks";
+import { formatCurrency } from "../../../utils/formatters";
 import PaginationControls from "../PaginationControls";
 import EditComicModal from "../../EditComicModal";
+import Modal from "../../shared/Modal";
+import Button from "../../shared/Button";
+import { apiService } from "../../../utils/apiService";
 import { logger } from "../../../utils/logger";
 import * as S from "./styles";
+
+function hasPriceGradeOrLocation(comic: Comic): boolean {
+  return (
+    comic.pricePaid != null ||
+    (comic.grade != null && comic.grade.trim() !== "") ||
+    (comic.storageLocation != null && comic.storageLocation.trim() !== "")
+  );
+}
 
 interface SeriesComicsListProps {
   publisher: string;
@@ -21,7 +33,8 @@ interface SeriesComicsListProps {
   totalIssues: number;
   filterOption: FilterOption;
   searchFilter: string;
-  sortBy: SortOption;
+  /** Not used: quick view always sorts by issue number to match detail view */
+  sortBy?: SortOption;
   onStatsRefresh?: (() => Promise<any>) | null;
 }
 
@@ -35,12 +48,13 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
   totalIssues,
   filterOption,
   searchFilter,
-  sortBy,
   onStatsRefresh,
 }) => {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [editComic, setEditComic] = useState<Comic | null>(null);
   const [openedEditForGrail, setOpenedEditForGrail] = useState(false);
+  const [openedEditForCollect, setOpenedEditForCollect] = useState(false);
+  const [uncollectConfirmComic, setUncollectConfirmComic] = useState<Comic | null>(null);
   const {
     comics: serverComics,
     loading,
@@ -54,7 +68,7 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
     currentPage,
     itemsPerPage,
     true,
-    { filterOption, search: searchFilter, sortBy }
+    { filterOption, search: searchFilter, sortBy: "issueNumber" }
   );
 
   // Use optimistic comics hook for immediate UI updates
@@ -111,9 +125,7 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
   const comicActions = useComicActions({
     onComicUpdated: useCallback(
       (updatedComic: Comic) => {
-        // Confirm the update was successful
         confirmUpdate(updatedComic);
-        // Update the single comic in the background
         updateComic({
           ...updatedComic,
           isGrail: updatedComic.isGrail ?? false,
@@ -140,6 +152,12 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
         return;
       }
 
+      // Uncollecting and comic has price/grade/location: confirm before clearing
+      if (comic.collected && hasPriceGradeOrLocation(comic)) {
+        setUncollectConfirmComic(comic);
+        return;
+      }
+
       // Apply optimistic update immediately
       const optimisticComic = {
         ...comic,
@@ -155,14 +173,50 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
         revertUpdate(id, comic);
       } else if (result.collected) {
         setOpenedEditForGrail(false);
+        setOpenedEditForCollect(true);
         setEditComic(result);
       }
     },
     [comics, comicActions, applyOptimisticUpdate, revertUpdate, isUpdating]
   );
 
+  const handleUncollectConfirm = useCallback(async () => {
+    const comic = uncollectConfirmComic;
+    if (!comic) return;
+    const clearedComic: Comic = {
+      ...comic,
+      collected: false,
+      pricePaid: undefined,
+      grade: undefined,
+      storageLocation: undefined,
+    };
+    applyOptimisticUpdate(clearedComic);
+    setUncollectConfirmComic(null);
+    try {
+      const updated = await apiService.comics.update(comic.id, {
+        collected: false,
+        pricePaid: null,
+        grade: null,
+        storageLocation: null,
+      } as unknown as Partial<Comic>);
+      updateComic(updated);
+      confirmUpdate(updated);
+      silentRefetch();
+    } catch {
+      revertUpdate(comic.id, comic);
+    }
+  }, [
+    uncollectConfirmComic,
+    applyOptimisticUpdate,
+    updateComic,
+    confirmUpdate,
+    revertUpdate,
+    silentRefetch,
+  ]);
+
   const handleOpenEdit = useCallback((c: Comic) => {
     setOpenedEditForGrail(false);
+    setOpenedEditForCollect(false);
     setEditComic(c);
   }, []);
 
@@ -198,18 +252,29 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
     if (openedEditForGrail && editComic?.isGrail) {
       handleToggleGrail(editComic.id);
     }
+    if (openedEditForCollect && editComic) {
+      handleCollect(editComic.id);
+    }
     setEditComic(null);
     setOpenedEditForGrail(false);
-  }, [openedEditForGrail, editComic, handleToggleGrail]);
+    setOpenedEditForCollect(false);
+  }, [openedEditForGrail, openedEditForCollect, editComic, handleToggleGrail, handleCollect]);
 
   const handleEditSave = useCallback(
     (updatedComic: Comic) => {
-      updateComic({ ...updatedComic, isGrail: updatedComic.isGrail ?? false });
-      confirmUpdate(updatedComic);
+      const base = editComic ?? updatedComic;
+      const merged = {
+        ...base,
+        ...updatedComic,
+        isGrail: updatedComic.isGrail ?? base.isGrail ?? false,
+      };
+      updateComic(merged);
+      confirmUpdate(merged);
       setEditComic(null);
       setOpenedEditForGrail(false);
+      setOpenedEditForCollect(false);
     },
-    [confirmUpdate, updateComic]
+    [confirmUpdate, updateComic, editComic]
   );
 
   const totalPages = Math.max(1, Math.ceil(totalIssues / itemsPerPage));
@@ -240,6 +305,25 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
         comic={editComic}
         onSave={handleEditSave}
       />
+      <Modal
+        isOpen={!!uncollectConfirmComic}
+        onClose={() => setUncollectConfirmComic(null)}
+        title="Un-collect comic?"
+        size="small"
+      >
+        <p style={{ margin: "0 0 1rem 0" }}>
+          Un-collecting will clear price paid, grade, and storage location for
+          this comic. Continue?
+        </p>
+        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+          <Button variant="secondary" onClick={() => setUncollectConfirmComic(null)}>
+            Cancel
+          </Button>
+          <Button onClick={handleUncollectConfirm}>
+            Uncollect and clear
+          </Button>
+        </div>
+      </Modal>
       {comics.map((comic) => (
         <S.ComicItem
           key={comic.id}
@@ -255,6 +339,9 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
             <S.ComicTitle data-sc="ComicTitle">
               {comic.series}
               {comic.volume && ` - ${comic.volume}`} #{comic.issue}
+              {comic.type && comic.type !== "Issue" && (
+                <S.IssueTypeBadge>{comic.type}</S.IssueTypeBadge>
+              )}
               {comic.isGrail && (
                 <S.GrailBadge>
                   <Star size={14} fill="currentColor" />
@@ -266,11 +353,11 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
                 <span>Grade: {comic.grade}</span>
               )}
               {comic.pricePaid != null && (
-                <span>Paid: ${comic.pricePaid.toLocaleString()}</span>
+                <span>Paid: {formatCurrency(comic.pricePaid)}</span>
               )}
               {comic.currentValue != null && (
                 <S.ComicValue>
-                  Value: ${comic.currentValue.toLocaleString()}
+                  Value: {formatCurrency(comic.currentValue)}
                 </S.ComicValue>
               )}
             </S.ComicMeta>

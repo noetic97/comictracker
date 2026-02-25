@@ -122,7 +122,9 @@ const EditComicModal: React.FC<EditComicModalProps> = ({
         payload as Partial<Comic>
       );
       onSave(updated);
-      onClose();
+      // Don't call onClose() here: parent already clears editComic in onSave, which closes
+      // the modal. Calling onClose() would run handleEditClose, which toggles grail off
+      // when it thinks the user "closed without saving" (state updates are async).
     } catch (err: any) {
       setError(err.message || "Failed to save");
     } finally {

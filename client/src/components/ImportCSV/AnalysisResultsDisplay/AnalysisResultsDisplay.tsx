@@ -7,7 +7,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import Button from "../../shared/Button";
-import { formatNumber } from "../../../utils/formatters";
+import { formatNumber, formatCurrency } from "../../../utils/formatters";
 import {
   generateMissingComicsReport,
   generateMissingComicsCSV, // NEW
@@ -206,7 +206,7 @@ const AnalysisResultsDisplay: React.FC<AnalysisResultsDisplayProps> = ({
                         {comic.type && ` [${comic.type}]`}
                       </S.ComicMainInfo>
                       <S.ComicMetaInfo>
-                        <span>${comic.currentValue}</span>
+                        <span>{formatCurrency(comic.currentValue)}</span>
                         <span>{comic.reason}</span>
                       </S.ComicMetaInfo>
                     </S.MissingComicItem>
