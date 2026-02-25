@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FilterOption, FavoriteSeries, SortOption } from "./types";
 import ComicActionsErrorBoundary from "./components/shared/ComicActionErrorBoundary";
 import ErrorMessage from "./components/shared/ErrorMessage";
@@ -21,6 +21,14 @@ import {
   useLoadingManager,
 } from "./components/shared/LoadingManager";
 import ComicLoadingSpinner from "./components/shared/ComicLoadingSpinner";
+import {
+  parseViewParams,
+  applyViewParams,
+  buildViewParams,
+  getLastViewFromStorage,
+  saveLastViewToStorage,
+  type ViewState,
+} from "./utils/urlParams";
 
 const ThemedAppWithLoading: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -33,6 +41,12 @@ const ThemedAppWithLoading: React.FC = () => {
   const [filterOption, setFilterOption] = useState<FilterOption>("all");
   const [sortBy, setSortBy] = useState<SortOption>("series");
   const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [selectedSeries, setSelectedSeries] = useState<{
+    publisher: string;
+    series: string;
+    volume?: string;
+  } | null>(null);
+  const [seriesPage, setSeriesPage] = useState(1);
 
   // UI state
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -40,9 +54,57 @@ const ThemedAppWithLoading: React.FC = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importStatus, setImportStatus] = useState<string>("");
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
+  const skipFirstSyncRun = useRef(true);
 
   // Use loading manager
   const { setLoadingPhase } = useLoadingManager();
+
+  // Restore view from URL on mount, or from localStorage when URL has no params
+  useEffect(() => {
+    const search = window.location.search;
+    if (!search || search === "?") {
+      const last = getLastViewFromStorage();
+      if (last) {
+        setFilter(last.filter);
+        setFilterOption(last.filterOption);
+        setSortBy(last.sortBy);
+        setItemsPerPage(last.itemsPerPage);
+        setSelectedSeries(last.selectedSeries);
+        setSeriesPage(last.page ?? 1);
+        return;
+      }
+    }
+    const parsed = parseViewParams(search);
+    const applied = applyViewParams(parsed);
+    setFilter(applied.filter ?? "");
+    setFilterOption(applied.filterOption ?? "all");
+    setSortBy(applied.sortBy ?? "series");
+    setItemsPerPage(applied.itemsPerPage ?? 25);
+    setSelectedSeries(applied.selectedSeries ?? null);
+    setSeriesPage(applied.page ?? 1);
+  }, []);
+
+  // Sync view state to URL (replaceState to avoid crowding history). Skip first run so we don't overwrite URL before restore applies.
+  useEffect(() => {
+    if (skipFirstSyncRun.current) {
+      skipFirstSyncRun.current = false;
+      return;
+    }
+    const state: ViewState = {
+      selectedSeries,
+      page: seriesPage,
+      filter,
+      filterOption,
+      sortBy,
+      itemsPerPage,
+    };
+    saveLastViewToStorage(state);
+    const search = buildViewParams(state);
+    const url = `${window.location.pathname}${search}`;
+    if (window.location.pathname + window.location.search !== url) {
+      window.history.replaceState(null, "", url);
+    }
+  }, [selectedSeries, seriesPage, filter, filterOption, sortBy, itemsPerPage]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -247,6 +309,14 @@ const ThemedAppWithLoading: React.FC = () => {
           sortBy={sortBy}
           favoriteSeries={favoriteSeries}
           onToggleFavoriteSeries={handleToggleFavoriteSeries}
+          selectedSeries={selectedSeries}
+          seriesPage={seriesPage}
+          setSeriesPage={setSeriesPage}
+          onOpenDetailView={(publisher, series, volume) => {
+            setSeriesPage(1);
+            setSelectedSeries({ publisher, series, volume });
+          }}
+          onBackToGrid={() => setSelectedSeries(null)}
         />
 
         <HamburgerMenu

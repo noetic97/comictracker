@@ -26,6 +26,19 @@ interface Props {
     series: string,
     volume: string
   ) => void;
+  selectedSeries: {
+    publisher: string;
+    series: string;
+    volume?: string;
+  } | null;
+  onOpenDetailView: (
+    publisher: string,
+    series: string,
+    volume?: string
+  ) => void;
+  onBackToGrid: () => void;
+  seriesPage: number;
+  setSeriesPage: (page: number) => void;
 }
 
 const ComicList: React.FC<Props> = ({
@@ -36,18 +49,19 @@ const ComicList: React.FC<Props> = ({
   sortBy,
   favoriteSeries,
   onToggleFavoriteSeries,
+  selectedSeries,
+  onOpenDetailView,
+  onBackToGrid,
+  seriesPage,
+  setSeriesPage,
 }) => {
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [selectedSeries, setSelectedSeries] = useState<{
-    publisher: string;
-    series: string;
-    volume?: string;
-  } | null>(null);
   const [seriesPages, setSeriesPages] = useState<Record<string, number>>({});
   const [globalStatsRefresh, setGlobalStatsRefresh] = useState<
     (() => Promise<any>) | null
   >(null);
+
+  const viewMode: ViewMode = selectedSeries ? "series-detail" : "grid";
 
   // Debug logging for stats callback
   React.useEffect(() => {
@@ -86,13 +100,11 @@ const ComicList: React.FC<Props> = ({
     series: string,
     volume?: string
   ) => {
-    setSelectedSeries({ publisher, series, volume });
-    setViewMode("series-detail");
+    onOpenDetailView(publisher, series, volume);
   };
 
   const handleBackToGrid = () => {
-    setViewMode("grid");
-    setSelectedSeries(null);
+    onBackToGrid();
   };
 
   const getSeriesPage = (seriesKey: string): number =>
@@ -135,6 +147,8 @@ const ComicList: React.FC<Props> = ({
             selectedSeries.volume || ""
           )
         }
+        currentPage={seriesPage}
+        setCurrentPage={setSeriesPage}
       />
     );
   }

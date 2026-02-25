@@ -39,6 +39,8 @@ interface SeriesDetailViewProps {
   searchFilter: string;
   sortBy: SortOption;
   favoriteSeries: FavoriteSeries[];
+  currentPage: number;
+  setCurrentPage: (page: number) => void;
 }
 
 const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
@@ -54,8 +56,9 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
   searchFilter,
   sortBy,
   favoriteSeries,
+  currentPage,
+  setCurrentPage,
 }) => {
-  const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isStatsCollapsed, setIsStatsCollapsed] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
