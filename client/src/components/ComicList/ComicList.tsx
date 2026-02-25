@@ -5,7 +5,7 @@ import {
   ViewMode,
   SortOption,
 } from "../../types";
-import { usePublisherSummaries, useExpandedState } from "../../hooks";
+import { usePublisherSummaries, useExpandedState, useHiddenPublishers } from "../../hooks";
 import { logger } from "../../utils/logger";
 import * as S from "./styles";
 import ErrorMessage from "../shared/ErrorMessage";
@@ -63,6 +63,14 @@ const ComicList: React.FC<Props> = ({
 
   const viewMode: ViewMode = selectedSeries ? "series-detail" : "grid";
 
+  const {
+    hiddenSet,
+    showHidden,
+    setShowHidden,
+    hidePublisher,
+    unhidePublisher,
+  } = useHiddenPublishers();
+
   // Debug logging for stats callback
   React.useEffect(() => {
     logger.stats.debug("Global stats refresh callback updated", {
@@ -73,13 +81,19 @@ const ComicList: React.FC<Props> = ({
 
   // Use our new hook to fetch publisher summaries
   const {
-    publishers,
+    publishers: publishersFromApi,
     loading: publishersLoading,
     error: publishersError,
   } = usePublisherSummaries(
     { filterOption, search: searchFilter, sortBy },
     favoriteSeries
   );
+
+  // When showHidden is false, exclude hidden publishers (and all their series/comics). When true, show all.
+  const publishers =
+    showHidden
+      ? publishersFromApi
+      : publishersFromApi.filter((p) => !hiddenSet.has(p.publisher));
 
   // Convert publishers array to the grouped format expected by existing components
   const groupedComics = publishers.reduce((acc, pub) => {
@@ -172,6 +186,8 @@ const ComicList: React.FC<Props> = ({
         onStatsRefreshReady={(refreshFn) =>
           setGlobalStatsRefresh(() => refreshFn)
         }
+        showHiddenPublishers={showHidden}
+        onShowHiddenPublishersChange={setShowHidden}
       />
 
       {publishersLoading ? (
@@ -198,6 +214,10 @@ const ComicList: React.FC<Props> = ({
               getSeriesPage={getSeriesPage}
               onSeriesPageChange={handleSeriesPageChange}
               onStatsRefresh={globalStatsRefresh}
+              isHidden={hiddenSet.has(publisherSummary.publisher)}
+              showHiddenMode={showHidden}
+              onHidePublisher={hidePublisher}
+              onUnhidePublisher={unhidePublisher}
             />
           ))}
         </S.PublisherGrid>

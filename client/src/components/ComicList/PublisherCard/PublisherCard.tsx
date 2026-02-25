@@ -1,4 +1,5 @@
 import React, { Suspense } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { FavoriteSeries, FilterOption, SortOption } from "../../../types";
 import { PublisherSummary } from "../../../hooks/aggregations/types";
 import { useSeriesSummaries } from "../../../hooks";
@@ -29,6 +30,10 @@ interface PublisherCardProps {
   getSeriesPage: (seriesKey: string) => number;
   onSeriesPageChange: (seriesKey: string, page: number) => void;
   onStatsRefresh?: (() => Promise<any>) | null;
+  isHidden?: boolean;
+  showHiddenMode?: boolean;
+  onHidePublisher?: (publisher: string) => void;
+  onUnhidePublisher?: (publisher: string) => void;
 }
 
 const PublisherCard: React.FC<PublisherCardProps> = ({
@@ -47,6 +52,10 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
   getSeriesPage,
   onSeriesPageChange,
   onStatsRefresh,
+  isHidden = false,
+  showHiddenMode = false,
+  onHidePublisher,
+  onUnhidePublisher,
 }) => {
   // Only fetch series data when this publisher is expanded
   const {
@@ -80,13 +89,40 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
     <div style={{ padding: "1rem", opacity: 0.7 }}>Loading series...</div>
   );
 
+  const handleHideClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isHidden && onUnhidePublisher) onUnhidePublisher(publisherSummary.publisher);
+    else if (!isHidden && onHidePublisher) onHidePublisher(publisherSummary.publisher);
+  };
+
   return (
     <S.PublisherCard $isExpanded={isExpanded} data-sc="PublisherCard">
       <S.PublisherButton
         $isExpanded={isExpanded}
         onClick={() => onTogglePublisher(publisherSummary.publisher)}
       >
-        <S.PublisherName>{publisherSummary.publisher}</S.PublisherName>
+        <S.PublisherTopBlock>
+          <S.PublisherHeaderRow>
+            <S.PublisherName>{publisherSummary.publisher}</S.PublisherName>
+            {(onHidePublisher || onUnhidePublisher) && (
+              <S.HideButton
+                type="button"
+                onClick={handleHideClick}
+                title={isHidden ? "Unhide publisher" : "Hide publisher"}
+                aria-label={isHidden ? "Unhide publisher" : "Hide publisher"}
+              >
+                {isHidden ? (
+                  <Eye size={18} />
+                ) : (
+                  <EyeOff size={18} />
+                )}
+              </S.HideButton>
+            )}
+          </S.PublisherHeaderRow>
+          {showHiddenMode && isHidden && (
+            <S.HiddenBadge>Hidden</S.HiddenBadge>
+          )}
+        </S.PublisherTopBlock>
         <S.PublisherCardCountsContainer>
           <S.PublisherCardCounts>
             {publisherSummary.seriesCount} series

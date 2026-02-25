@@ -70,16 +70,56 @@ export const PublisherButton = styled.button<{ $isExpanded: boolean }>`
     `
     flex-direction: row;
     justify-content: space-between;
+    align-items: center;
     padding: 0.5rem 1.5rem;
     &:before {
       display: none;
     }
+    ${PublisherTopBlock} {
+      margin-bottom: 0;
+    }
   `}
+`;
+
+export const PublisherTopBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0.5rem;
+`;
+
+export const PublisherHeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
 `;
 
 export const PublisherName = styled.span`
   font-size: 1.1rem;
-  margin-bottom: 0.5rem;
+`;
+
+export const HideButton = styled.button`
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    opacity: 1;
+  }
+`;
+
+export const HiddenBadge = styled.span`
+  font-size: 0.75rem;
+  opacity: 0.9;
+  margin-bottom: 0.25rem;
 `;
 
 export const PublisherCardCountsContainer = styled.div`
