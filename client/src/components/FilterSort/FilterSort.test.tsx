@@ -32,6 +32,12 @@ vi.mock("./styles", () => ({
   ToggleContainer: (props: React.PropsWithChildren) => (
     <div data-testid="toggle-container" {...props} />
   ),
+  ShowHiddenGroup: (props: React.PropsWithChildren) => (
+    <div data-testid="show-hidden-group" {...props} />
+  ),
+  ShowHiddenLabel: (props: React.PropsWithChildren) => (
+    <label data-testid="show-hidden-label" {...props} />
+  ),
 }));
 
 // Mock the Input component
@@ -63,19 +69,24 @@ vi.mock("../shared/Toggle", () => ({
 describe("FilterSort Component", () => {
   const mockSetFilter = vi.fn();
   const mockSetSortBy = vi.fn();
-  const mockSetHideCollected = vi.fn();
   const mockSetItemsPerPage = vi.fn();
   const mockOnClose = vi.fn();
+  const mockOnShowHiddenPublishersChange = vi.fn();
+  const mockOnShowHiddenSeriesChange = vi.fn();
 
   const defaultProps = {
     filter: "",
     setFilter: mockSetFilter,
+    filterOption: "all" as const,
+    setFilterOption: vi.fn(),
     sortBy: "series" as const,
     setSortBy: mockSetSortBy,
-    hideCollected: false,
-    setHideCollected: mockSetHideCollected,
     itemsPerPage: 25,
     setItemsPerPage: mockSetItemsPerPage,
+    showHiddenPublishers: false,
+    onShowHiddenPublishersChange: mockOnShowHiddenPublishersChange,
+    showHiddenSeries: false,
+    onShowHiddenSeriesChange: mockOnShowHiddenSeriesChange,
     isOpen: true,
     onClose: mockOnClose,
   };
@@ -84,110 +95,53 @@ describe("FilterSort Component", () => {
     vi.clearAllMocks();
   });
   it("renders correctly when open", () => {
-    render(
-      <FilterSort
-        {...defaultProps}
-        filterOption="all"
-        setFilterOption={vi.fn()}
-      />
-    );
+    render(<FilterSort {...defaultProps} />);
     expect(screen.getByTestId("filter-sort-container")).toBeInTheDocument();
   });
   it("does not render when closed", () => {
-    render(
-      <FilterSort
-        {...defaultProps}
-        isOpen={false}
-        filterOption="all"
-        setFilterOption={vi.fn()}
-      />
-    );
+    render(<FilterSort {...defaultProps} isOpen={false} />);
     expect(
       screen.queryByTestId("filter-sort-container")
     ).not.toBeInTheDocument();
   });
   it("calls onClose when close button is clicked", () => {
-    render(
-      <FilterSort
-        {...defaultProps}
-        filterOption="all"
-        setFilterOption={vi.fn()}
-      />
-    );
+    render(<FilterSort {...defaultProps} />);
     fireEvent.click(screen.getByTestId("close-button"));
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
   it("updates filter when input changes", () => {
-    render(
-      <FilterSort
-        {...defaultProps}
-        filterOption="all"
-        setFilterOption={vi.fn()}
-      />
-    );
+    render(<FilterSort {...defaultProps} />);
     fireEvent.change(screen.getByTestId("mock-input"), {
       target: { value: "new filter" },
     });
     expect(mockSetFilter).toHaveBeenCalledWith("new filter");
   });
   it("updates sortBy when select changes", () => {
-    render(
-      <FilterSort
-        {...defaultProps}
-        filterOption="all"
-        setFilterOption={vi.fn()}
-      />
-    );
+    render(<FilterSort {...defaultProps} />);
     fireEvent.change(screen.getByTestId("styled-select-SortBySelect"), {
       target: { value: "publisher" },
     });
     expect(mockSetSortBy).toHaveBeenCalledWith("publisher");
   });
   it("updates itemsPerPage when select changes", () => {
-    render(
-      <FilterSort
-        {...defaultProps}
-        filterOption="all"
-        setFilterOption={vi.fn()}
-      />
-    );
+    render(<FilterSort {...defaultProps} />);
     fireEvent.change(screen.getByTestId("styled-select-ItemsPerPageSelect"), {
       target: { value: "50" },
     });
     expect(mockSetItemsPerPage).toHaveBeenCalledWith(50);
   });
-  it("toggles hideCollected when toggle is clicked", () => {
-    render(
-      <FilterSort
-        {...defaultProps}
-        filterOption="all"
-        setFilterOption={vi.fn()}
-      />
-    );
-    fireEvent.click(screen.getByTestId("mock-toggle"));
-    expect(mockSetHideCollected).toHaveBeenCalledWith(true);
+  it("toggles show hidden publishers when checkbox is clicked", () => {
+    render(<FilterSort {...defaultProps} />);
+    fireEvent.click(screen.getByLabelText("Show hidden publishers"));
+    expect(mockOnShowHiddenPublishersChange).toHaveBeenCalledWith(true);
   });
-  it("updates filter when input changes", () => {
-    render(
-      <FilterSort
-        {...defaultProps}
-        filterOption="all"
-        setFilterOption={vi.fn()}
-      />
-    );
-    fireEvent.change(screen.getByTestId("mock-input"), {
-      target: { value: "new filter" },
-    });
-    expect(mockSetFilter).toHaveBeenCalledWith("new filter");
+  it("toggles show hidden series when checkbox is clicked", () => {
+    render(<FilterSort {...defaultProps} />);
+    fireEvent.click(screen.getByLabelText("Show hidden series"));
+    expect(mockOnShowHiddenSeriesChange).toHaveBeenCalledWith(true);
   });
   it("clears filter when clear button is clicked", () => {
-    render(
-      <FilterSort
-        {...defaultProps}
-        filterOption="all"
-        setFilterOption={vi.fn()}
-      />
-    );
+    render(<FilterSort {...defaultProps} />);
     fireEvent.click(screen.getByTestId("clear-button"));
     expect(mockSetFilter).toHaveBeenCalledWith("");
   });

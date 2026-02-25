@@ -1,5 +1,5 @@
 import React from "react";
-import { Heart, Star, ExternalLink } from "lucide-react";
+import { Heart, Star, ExternalLink, Eye, EyeOff } from "lucide-react";
 import SeriesComicsList from "../SeriesComicList";
 import { FilterOption, SortOption } from "../../../types";
 import { SeriesSummary } from "../../../hooks/aggregations/types";
@@ -25,6 +25,11 @@ interface SeriesCardProps {
   searchFilter: string;
   sortBy: SortOption;
   onStatsRefresh?: (() => Promise<any>) | null;
+  isHidden?: boolean;
+  showHiddenMode?: boolean;
+  seriesStorageKey?: string;
+  onHideSeries?: (storageKey: string) => void;
+  onUnhideSeries?: (storageKey: string) => void;
 }
 
 const SeriesCard: React.FC<SeriesCardProps> = ({
@@ -42,6 +47,11 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
   searchFilter,
   sortBy,
   onStatsRefresh,
+  isHidden = false,
+  showHiddenMode = false,
+  seriesStorageKey: seriesStorageKeyProp,
+  onHideSeries,
+  onUnhideSeries,
 }) => {
   const handleDetailView = () => {
     onOpenDetailView(
@@ -55,6 +65,13 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
     ? `${seriesSummary.series} - ${seriesSummary.volume}`
     : seriesSummary.series;
 
+  const handleHideClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!seriesStorageKeyProp) return;
+    if (isHidden && onUnhideSeries) onUnhideSeries(seriesStorageKeyProp);
+    else if (!isHidden && onHideSeries) onHideSeries(seriesStorageKeyProp);
+  };
+
   return (
     <S.SeriesCard data-sc="SeriesCard">
       <S.SeriesHeader
@@ -65,6 +82,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
         data-sc="SeriesHeader"
       >
         <S.SeriesInfo>
+          <S.SeriesTitleRow>
           <S.SeriesTitle>
             <S.SeriesTitleText>{displayTitle}</S.SeriesTitleText>
             {seriesSummary.grailCount > 0 && (
@@ -81,6 +99,20 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
               </S.FavoriteIndicator>
             )}
           </S.SeriesTitle>
+          {(onHideSeries || onUnhideSeries) && seriesStorageKeyProp && (
+            <S.HideButton
+              type="button"
+              onClick={handleHideClick}
+              title={isHidden ? "Unhide series" : "Hide series"}
+              aria-label={isHidden ? "Unhide series" : "Hide series"}
+            >
+              {isHidden ? <Eye size={18} /> : <EyeOff size={18} />}
+            </S.HideButton>
+          )}
+          </S.SeriesTitleRow>
+          {showHiddenMode && isHidden && (
+            <S.HiddenBadge>Hidden</S.HiddenBadge>
+          )}
           <S.SeriesStats>
             {seriesSummary.issueCount} issues • {seriesSummary.collectedCount}{" "}
             collected

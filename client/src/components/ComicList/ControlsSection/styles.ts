@@ -41,17 +41,3 @@ export const ToggleButton = styled.button`
   }
 `;
 
-export const ShowHiddenLabel = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  color: ${({ theme }) => theme.colors.text};
-
-  input[type="checkbox"] {
-    cursor: pointer;
-  }
-  label {
-    cursor: pointer;
-  }
-`;

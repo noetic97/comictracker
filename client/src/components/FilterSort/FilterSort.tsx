@@ -14,6 +14,10 @@ interface Props {
   setSortBy: (option: SortOption) => void;
   itemsPerPage: number;
   setItemsPerPage: (value: number) => void;
+  showHiddenPublishers: boolean;
+  onShowHiddenPublishersChange: (show: boolean) => void;
+  showHiddenSeries: boolean;
+  onShowHiddenSeriesChange: (show: boolean) => void;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -28,6 +32,10 @@ const FilterSort: React.FC<Props> = memo(
     setSortBy,
     itemsPerPage,
     setItemsPerPage,
+    showHiddenPublishers,
+    onShowHiddenPublishersChange,
+    showHiddenSeries,
+    onShowHiddenSeriesChange,
     isOpen,
     onClose,
   }) => {
@@ -91,7 +99,31 @@ const FilterSort: React.FC<Props> = memo(
             <option value={2000}>2000 (max)</option>
           </S.StyledSelect>
 
-          {/* TODO: Add hide collected toggle support to server-side API */}
+          <S.FilterLabel>Visibility</S.FilterLabel>
+          <S.ShowHiddenGroup>
+            <S.ShowHiddenLabel>
+              <input
+                type="checkbox"
+                id="show-hidden-publishers"
+                checked={showHiddenPublishers}
+                onChange={(e) => onShowHiddenPublishersChange(e.target.checked)}
+                aria-label="Show hidden publishers"
+                data-sc="ShowHiddenPublishers"
+              />
+              <span>Show hidden publishers</span>
+            </S.ShowHiddenLabel>
+            <S.ShowHiddenLabel>
+              <input
+                type="checkbox"
+                id="show-hidden-series"
+                checked={showHiddenSeries}
+                onChange={(e) => onShowHiddenSeriesChange(e.target.checked)}
+                aria-label="Show hidden series"
+                data-sc="ShowHiddenSeries"
+              />
+              <span>Show hidden series</span>
+            </S.ShowHiddenLabel>
+          </S.ShowHiddenGroup>
         </S.FilterSortContent>
       </S.FilterSortContainer>
     );

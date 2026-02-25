@@ -12,3 +12,4 @@ export { useSeriesSummaries } from "./aggregations/useSeriesSummaries";
 export { useSeriesComics } from "./aggregations/useSeriesComics";
 export { useOptimisticComics } from "./useOptimisticComics";
 export { useHiddenPublishers } from "./useHiddenPublishers";
+export { useHiddenSeries } from "./useHiddenSeries";

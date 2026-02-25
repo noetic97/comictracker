@@ -34,6 +34,35 @@ export const SeriesInfo = styled.div`
   gap: 0.25rem;
 `;
 
+export const SeriesTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+`;
+
+export const HideButton = styled.button`
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &:hover {
+    opacity: 1;
+  }
+`;
+
+export const HiddenBadge = styled.span`
+  font-size: 0.75rem;
+  opacity: 0.9;
+`;
+
 export const SeriesTitle = styled.h3`
   margin: 0;
   font-size: 1.1rem;
@@ -41,7 +70,8 @@ export const SeriesTitle = styled.h3`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
 `;
 
 export const SeriesTitleText = styled.span`

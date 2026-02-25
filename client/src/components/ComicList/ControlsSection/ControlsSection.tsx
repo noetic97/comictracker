@@ -10,8 +10,6 @@ interface ControlsSectionProps {
   sortBy: SortOption;
   favoriteSeries: FavoriteSeries[];
   onStatsRefreshReady?: (refreshStats: () => Promise<any>) => void;
-  showHiddenPublishers?: boolean;
-  onShowHiddenPublishersChange?: (show: boolean) => void;
 }
 
 const ControlsSection: React.FC<ControlsSectionProps> = ({
@@ -20,8 +18,6 @@ const ControlsSection: React.FC<ControlsSectionProps> = ({
   sortBy,
   favoriteSeries,
   onStatsRefreshReady,
-  showHiddenPublishers = false,
-  onShowHiddenPublishersChange,
 }) => {
   const handleStatsRefreshReady = useCallback(
     (silentRefetch: () => Promise<any>) => {
@@ -47,20 +43,6 @@ const ControlsSection: React.FC<ControlsSectionProps> = ({
           favoriteSeries={favoriteSeries}
           onSilentRefetchReady={handleStatsRefreshReady}
         />
-        {onShowHiddenPublishersChange != null && (
-          <S.ShowHiddenLabel>
-            <input
-              type="checkbox"
-              id="show-hidden-publishers"
-              checked={showHiddenPublishers}
-              onChange={(e) => onShowHiddenPublishersChange(e.target.checked)}
-              aria-label="Show hidden publishers"
-            />
-            <label htmlFor="show-hidden-publishers">
-              Show hidden publishers
-            </label>
-          </S.ShowHiddenLabel>
-        )}
       </S.ControlsRow>
     </S.ControlsContainer>
   );

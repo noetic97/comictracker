@@ -1,8 +1,14 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { UserContext } from "../types/handlers";
 
 let prismaInstance: PrismaClient | null = null;
 let grailReasonColumnChecked = false;
+
+function getAdapter() {
+  const databaseUrl = process.env.DATABASE_URL || "file:./prisma/dev-comics.db";
+  return new PrismaBetterSqlite3({ url: databaseUrl });
+}
 
 /**
  * Ensure comics table has grailReason column (for DBs created before the migration).
@@ -31,7 +37,8 @@ async function ensureGrailReasonColumn(prisma: PrismaClient): Promise<void> {
  */
 export const getPrisma = (): PrismaClient => {
   if (!prismaInstance) {
-    prismaInstance = new PrismaClient();
+    const adapter = getAdapter();
+    prismaInstance = new PrismaClient({ adapter });
   }
   return prismaInstance;
 };

@@ -3,6 +3,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { FavoriteSeries, FilterOption, SortOption } from "../../../types";
 import { PublisherSummary } from "../../../hooks/aggregations/types";
 import { useSeriesSummaries } from "../../../hooks";
+import { seriesStorageKey } from "../../../utils/hiddenSeries";
 import SeriesCard from "../SeriesCard";
 import * as S from "./styles";
 
@@ -34,6 +35,10 @@ interface PublisherCardProps {
   showHiddenMode?: boolean;
   onHidePublisher?: (publisher: string) => void;
   onUnhidePublisher?: (publisher: string) => void;
+  hiddenSeriesSet?: Set<string>;
+  showHiddenSeries?: boolean;
+  onHideSeries?: (storageKey: string) => void;
+  onUnhideSeries?: (storageKey: string) => void;
 }
 
 const PublisherCard: React.FC<PublisherCardProps> = ({
@@ -56,6 +61,10 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
   showHiddenMode = false,
   onHidePublisher,
   onUnhidePublisher,
+  hiddenSeriesSet = new Set(),
+  showHiddenSeries = false,
+  onHideSeries,
+  onUnhideSeries,
 }) => {
   // Only fetch series data when this publisher is expanded
   const {
@@ -151,10 +160,24 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
                 Error loading series: {seriesError}
               </div>
             ) : (
-              series.map((seriesSummary) => {
+              (showHiddenSeries
+                ? series
+                : series.filter(
+                    (s) =>
+                      !hiddenSeriesSet.has(
+                        seriesStorageKey(s.publisher, s.series, s.volume)
+                      )
+                  )
+              ).map((seriesSummary) => {
                 const seriesKey = `${seriesSummary.series}${
                   seriesSummary.volume ? ` - ${seriesSummary.volume}` : ""
                 }`;
+                const storageKey = seriesStorageKey(
+                  seriesSummary.publisher,
+                  seriesSummary.series,
+                  seriesSummary.volume
+                );
+                const isSeriesHidden = hiddenSeriesSet.has(storageKey);
 
                 return (
                   <SeriesCard
@@ -183,6 +206,11 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
                     searchFilter={searchFilter}
                     sortBy={sortBy}
                     onStatsRefresh={onStatsRefresh}
+                    isHidden={isSeriesHidden}
+                    showHiddenMode={showHiddenSeries}
+                    seriesStorageKey={storageKey}
+                    onHideSeries={onHideSeries}
+                    onUnhideSeries={onUnhideSeries}
                   />
                 );
               })

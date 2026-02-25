@@ -29,6 +29,8 @@ import {
   saveLastViewToStorage,
   type ViewState,
 } from "./utils/urlParams";
+import { useHiddenPublishers } from "./hooks/useHiddenPublishers";
+import { useHiddenSeries } from "./hooks/useHiddenSeries";
 
 const ThemedAppWithLoading: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -47,6 +49,9 @@ const ThemedAppWithLoading: React.FC = () => {
     volume?: string;
   } | null>(null);
   const [seriesPage, setSeriesPage] = useState(1);
+
+  const { hiddenSet, showHidden: showHiddenPublishers, setShowHidden: setShowHiddenPublishers, hidePublisher, unhidePublisher } = useHiddenPublishers();
+  const { hiddenSet: hiddenSeriesSet, showHidden: showHiddenSeries, setShowHidden: setShowHiddenSeries, hideSeries, unhideSeries } = useHiddenSeries();
 
   // UI state
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -294,6 +299,10 @@ const ThemedAppWithLoading: React.FC = () => {
             setSortBy={setSortBy}
             itemsPerPage={itemsPerPage}
             setItemsPerPage={setItemsPerPage}
+            showHiddenPublishers={showHiddenPublishers}
+            onShowHiddenPublishersChange={setShowHiddenPublishers}
+            showHiddenSeries={showHiddenSeries}
+            onShowHiddenSeriesChange={setShowHiddenSeries}
             isOpen={isFilterModalOpen}
             onClose={() => setIsFilterModalOpen(false)}
           />
@@ -317,6 +326,14 @@ const ThemedAppWithLoading: React.FC = () => {
             setSelectedSeries({ publisher, series, volume });
           }}
           onBackToGrid={() => setSelectedSeries(null)}
+          hiddenPublishersSet={hiddenSet}
+          showHiddenPublishers={showHiddenPublishers}
+          onHidePublisher={hidePublisher}
+          onUnhidePublisher={unhidePublisher}
+          hiddenSeriesSet={hiddenSeriesSet}
+          showHiddenSeries={showHiddenSeries}
+          onHideSeries={hideSeries}
+          onUnhideSeries={unhideSeries}
         />
 
         <HamburgerMenu

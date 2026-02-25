@@ -5,7 +5,7 @@ import {
   ViewMode,
   SortOption,
 } from "../../types";
-import { usePublisherSummaries, useExpandedState, useHiddenPublishers } from "../../hooks";
+import { usePublisherSummaries, useExpandedState } from "../../hooks";
 import { logger } from "../../utils/logger";
 import * as S from "./styles";
 import ErrorMessage from "../shared/ErrorMessage";
@@ -39,6 +39,14 @@ interface Props {
   onBackToGrid: () => void;
   seriesPage: number;
   setSeriesPage: (page: number) => void;
+  hiddenPublishersSet: Set<string>;
+  showHiddenPublishers: boolean;
+  onHidePublisher: (name: string) => void;
+  onUnhidePublisher: (name: string) => void;
+  hiddenSeriesSet: Set<string>;
+  showHiddenSeries: boolean;
+  onHideSeries: (storageKey: string) => void;
+  onUnhideSeries: (storageKey: string) => void;
 }
 
 const ComicList: React.FC<Props> = ({
@@ -54,6 +62,14 @@ const ComicList: React.FC<Props> = ({
   onBackToGrid,
   seriesPage,
   setSeriesPage,
+  hiddenPublishersSet: hiddenSet,
+  showHiddenPublishers: showHidden,
+  onHidePublisher: hidePublisher,
+  onUnhidePublisher: unhidePublisher,
+  hiddenSeriesSet,
+  showHiddenSeries,
+  onHideSeries: hideSeries,
+  onUnhideSeries: unhideSeries,
 }) => {
   const [error, setError] = useState<string | null>(null);
   const [seriesPages, setSeriesPages] = useState<Record<string, number>>({});
@@ -62,14 +78,6 @@ const ComicList: React.FC<Props> = ({
   >(null);
 
   const viewMode: ViewMode = selectedSeries ? "series-detail" : "grid";
-
-  const {
-    hiddenSet,
-    showHidden,
-    setShowHidden,
-    hidePublisher,
-    unhidePublisher,
-  } = useHiddenPublishers();
 
   // Debug logging for stats callback
   React.useEffect(() => {
@@ -186,8 +194,6 @@ const ComicList: React.FC<Props> = ({
         onStatsRefreshReady={(refreshFn) =>
           setGlobalStatsRefresh(() => refreshFn)
         }
-        showHiddenPublishers={showHidden}
-        onShowHiddenPublishersChange={setShowHidden}
       />
 
       {publishersLoading ? (
@@ -218,6 +224,10 @@ const ComicList: React.FC<Props> = ({
               showHiddenMode={showHidden}
               onHidePublisher={hidePublisher}
               onUnhidePublisher={unhidePublisher}
+              hiddenSeriesSet={hiddenSeriesSet}
+              showHiddenSeries={showHiddenSeries}
+              onHideSeries={hideSeries}
+              onUnhideSeries={unhideSeries}
             />
           ))}
         </S.PublisherGrid>

@@ -68,8 +68,7 @@ The app is **single-tenant** with one default user. There is no Row Level Securi
    DATABASE_URL="file:./prisma/dev-comics.db"
    DEFAULT_USER_EMAIL="user@comictracker.local"
    ```
-   For production use a different file (e.g. `file:./prisma/prod-comics.db`) and set `DATABASE_URL` accordingly.  
-   **If you had a DB at `prisma/prisma/dev.db`:** it has been copied to `prisma/dev-comics.db`. After confirming the app works, you can delete the `prisma/prisma` folder.
+   For production use a different file (e.g. `file:./prisma/prod-comics.db`) and set `DATABASE_URL` accordingly.
 
 4. Run database migrations (creates SQLite DB if needed):
 

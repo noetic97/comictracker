@@ -5,9 +5,13 @@
  * Requires: DATABASE_URL in .env (or default SQLite path used by Prisma).
  */
 
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
-const prisma = new PrismaClient();
+const databaseUrl = process.env.DATABASE_URL || "file:./prisma/dev.db";
+const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const total = await prisma.comic.count();

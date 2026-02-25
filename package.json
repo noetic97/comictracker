@@ -31,15 +31,17 @@
     "test:api:favorites": "curl -s http://localhost:3001/api/favorites | jq"
   },
   "devDependencies": {
-    "@prisma/client": "^5.22.0",
+    "@prisma/adapter-better-sqlite3": "^7.0.0",
+    "@prisma/client": "^7.0.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.0.2",
     "tsx": "^4.19.0",
     "concurrently": "^8.2.2",
-    "prisma": "^5.22.0",
+    "prisma": "^7.0.0",
     "typescript": "^5.5.4"
   },
   "dependencies": {
+    "better-sqlite3": "^11.6.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.0"
   }
