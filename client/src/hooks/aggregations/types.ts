@@ -8,10 +8,14 @@ export interface AggregationFilters {
   isGrail?: boolean;
   signed?: boolean;
   grade?: string;
+  type?: string;
+  minValue?: number | string;
+  maxValue?: number | string;
   storageLocation?: string;
   search?: string;
   filterOption?: FilterOption;
   sortBy?: SortOption;
+  sortOrder?: "asc" | "desc";
 }
 
 export interface ComicStats {

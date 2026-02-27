@@ -9,6 +9,7 @@ import {
   getComicStats,
   getPublisherSummaries,
   getSeriesSummaries,
+  getDistinctTypes,
 } from "./services/comics/aggregationsService";
 import {
   handleGetComics,
@@ -32,6 +33,7 @@ const parseComicRoute = (path: string) => {
   if (segments.includes("stats")) return { isStats: true };
   if (segments.includes("publishers")) return { isPublishers: true };
   if (segments.includes("series")) return { isSeries: true };
+  if (segments.includes("types")) return { isTypes: true };
   if (segments.includes("bulk")) return { isBulk: true };
 
   const comicsIndex = segments.findIndex((seg) => seg === "comics");
@@ -80,6 +82,10 @@ export const handler = async (event: any): Promise<HandlerResponse> => {
           userContext.userId,
           event.queryStringParameters
         );
+      }
+
+      if (route.isTypes && httpMethod === "GET") {
+        return await getDistinctTypes(prisma, userContext.userId);
       }
 
       // Handle bulk operations

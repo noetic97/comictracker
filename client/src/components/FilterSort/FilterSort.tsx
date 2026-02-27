@@ -2,8 +2,8 @@ import React, { memo } from "react";
 import { X } from "lucide-react";
 import { FilterOption, SortOption } from "../../types";
 import Input from "../shared/Input";
+import { useDistinctTypes } from "../../hooks";
 import * as S from "./styles";
-// import Toggle from "../shared/Toggle"; // Unused for now
 
 interface Props {
   filter: string;
@@ -14,12 +14,24 @@ interface Props {
   setSortBy: (option: SortOption) => void;
   itemsPerPage: number;
   setItemsPerPage: (value: number) => void;
+  filterType: string;
+  setFilterType: (value: string) => void;
+  filterGrade: string;
+  setFilterGrade: (value: string) => void;
+  filterMinValue: string;
+  setFilterMinValue: (value: string) => void;
+  filterMaxValue: string;
+  setFilterMaxValue: (value: string) => void;
   showHiddenPublishers: boolean;
   onShowHiddenPublishersChange: (show: boolean) => void;
   showHiddenSeries: boolean;
   onShowHiddenSeriesChange: (show: boolean) => void;
   isOpen: boolean;
   onClose: () => void;
+  /** When true, detail view is active; sort-by is hidden and a note is shown. */
+  isDetailView?: boolean;
+  /** Reset all filter fields to defaults (search, filter option, type, grade, value range). */
+  onClearAllFilters?: () => void;
 }
 
 const FilterSort: React.FC<Props> = memo(
@@ -32,19 +44,41 @@ const FilterSort: React.FC<Props> = memo(
     setSortBy,
     itemsPerPage,
     setItemsPerPage,
+    filterType,
+    setFilterType,
+    filterGrade,
+    setFilterGrade,
+    filterMinValue,
+    setFilterMinValue,
+    filterMaxValue,
+    setFilterMaxValue,
     showHiddenPublishers,
     onShowHiddenPublishersChange,
     showHiddenSeries,
     onShowHiddenSeriesChange,
     isOpen,
     onClose,
+    isDetailView = false,
+    onClearAllFilters,
   }) => {
+    const { types: typeOptions } = useDistinctTypes(isOpen);
+
     return (
       <S.FilterSortContainer $isOpen={isOpen} data-sc="FilterSortContainer">
         <S.FilterSortContent data-sc="FilterSortContent">
           <S.CloseButton onClick={onClose} data-sc="CloseButton">
             <X size={24} />
           </S.CloseButton>
+
+          {onClearAllFilters && (
+            <S.ClearFiltersButton
+              type="button"
+              onClick={onClearAllFilters}
+              data-sc="ClearFiltersButton"
+            >
+              Clear filters
+            </S.ClearFiltersButton>
+          )}
 
           <Input
             label="Search"
@@ -69,22 +103,72 @@ const FilterSort: React.FC<Props> = memo(
             <option value="uncollected">Uncollected Only</option>
           </S.StyledSelect>
 
-          <S.FilterLabel>Sort by</S.FilterLabel>
+          <S.FilterLabel>Type</S.FilterLabel>
           <S.StyledSelect
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            data-sc="SortBySelect"
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            data-sc="FilterTypeSelect"
           >
-            <option value="series">Series</option>
-            <option value="publisher">Publisher</option>
-            <option value="currentValue">Current Value</option>
-            <option value="pricePaid">Price Paid</option>
-            <option value="grade">Grade</option>
-            <option value="dateAdded">Date Added</option>
-            <option value="issue">Issue</option>
-            <option value="issueNumber">Issue Number</option>
-            <option value="collected">Collected Status</option>
+            <option value="">Any</option>
+            {typeOptions.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
           </S.StyledSelect>
+
+          <S.FilterLabel>Value range</S.FilterLabel>
+          <S.ValueRangeRow>
+            <S.ValueInputWrap>
+              <S.ValueInput
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                placeholder="Min $"
+                value={filterMinValue}
+                onChange={(e) => setFilterMinValue(e.target.value)}
+                aria-label="Minimum value (whole dollars)"
+                data-sc="FilterMinValue"
+                $hasValue={!!filterMinValue}
+              />
+              {filterMinValue ? (
+                <S.ValueClearButton
+                  type="button"
+                  onClick={() => setFilterMinValue("")}
+                  aria-label="Clear minimum value"
+                  data-sc="ClearMinValue"
+                >
+                  <X size={14} />
+                </S.ValueClearButton>
+              ) : null}
+            </S.ValueInputWrap>
+            <span>–</span>
+            <S.ValueInputWrap>
+              <S.ValueInput
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                placeholder="Max $"
+                value={filterMaxValue}
+                onChange={(e) => setFilterMaxValue(e.target.value)}
+                aria-label="Maximum value (whole dollars)"
+                data-sc="FilterMaxValue"
+                $hasValue={!!filterMaxValue}
+              />
+              {filterMaxValue ? (
+                <S.ValueClearButton
+                  type="button"
+                  onClick={() => setFilterMaxValue("")}
+                  aria-label="Clear maximum value"
+                  data-sc="ClearMaxValue"
+                >
+                  <X size={14} />
+                </S.ValueClearButton>
+              ) : null}
+            </S.ValueInputWrap>
+          </S.ValueRangeRow>
 
           <S.FilterLabel>Items per page</S.FilterLabel>
           <S.StyledSelect
@@ -99,31 +183,35 @@ const FilterSort: React.FC<Props> = memo(
             <option value={2000}>2000 (max)</option>
           </S.StyledSelect>
 
-          <S.FilterLabel>Visibility</S.FilterLabel>
-          <S.ShowHiddenGroup>
-            <S.ShowHiddenLabel>
-              <input
-                type="checkbox"
-                id="show-hidden-publishers"
-                checked={showHiddenPublishers}
-                onChange={(e) => onShowHiddenPublishersChange(e.target.checked)}
-                aria-label="Show hidden publishers"
-                data-sc="ShowHiddenPublishers"
-              />
-              <span>Show hidden publishers</span>
-            </S.ShowHiddenLabel>
-            <S.ShowHiddenLabel>
-              <input
-                type="checkbox"
-                id="show-hidden-series"
-                checked={showHiddenSeries}
-                onChange={(e) => onShowHiddenSeriesChange(e.target.checked)}
-                aria-label="Show hidden series"
-                data-sc="ShowHiddenSeries"
-              />
-              <span>Show hidden series</span>
-            </S.ShowHiddenLabel>
-          </S.ShowHiddenGroup>
+          {!isDetailView && (
+            <>
+              <S.FilterLabel>Visibility</S.FilterLabel>
+              <S.ShowHiddenGroup>
+                <S.ShowHiddenLabel>
+                  <input
+                    type="checkbox"
+                    id="show-hidden-publishers"
+                    checked={showHiddenPublishers}
+                    onChange={(e) => onShowHiddenPublishersChange(e.target.checked)}
+                    aria-label="Show hidden publishers"
+                    data-sc="ShowHiddenPublishers"
+                  />
+                  <span>Show hidden publishers</span>
+                </S.ShowHiddenLabel>
+                <S.ShowHiddenLabel>
+                  <input
+                    type="checkbox"
+                    id="show-hidden-series"
+                    checked={showHiddenSeries}
+                    onChange={(e) => onShowHiddenSeriesChange(e.target.checked)}
+                    aria-label="Show hidden series"
+                    data-sc="ShowHiddenSeries"
+                  />
+                  <span>Show hidden series</span>
+                </S.ShowHiddenLabel>
+              </S.ShowHiddenGroup>
+            </>
+          )}
         </S.FilterSortContent>
       </S.FilterSortContainer>
     );

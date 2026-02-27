@@ -36,6 +36,7 @@ const VALID_SORT_OPTIONS: SortOption[] = [
   "issue",
   "issueNumber",
   "collected",
+  "type",
 ];
 
 export const LAST_VIEW_STORAGE_KEY = "comictracker_last_view";

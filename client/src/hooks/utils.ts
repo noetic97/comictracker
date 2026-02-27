@@ -19,6 +19,11 @@ export const buildQueryParams = (filters: AggregationFilters): string => {
   if (filters.signed !== undefined)
     params.set("signed", String(filters.signed));
   if (filters.grade) params.set("grade", filters.grade);
+  if (filters.type) params.set("type", filters.type);
+  if (filters.minValue !== undefined && filters.minValue !== "")
+    params.set("minValue", String(filters.minValue));
+  if (filters.maxValue !== undefined && filters.maxValue !== "")
+    params.set("maxValue", String(filters.maxValue));
   if (filters.storageLocation)
     params.set("storageLocation", filters.storageLocation);
   if (filters.search) params.set("search", filters.search);

@@ -10,6 +10,7 @@ export { useComicStats } from "./aggregations/useComicStats";
 export { usePublisherSummaries } from "./aggregations/usePublisherSummaries";
 export { useSeriesSummaries } from "./aggregations/useSeriesSummaries";
 export { useSeriesComics } from "./aggregations/useSeriesComics";
+export { useDistinctTypes } from "./aggregations/useDistinctTypes";
 export { useOptimisticComics } from "./useOptimisticComics";
 export { useHiddenPublishers } from "./useHiddenPublishers";
 export { useHiddenSeries } from "./useHiddenSeries";

@@ -41,7 +41,12 @@ const ThemedAppWithLoading: React.FC = () => {
   // Global filter state (used by all components)
   const [filter, setFilter] = useState("");
   const [filterOption, setFilterOption] = useState<FilterOption>("all");
+  const [filterType, setFilterType] = useState("");
+  const [filterGrade, setFilterGrade] = useState("");
+  const [filterMinValue, setFilterMinValue] = useState("");
+  const [filterMaxValue, setFilterMaxValue] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("series");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [selectedSeries, setSelectedSeries] = useState<{
     publisher: string;
@@ -240,6 +245,15 @@ const ThemedAppWithLoading: React.FC = () => {
     }
   };
 
+  const handleClearFilters = () => {
+    setFilter("");
+    setFilterOption("all");
+    setFilterType("");
+    setFilterGrade("");
+    setFilterMinValue("");
+    setFilterMaxValue("");
+  };
+
   const openImportModal = () => {
     setIsImportModalOpen(true);
   };
@@ -299,12 +313,22 @@ const ThemedAppWithLoading: React.FC = () => {
             setSortBy={setSortBy}
             itemsPerPage={itemsPerPage}
             setItemsPerPage={setItemsPerPage}
+            filterType={filterType}
+            setFilterType={setFilterType}
+            filterGrade={filterGrade}
+            setFilterGrade={setFilterGrade}
+            filterMinValue={filterMinValue}
+            setFilterMinValue={setFilterMinValue}
+            filterMaxValue={filterMaxValue}
+            setFilterMaxValue={setFilterMaxValue}
             showHiddenPublishers={showHiddenPublishers}
             onShowHiddenPublishersChange={setShowHiddenPublishers}
             showHiddenSeries={showHiddenSeries}
             onShowHiddenSeriesChange={setShowHiddenSeries}
             isOpen={isFilterModalOpen}
             onClose={() => setIsFilterModalOpen(false)}
+            isDetailView={selectedSeries != null}
+            onClearAllFilters={handleClearFilters}
           />
         </S.HeaderContainer>
 
@@ -315,7 +339,14 @@ const ThemedAppWithLoading: React.FC = () => {
           setItemsPerPage={setItemsPerPage}
           filterOption={filterOption}
           searchFilter={filter}
+          filterType={filterType}
+          filterGrade={filterGrade}
+          filterMinValue={filterMinValue}
+          filterMaxValue={filterMaxValue}
           sortBy={sortBy}
+          sortOrder={sortOrder}
+          setSortBy={setSortBy}
+          setSortOrder={setSortOrder}
           favoriteSeries={favoriteSeries}
           onToggleFavoriteSeries={handleToggleFavoriteSeries}
           selectedSeries={selectedSeries}

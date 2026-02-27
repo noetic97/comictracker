@@ -49,6 +49,9 @@ export interface ComicQueryOptions {
   isGrail?: string;
   signed?: string;
   grade?: string;
+  type?: string;
+  minValue?: string;
+  maxValue?: string;
   storageLocation?: string;
   search?: string;
   exact?: string;

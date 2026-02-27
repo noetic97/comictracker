@@ -19,7 +19,14 @@ interface Props {
   setItemsPerPage: (count: number) => void;
   filterOption: FilterOption;
   searchFilter: string;
+  filterType: string;
+  filterGrade: string;
+  filterMinValue: string;
+  filterMaxValue: string;
   sortBy: SortOption;
+  sortOrder: "asc" | "desc";
+  setSortBy: (v: SortOption) => void;
+  setSortOrder: (v: "asc" | "desc") => void;
   favoriteSeries: FavoriteSeries[];
   onToggleFavoriteSeries: (
     publisher: string,
@@ -54,7 +61,14 @@ const ComicList: React.FC<Props> = ({
   setItemsPerPage,
   filterOption,
   searchFilter,
+  filterType,
+  filterGrade,
+  filterMinValue,
+  filterMaxValue,
   sortBy,
+  sortOrder,
+  setSortBy,
+  setSortOrder,
   favoriteSeries,
   onToggleFavoriteSeries,
   selectedSeries,
@@ -93,7 +107,15 @@ const ComicList: React.FC<Props> = ({
     loading: publishersLoading,
     error: publishersError,
   } = usePublisherSummaries(
-    { filterOption, search: searchFilter, sortBy },
+    {
+      filterOption,
+      search: searchFilter,
+      sortBy,
+      type: filterType || undefined,
+      grade: filterGrade || undefined,
+      minValue: filterMinValue || undefined,
+      maxValue: filterMaxValue || undefined,
+    },
     favoriteSeries
   );
 
@@ -154,7 +176,14 @@ const ComicList: React.FC<Props> = ({
         setItemsPerPage={setItemsPerPage}
         filterOption={filterOption}
         searchFilter={searchFilter}
+        filterType={filterType}
+        filterGrade={filterGrade}
+        filterMinValue={filterMinValue}
+        filterMaxValue={filterMaxValue}
         sortBy={sortBy}
+        sortOrder={sortOrder}
+        setSortBy={setSortBy}
+        setSortOrder={setSortOrder}
         favoriteSeries={favoriteSeries}
         isFavorite={favoriteSeries.some(
           (fav) =>
@@ -212,6 +241,10 @@ const ComicList: React.FC<Props> = ({
               favoriteSeries={favoriteSeries}
               filterOption={filterOption}
               searchFilter={searchFilter}
+              filterType={filterType}
+              filterGrade={filterGrade}
+              filterMinValue={filterMinValue}
+              filterMaxValue={filterMaxValue}
               sortBy={sortBy}
               onTogglePublisher={togglePublisher}
               onToggleSeries={toggleSeries}

@@ -349,7 +349,7 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
               )}
             </S.ComicTitle>
             <S.ComicMeta data-sc="ComicMeta">
-              {comic.grade != null && (
+              {comic.collected && comic.grade != null && comic.grade.trim() !== "" && (
                 <span>Grade: {comic.grade}</span>
               )}
               {comic.pricePaid != null && (

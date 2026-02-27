@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { Comic, FilterOption, FavoriteSeries, SortOption } from "../../types";
+import { Comic, FilterOption, FavoriteSeries, SortOption, DETAIL_VIEW_SORT_OPTIONS } from "../../types";
 import {
   useSeriesComics,
   useComicStats,
@@ -37,7 +37,14 @@ interface SeriesDetailViewProps {
   onToggleFavorite: () => void;
   filterOption: FilterOption;
   searchFilter: string;
+  filterType?: string;
+  filterGrade?: string;
+  filterMinValue?: string;
+  filterMaxValue?: string;
   sortBy: SortOption;
+  sortOrder: "asc" | "desc";
+  setSortBy: (v: SortOption) => void;
+  setSortOrder: (v: "asc" | "desc") => void;
   favoriteSeries: FavoriteSeries[];
   currentPage: number;
   setCurrentPage: (page: number) => void;
@@ -54,12 +61,18 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
   onToggleFavorite,
   filterOption,
   searchFilter,
+  filterType = "",
+  filterGrade = "",
+  filterMinValue = "",
+  filterMaxValue = "",
   sortBy,
+  sortOrder,
+  setSortBy,
+  setSortOrder,
   favoriteSeries,
   currentPage,
   setCurrentPage,
 }) => {
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isStatsCollapsed, setIsStatsCollapsed] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [editComic, setEditComic] = useState<Comic | null>(null);
@@ -81,8 +94,16 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
     currentPage,
     itemsPerPage,
     true, // always enabled for detail view
-    // In series detail always sort by issue number so all issues appear in order (e.g. 538, 539, 540)
-    { filterOption, search: searchFilter, sortBy: "issueNumber" }
+    {
+      filterOption,
+      search: searchFilter,
+      sortBy: DETAIL_VIEW_SORT_OPTIONS.includes(sortBy) ? sortBy : "issueNumber",
+      sortOrder,
+      type: filterType || undefined,
+      grade: filterGrade || undefined,
+      minValue: filterMinValue || undefined,
+      maxValue: filterMaxValue || undefined,
+    }
   );
 
   // Fetch series-specific stats using the same filters
@@ -98,6 +119,10 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
       filterOption,
       search: searchFilter,
       sortBy,
+      type: filterType || undefined,
+      grade: filterGrade || undefined,
+      minValue: filterMinValue || undefined,
+      maxValue: filterMaxValue || undefined,
     },
     favoriteSeries
   );
@@ -322,17 +347,7 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
     [confirmUpdate, updateComic, editComic]
   );
 
-  // Sort comics (keep existing sorting logic)
-  const sortedComics = useMemo(() => {
-    return [...comics].sort((a, b) => {
-      const aNum = parseFloat(a.issue) || 0;
-      const bNum = parseFloat(b.issue) || 0;
-      const comparison = aNum - bNum;
-      return sortOrder === "asc" ? comparison : -comparison;
-    });
-  }, [comics, sortOrder]);
-
-  // Calculate total pages from stats (total count) rather than current page data
+  // API returns comics in the requested order; no client-side re-sort
   const totalPages = stats
     ? Math.ceil(stats.total / itemsPerPage)
     : Math.ceil(comics.length / itemsPerPage);
@@ -386,7 +401,7 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
           publisher={publisher}
           series={series}
           volume={volume}
-          seriesYears={sortedComics[0]?.years}
+          seriesYears={comics[0]?.years}
           isFavorite={isFavorite}
           onToggleFavorite={onToggleFavorite}
           onBack={onBack}
@@ -403,8 +418,12 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
         />
 
         <ViewControls
+          sortBy={DETAIL_VIEW_SORT_OPTIONS.includes(sortBy) ? sortBy : "issueNumber"}
           sortOrder={sortOrder}
-          onSortChange={setSortOrder}
+          onSortChange={(field, dir) => {
+            setSortBy(field);
+            setSortOrder(dir);
+          }}
           itemsPerPage={itemsPerPage}
           onItemsPerPageChange={setItemsPerPage}
           onCurrentPageReset={() => setCurrentPage(1)}
@@ -442,7 +461,7 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
         }}
       >
         <ComicsGrid
-          comics={sortedComics}
+          comics={comics}
           onCollect={handleCollect}
           onToggleGrail={handleToggleGrail}
           onEdit={handleOpenEdit}

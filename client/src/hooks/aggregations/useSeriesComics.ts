@@ -38,10 +38,14 @@ export const useSeriesComics = (
       extraFilters.isGrail,
       extraFilters.signed,
       extraFilters.grade,
+      extraFilters.type,
+      extraFilters.minValue,
+      extraFilters.maxValue,
       extraFilters.storageLocation,
       extraFilters.search,
       extraFilters.filterOption,
       extraFilters.sortBy,
+      extraFilters.sortOrder,
     ]
   );
 
@@ -88,10 +92,10 @@ export const useSeriesComics = (
         const extra = buildQueryParams(extraFilters);
         if (extra) {
           const extraQS = new URLSearchParams(extra);
+          const orderDir = extraFilters.sortOrder ?? "asc";
           extraQS.forEach((v, k) => {
-            // Map sortBy to order for the main comics endpoint
             if (k === "sortBy") {
-              params.set("order", `${v}.asc,id.asc`);
+              params.set("order", `${v}.${orderDir},id.asc`);
             } else {
               params.set(k, v);
             }
@@ -181,7 +185,7 @@ export const useSeriesComics = (
     memoized.enabled,
   ]);
 
-  // Silent refetch on filter/sort changes (including sortBy)
+  // Silent refetch on filter/sort changes (including sortBy and sortOrder)
   useEffect(() => {
     // Only run when base params are valid
     if (!enabled || !publisher || !series) return;
@@ -198,6 +202,7 @@ export const useSeriesComics = (
     extraFilters.search,
     extraFilters.filterOption,
     extraFilters.sortBy,
+    extraFilters.sortOrder,
   ]);
 
   return {

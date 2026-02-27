@@ -50,6 +50,21 @@ function buildWhere(
   if (filters.isGrail === "true") where.isGrail = true;
   if (filters.signed === "true") where.signed = true;
   if (filters.grade) where.grade = filters.grade;
+  if (filters.type !== undefined && filters.type !== "") {
+    where.type = filters.type;
+  }
+  if (filters.minValue !== undefined && filters.minValue !== "") {
+    const n = Number(filters.minValue);
+    if (!Number.isNaN(n)) {
+      where.currentValue = { ...(where.currentValue as object || {}), gte: n };
+    }
+  }
+  if (filters.maxValue !== undefined && filters.maxValue !== "") {
+    const n = Number(filters.maxValue);
+    if (!Number.isNaN(n)) {
+      where.currentValue = { ...(where.currentValue as object || {}), lte: n };
+    }
+  }
   if (filters.storageLocation) {
     where.storageLocation = { contains: filters.storageLocation };
   }
@@ -270,6 +285,21 @@ export const getSeriesSummaries = async (
     if (otherFilters.isGrail === "true") where.isGrail = true;
     if (otherFilters.signed === "true") where.signed = true;
     if (otherFilters.grade) where.grade = otherFilters.grade;
+    if (otherFilters.type !== undefined && otherFilters.type !== "") {
+      where.type = otherFilters.type;
+    }
+    if (otherFilters.minValue !== undefined && otherFilters.minValue !== "") {
+      const n = Number(otherFilters.minValue);
+      if (!Number.isNaN(n)) {
+        where.currentValue = { ...(where.currentValue as object || {}), gte: n };
+      }
+    }
+    if (otherFilters.maxValue !== undefined && otherFilters.maxValue !== "") {
+      const n = Number(otherFilters.maxValue);
+      if (!Number.isNaN(n)) {
+        where.currentValue = { ...(where.currentValue as object || {}), lte: n };
+      }
+    }
     if (otherFilters.storageLocation) {
       where.storageLocation = { contains: otherFilters.storageLocation };
     }
@@ -346,5 +376,29 @@ export const getSeriesSummaries = async (
   } catch (error: any) {
     console.error("Series aggregation error:", error);
     return createErrorResponse(500, `Failed to get series: ${error.message}`);
+  }
+};
+
+/**
+ * Get distinct comic type values for the user (for filter dropdowns)
+ */
+export const getDistinctTypes = async (
+  prisma: PrismaClient,
+  userId: string
+): Promise<any> => {
+  try {
+    const rows = await prisma.comic.findMany({
+      where: { userId },
+      select: { type: true },
+      distinct: ["type"],
+    });
+    const types = rows
+      .map((r) => (r.type ?? "").trim())
+      .filter((t) => t.length > 0)
+      .sort((a, b) => a.localeCompare(b));
+    return createResponse(200, types);
+  } catch (error: any) {
+    console.error("Distinct types error:", error);
+    return createErrorResponse(500, `Failed to get types: ${error.message}`);
   }
 };

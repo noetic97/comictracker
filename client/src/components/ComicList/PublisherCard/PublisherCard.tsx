@@ -15,6 +15,10 @@ interface PublisherCardProps {
   favoriteSeries: FavoriteSeries[];
   filterOption: FilterOption;
   searchFilter: string;
+  filterType?: string;
+  filterGrade?: string;
+  filterMinValue?: string;
+  filterMaxValue?: string;
   sortBy: SortOption;
   onTogglePublisher: (publisher: string) => void;
   onToggleSeries: (seriesKey: string) => void;
@@ -49,6 +53,10 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
   favoriteSeries,
   filterOption,
   searchFilter,
+  filterType = "",
+  filterGrade = "",
+  filterMinValue = "",
+  filterMaxValue = "",
   sortBy,
   onTogglePublisher,
   onToggleSeries,
@@ -77,6 +85,10 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
       filterOption,
       search: searchFilter,
       sortBy,
+      type: filterType || undefined,
+      grade: filterGrade || undefined,
+      minValue: filterMinValue || undefined,
+      maxValue: filterMaxValue || undefined,
     },
     favoriteSeries
   );

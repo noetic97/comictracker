@@ -26,6 +26,9 @@ export const queryComics = async (
     isGrail,
     signed,
     grade,
+    type,
+    minValue,
+    maxValue,
     storageLocation,
     search,
     exact,
@@ -112,8 +115,70 @@ export const queryComics = async (
   if (isGrail === "true") where.isGrail = true;
   if (signed === "true") where.signed = true;
   if (grade) where.grade = grade;
+  if (type !== undefined && type !== "") where.type = type;
+  if (minValue !== undefined && minValue !== "") {
+    const n = Number(minValue);
+    if (!Number.isNaN(n)) {
+      where.currentValue = { ...(where.currentValue as object || {}), gte: n };
+    }
+  }
+  if (maxValue !== undefined && maxValue !== "") {
+    const n = Number(maxValue);
+    if (!Number.isNaN(n)) {
+      where.currentValue = { ...(where.currentValue as object || {}), lte: n };
+    }
+  }
   if (storageLocation) {
     where.storageLocation = { contains: storageLocation };
+  }
+
+  const isSeriesScoped = exact === "true" && !!publisher && !!series;
+  const orderTrimmed = order?.trim();
+  const isTypeSort = orderTrimmed?.toLowerCase().startsWith("type.");
+
+  if (isSeriesScoped && orderTrimmed) {
+    // Series-scoped (detail view): single-field sort in memory with nulls last.
+    const all = await prisma.comic.findMany({
+      where,
+      take: 10000,
+      orderBy: { id: "asc" },
+    });
+
+    if (isTypeSort) {
+      // Type: alphabetical with "Issue" (and empty) last, then by issue number asc.
+      const typeOrderKey = (t: string | null): string => {
+        const v = (t ?? "").trim();
+        return v === "Issue" || v === "" ? "\uFFFF" + v : v;
+      };
+      all.sort((a, b) => {
+        const ka = typeOrderKey(a.type);
+        const kb = typeOrderKey(b.type);
+        if (ka !== kb) return ka.localeCompare(kb);
+        return (a.issueNumber ?? 0) - (b.issueNumber ?? 0);
+      });
+    } else {
+      // Single field + direction; nulls last, then id tiebreaker.
+      const [part] = orderTrimmed.split(",").map((s) => s.trim());
+      const [col, dir] = (part ?? "").split(".");
+      const asc = (dir ?? "asc").toLowerCase() !== "desc";
+      const cmp = buildSingleFieldComparator(col, asc);
+      all.sort(cmp);
+    }
+
+    const total = all.length;
+    const page = all.slice(offsetNum, offsetNum + limitNum);
+    const transformedComics = page.map((c) =>
+      transformComicOutput({ ...c, user_id: c.userId })
+    );
+    return {
+      comics: transformedComics,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum) || 1,
+      },
+    };
   }
 
   const orderBy = buildOrderBy(order);
@@ -145,6 +210,65 @@ export const queryComics = async (
   };
 };
 
+type ComicRow = {
+  id: string;
+  issueNumber: number | null;
+  currentValue: number;
+  pricePaid: number | null;
+  grade: string | null;
+  dateAdded: Date | null;
+  collected: boolean;
+  type: string | null;
+  createdAt: Date;
+  [key: string]: any;
+};
+
+/** True if value is null/empty for sort purposes (these go to end). */
+function isNullish(v: any): boolean {
+  if (v == null) return true;
+  if (typeof v === "string" && v.trim() === "") return true;
+  return false;
+}
+
+/** Compare two values; nulls last. Returns -1, 0, or 1. */
+function compareWithNullsLast(a: any, b: any, asc: boolean): number {
+  const aNull = isNullish(a);
+  const bNull = isNullish(b);
+  if (aNull && bNull) return 0;
+  if (aNull) return 1;
+  if (bNull) return -1;
+  if (typeof a === "number" && typeof b === "number") {
+    return asc ? a - b : b - a;
+  }
+  if (a instanceof Date && b instanceof Date) {
+    const ta = a.getTime();
+    const tb = b.getTime();
+    return asc ? ta - tb : tb - ta;
+  }
+  if (typeof a === "boolean" && typeof b === "boolean") {
+    const na = a ? 1 : 0;
+    const nb = b ? 1 : 0;
+    return asc ? na - nb : nb - na;
+  }
+  const sa = String(a);
+  const sb = String(b);
+  const c = sa.localeCompare(sb);
+  return asc ? c : -c;
+}
+
+function buildSingleFieldComparator(
+  col: string,
+  asc: boolean
+): (a: ComicRow, b: ComicRow) => number {
+  return (a, b) => {
+    const va = a[col];
+    const vb = b[col];
+    const c = compareWithNullsLast(va, vb, asc);
+    if (c !== 0) return c;
+    return a.id.localeCompare(b.id);
+  };
+}
+
 function buildOrderBy(order?: string): ComicOrderBy {
   const defaultOrder: ComicOrderBy = [
     { series: "asc" },
@@ -160,11 +284,13 @@ function buildOrderBy(order?: string): ComicOrderBy {
     "pricePaid",
     "grade",
     "createdAt",
+    "dateAdded",
     "issue",
     "issueNumber",
     "collected",
     "isGrail",
     "id",
+    "type",
   ]);
   const parts = order.split(",").map((s) => s.trim());
   const out: ComicOrderBy = [];

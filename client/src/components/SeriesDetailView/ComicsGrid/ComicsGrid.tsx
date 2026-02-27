@@ -85,9 +85,9 @@ const ComicsGrid: React.FC<ComicsGridProps> = ({
           </S.ComicHeader>
 
           <S.CompactComicDetails>
-            {(comic.grade != null || comic.pricePaid != null || comic.currentValue != null) && (
+            {((comic.collected && comic.grade != null && comic.grade.trim() !== "") || comic.pricePaid != null || comic.currentValue != null) && (
               <S.ComicMetaLine>
-                {comic.grade != null && (
+                {comic.collected && comic.grade != null && comic.grade.trim() !== "" && (
                   <S.ComicMetaItem>Grade: {comic.grade}</S.ComicMetaItem>
                 )}
                 {comic.pricePaid != null && (

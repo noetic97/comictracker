@@ -3,6 +3,10 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { vi } from "vitest";
 import FilterSort from "./FilterSort";
 
+vi.mock("../../hooks", () => ({
+  useDistinctTypes: () => ({ types: [] }),
+}));
+
 // Mock the styled-components
 vi.mock("./styles", () => ({
   FilterSortContainer: ({
@@ -37,6 +41,24 @@ vi.mock("./styles", () => ({
   ),
   ShowHiddenLabel: (props: React.PropsWithChildren) => (
     <label data-testid="show-hidden-label" {...props} />
+  ),
+  ValueRangeRow: (props: React.PropsWithChildren) => (
+    <div data-testid="value-range-row" {...props} />
+  ),
+  ValueInputWrap: (props: React.PropsWithChildren) => (
+    <div data-testid="value-input-wrap" {...props} />
+  ),
+  ValueInput: ({ $hasValue, ...props }: React.PropsWithChildren<{ $hasValue?: boolean }>) => (
+    <input data-testid="value-input" {...props} />
+  ),
+  ValueClearButton: (props: React.PropsWithChildren) => (
+    <button data-testid="value-clear-button" {...props} />
+  ),
+  ClearFiltersButton: (props: React.PropsWithChildren) => (
+    <button data-testid="clear-filters-button" {...props} />
+  ),
+  DetailViewNote: (props: React.PropsWithChildren) => (
+    <p data-testid="detail-view-note" {...props} />
   ),
 }));
 
@@ -83,6 +105,14 @@ describe("FilterSort Component", () => {
     setSortBy: mockSetSortBy,
     itemsPerPage: 25,
     setItemsPerPage: mockSetItemsPerPage,
+    filterType: "",
+    setFilterType: vi.fn(),
+    filterGrade: "",
+    setFilterGrade: vi.fn(),
+    filterMinValue: "",
+    setFilterMinValue: vi.fn(),
+    filterMaxValue: "",
+    setFilterMaxValue: vi.fn(),
     showHiddenPublishers: false,
     onShowHiddenPublishersChange: mockOnShowHiddenPublishersChange,
     showHiddenSeries: false,
@@ -115,13 +145,6 @@ describe("FilterSort Component", () => {
       target: { value: "new filter" },
     });
     expect(mockSetFilter).toHaveBeenCalledWith("new filter");
-  });
-  it("updates sortBy when select changes", () => {
-    render(<FilterSort {...defaultProps} />);
-    fireEvent.change(screen.getByTestId("styled-select-SortBySelect"), {
-      target: { value: "publisher" },
-    });
-    expect(mockSetSortBy).toHaveBeenCalledWith("publisher");
   });
   it("updates itemsPerPage when select changes", () => {
     render(<FilterSort {...defaultProps} />);

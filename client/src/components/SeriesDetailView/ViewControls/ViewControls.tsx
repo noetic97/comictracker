@@ -1,21 +1,39 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { ChevronDown } from "lucide-react";
+import { SortOption, DETAIL_VIEW_SORT_OPTIONS, getSortOptionLabel } from "../../../types";
 import * as S from "./styles";
 
 interface ViewControlsProps {
+  sortBy: SortOption;
   sortOrder: "asc" | "desc";
-  onSortChange: (order: "asc" | "desc") => void;
+  onSortChange: (sortBy: SortOption, sortOrder: "asc" | "desc") => void;
   itemsPerPage: number;
   onItemsPerPageChange: (count: number) => void;
-  onCurrentPageReset: () => void; // Reset to page 1 when items per page changes
+  onCurrentPageReset: () => void;
 }
 
 const ViewControls: React.FC<ViewControlsProps> = ({
+  sortBy,
   sortOrder,
   onSortChange,
   itemsPerPage,
   onItemsPerPageChange,
   onCurrentPageReset,
 }) => {
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!sortOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setSortOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [sortOpen]);
+
   const itemsPerPageOptions: { value: number; label: string }[] = [
     { value: 10, label: "10" },
     { value: 25, label: "25" },
@@ -26,20 +44,53 @@ const ViewControls: React.FC<ViewControlsProps> = ({
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     onItemsPerPageChange(newItemsPerPage);
-    onCurrentPageReset(); // Reset to first page when changing items per page
+    onCurrentPageReset();
   };
+
+  const handleSortOptionClick = (field: SortOption) => {
+    if (field === sortBy) {
+      onSortChange(field, sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      onSortChange(field, "asc");
+    }
+    setSortOpen(false);
+  };
+
+  const arrow = sortOrder === "asc" ? "↑" : "↓";
+  const currentLabel = `${getSortOptionLabel(sortBy)} ${arrow}`;
 
   return (
     <S.ViewControlsContainer>
-      <S.SortControls>
+      <S.SortControls ref={sortRef}>
         <S.ControlLabel>Sort:</S.ControlLabel>
-        <S.CompactSelect
-          value={sortOrder}
-          onChange={(e) => onSortChange(e.target.value as "asc" | "desc")}
+        <S.SortDropdownButton
+          type="button"
+          onClick={() => setSortOpen((o) => !o)}
+          aria-expanded={sortOpen}
+          aria-haspopup="listbox"
+          aria-label={`Sort by ${currentLabel}`}
+          data-sc="SortSelect"
         >
-          <option value="asc">Issue # ↑</option>
-          <option value="desc">Issue # ↓</option>
-        </S.CompactSelect>
+          <span>{currentLabel}</span>
+          <ChevronDown size={14} style={{ flexShrink: 0 }} />
+        </S.SortDropdownButton>
+        {sortOpen && (
+          <S.SortDropdownPanel role="listbox">
+            {DETAIL_VIEW_SORT_OPTIONS.map((field) => (
+              <S.SortDropdownOption
+                key={field}
+                type="button"
+                role="option"
+                aria-selected={field === sortBy}
+                $selected={field === sortBy}
+                onClick={() => handleSortOptionClick(field)}
+              >
+                <span>{getSortOptionLabel(field)}</span>
+                {field === sortBy ? <span>{arrow}</span> : null}
+              </S.SortDropdownOption>
+            ))}
+          </S.SortDropdownPanel>
+        )}
       </S.SortControls>
 
       <S.ItemsPerPageControl>
