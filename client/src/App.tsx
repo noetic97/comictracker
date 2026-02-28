@@ -31,6 +31,7 @@ import {
 } from "./utils/urlParams";
 import { useHiddenPublishers } from "./hooks/useHiddenPublishers";
 import { useHiddenSeries } from "./hooks/useHiddenSeries";
+import { useOfflineSync } from "./hooks/useOfflineSync";
 
 const ThemedAppWithLoading: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -68,6 +69,9 @@ const ThemedAppWithLoading: React.FC = () => {
 
   // Use loading manager
   const { setLoadingPhase } = useLoadingManager();
+
+  const { isSyncing, error: offlineSyncError, lastSyncedAt, syncNow } =
+    useOfflineSync();
 
   // Restore view from URL on mount, or from localStorage when URL has no params
   useEffect(() => {
@@ -160,12 +164,6 @@ const ThemedAppWithLoading: React.FC = () => {
 
     fetchInitialData();
   }, [setLoadingPhase]);
-
-  if (!isOnline) {
-    return (
-      <div>You are currently offline. Some features may be unavailable.</div>
-    );
-  }
 
   const handleImport = async (): Promise<void> => {
     try {
@@ -298,6 +296,11 @@ const ThemedAppWithLoading: React.FC = () => {
       }}
     >
       <S.AppContainer data-sc="AppContainer">
+        {!isOnline && (
+          <S.OfflineBanner>
+            You&apos;re offline. Showing cached data where available.
+          </S.OfflineBanner>
+        )}
         <S.HeaderContainer data-sc="S.HeaderContainer">
           <Header
             onFilterClick={toggleFilterModal}
@@ -373,6 +376,10 @@ const ThemedAppWithLoading: React.FC = () => {
           onImport={handleImport}
           onOpenImportModal={openImportModal}
           importStatus={importStatus}
+          onSyncOffline={syncNow}
+          isSyncingOffline={isSyncing}
+          lastSyncedAt={lastSyncedAt}
+          offlineSyncError={offlineSyncError}
         />
 
         <ImportModal

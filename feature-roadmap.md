@@ -248,4 +248,40 @@
 
 ---
 
+## 📴 Phase 8: Offline Access & Cached App (iPhone/iPad)
+
+*Target: 2–4 weeks (medium lift)*
+
+### Goals
+- **Offline data**: Browse cached comics, series, stats, and favorites when the device has no network (e.g. at a con or in airplane mode).
+- **Cached app shell**: Load the app from the device so the UI appears immediately on iPhone/iPad (including from Home Screen) even when offline or on a slow connection.
+
+### Current State
+- **PWA / Service worker**: Basic SW exists (`public/service-worker.js`) but uses **hardcoded asset paths** (e.g. `/assets/index-DGYXzT3m.js`), so each new build breaks the cache. Navigation is network-first; API calls are network-first with dynamic cache fallback (no IndexedDB).
+- **IndexedDB**: `idb` is installed and `client/src/utils/db.ts` defines a schema (comics, favoriteSeries) but is **not used** in the current API-first data flow.
+- **Data flow**: All reads go through the API (e.g. `useSeriesComics`, `useComicStats`, `usePublisherSummaries`, `useSeriesSummaries`, `apiService`). No offline cache layer.
+
+### Scope & Lift
+
+| Area | Work | Effort |
+|------|------|--------|
+| **1. App shell caching (load site from device)** | Replace hand-written SW with **vite-plugin-pwa** (Workbox) so the service worker is generated at build time and caches hashed JS/CSS/HTML. Configure cache-first for app shell, optional precache. Ensure `manifest.json` and icons support “Add to Home Screen” on iOS. | **Small** (1–2 days) |
+| **2. Offline detection & UI** | Detect online/offline (navigator.onLine + optional network events). Show a small “You’re offline – showing cached data” (or similar) and avoid confusing errors when API fails. | **Small** (0.5–1 day) |
+| **3. IndexedDB as API cache** | Introduce a **cache layer** that: (a) On success, writes API responses into IndexedDB keyed by request (e.g. URL + query). (b) When a request fails (e.g. offline), reads from IndexedDB and returns cached data if present. Optionally add TTL or “last synced” so stale cache is visible. Reuse/extend `db.ts` or add a dedicated cache store. | **Medium** (3–5 days) |
+| **4. Wire hooks to cache layer** | Make `useSeriesComics`, `useComicStats`, `usePublisherSummaries`, `useSeriesSummaries`, and any other API-backed hooks go through the cache layer (e.g. “try network → on success save to IDB and return; on failure read from IDB”). | **Medium** (2–4 days) |
+| **5. Mutations offline (optional)** | If you want collect/grail/add/delete to work offline: queue mutations in IndexedDB and replay when back online; resolve conflicts (e.g. last-write-wins or simple rules). | **Medium–Large** (3–7 days) |
+| **6. iOS/Safari quirks** | iOS has limited SW support (no background sync, smaller cache limits). Test “Add to Home Screen”, cache behavior, and that the app loads from cache when opening from home screen with no network. | **Small** (1–2 days) |
+
+### Recommended approach
+- **Phase 8a (minimal)**: Fix app shell caching (1) and add offline UI (2). Result: app loads from device and shows a friendly “offline” state when the API fails; no cached data yet.
+- **Phase 8b (offline read)**: Add IDB cache (3) and wire hooks (4). Result: previously viewed data (comics, series, stats) is readable offline.
+- **Phase 8c (optional)**: Offline mutations (5) and iOS polish (6).
+
+### Overall lift (summary)
+- **Cached website only (Phase 8a)**: **~2–3 days**.
+- **Cached website + offline read from IndexedDB (Phase 8a + 8b)**: **~2–4 weeks** (one person, part-time).
+- **Full offline with queued writes (Phase 8a–8c)**: **~3–5 weeks**.
+
+---
+
 *This roadmap is a living document and will be updated based on user feedback, technical discoveries, and market opportunities.*

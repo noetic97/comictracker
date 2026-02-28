@@ -1,6 +1,11 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { AggregationFilters, SeriesSummary } from "./types";
-import { getApiBaseUrl, buildQueryParams } from "../utils";
+import {
+  getApiBaseUrl,
+  buildQueryParams,
+  getCachedApiResponse,
+  setCachedApiResponse,
+} from "../utils";
 import { FavoriteSeries } from "../../types";
 
 /**
@@ -71,8 +76,32 @@ export const useSeriesSummaries = (
 
       setSeries(data);
 
+      // Cache series for offline use
+      void setCachedApiResponse(url, data);
+
       console.log(`✅ Series loaded for ${publisher}:`, data.length);
     } catch (err: any) {
+      const isOffline =
+        typeof navigator !== "undefined" && navigator.onLine === false;
+
+      if (isOffline) {
+        try {
+          const params = buildQueryParams({ ...memoizedFilters, publisher });
+          const offlineUrl = `${getApiBaseUrl()}/comics/series?${params}`;
+          const cached =
+            await getCachedApiResponse<SeriesSummary[]>(offlineUrl);
+          if (cached && cached.length > 0) {
+            console.warn(
+              "📦 Using cached series summaries due to offline/network error"
+            );
+            setSeries(cached);
+            return;
+          }
+        } catch (cacheError) {
+          console.error("Failed to load cached series summaries", cacheError);
+        }
+      }
+
       console.error("❌ Error fetching series:", err);
       setError(err.message);
       setSeries([]);

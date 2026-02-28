@@ -1,7 +1,12 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { AggregationFilters } from "./types";
 import { Comic } from "../../types/comic";
-import { getApiBaseUrl, buildQueryParams } from "../utils";
+import {
+  getApiBaseUrl,
+  buildQueryParams,
+  getCachedApiResponse,
+  setCachedApiResponse,
+} from "../utils";
 
 /**
  * Hook for fetching comics with silent refetch capability
@@ -135,8 +140,31 @@ export const useSeriesComics = (
         // Always update comics, whether silent or not
         setComics(list);
 
+        // Best-effort: cache successful response for offline use
+        void setCachedApiResponse(url, list);
+
         return list;
       } catch (err: any) {
+        const isOffline =
+          typeof navigator !== "undefined" && navigator.onLine === false;
+
+        if (isOffline) {
+          try {
+            const url = `${getApiBaseUrl()}/comics?${lastFetchParamsRef.current}`;
+            const cached =
+              await getCachedApiResponse<Comic[]>(url);
+            if (cached && cached.length > 0) {
+              console.warn(
+                "📦 Using cached series comics due to offline/network error"
+              );
+              setComics(cached);
+              return cached;
+            }
+          } catch (cacheError) {
+            console.error("Failed to load cached series comics", cacheError);
+          }
+        }
+
         if (!silent) {
           console.error("❌ Error fetching series comics:", err);
           setError(err.message || "Unknown error");

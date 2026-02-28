@@ -1,6 +1,11 @@
 import { AggregationFilters, PublisherSummary } from "./types";
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { getApiBaseUrl, buildQueryParams } from "../utils";
+import {
+  getApiBaseUrl,
+  buildQueryParams,
+  getCachedApiResponse,
+  setCachedApiResponse,
+} from "../utils";
 import { logger } from "../../utils/logger";
 import { FavoriteSeries } from "../../types";
 
@@ -67,6 +72,9 @@ export const usePublisherSummaries = (
 
       setPublishers(data);
 
+      // Cache publishers for offline use
+      void setCachedApiResponse(url, data);
+
       logger.stats.info("Publishers loaded successfully", {
         count: data.length,
         filtered:
@@ -75,6 +83,30 @@ export const usePublisherSummaries = (
             : "all",
       });
     } catch (err: any) {
+      const isOffline =
+        typeof navigator !== "undefined" && navigator.onLine === false;
+
+      if (isOffline) {
+        try {
+          const params = buildQueryParams(memoizedFilters);
+          const offlineUrl = `${getApiBaseUrl()}/comics/publishers?${params}`;
+          const cached =
+            await getCachedApiResponse<PublisherSummary[]>(offlineUrl);
+          if (cached && cached.length > 0) {
+            logger.stats.warn(
+              "Using cached publisher summaries due to offline/network error"
+            );
+            setPublishers(cached);
+            return;
+          }
+        } catch (cacheError) {
+          logger.stats.error(
+            "Failed to load cached publisher summaries",
+            cacheError
+          );
+        }
+      }
+
       logger.stats.error("Failed to fetch publishers", err);
       setError(err.message);
       setPublishers([]);

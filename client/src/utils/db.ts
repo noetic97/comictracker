@@ -60,6 +60,24 @@ const initDB = async (): Promise<IDBPDatabase<MyDB>> => {
   return dbPromise;
 };
 
+export const clearAllComics = async (): Promise<void> => {
+  const db = await initDB();
+  const tx = db.transaction(COMICS_STORE, "readwrite");
+  await tx.store.clear();
+  await tx.done;
+};
+
+export const replaceAllComics = async (comics: Comic[]): Promise<void> => {
+  const db = await initDB();
+  const tx = db.transaction(COMICS_STORE, "readwrite");
+  const store = tx.objectStore(COMICS_STORE);
+  await store.clear();
+  for (const comic of comics) {
+    await store.put({ ...comic, isGrail: comic.isGrail ?? false });
+  }
+  await tx.done;
+};
+
 const retryOperation = async <T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,

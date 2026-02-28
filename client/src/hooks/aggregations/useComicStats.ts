@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { AggregationFilters, ComicStats } from "./types";
-import { getApiBaseUrl, buildQueryParams } from "../utils";
+import {
+  getApiBaseUrl,
+  buildQueryParams,
+  getCachedApiResponse,
+  setCachedApiResponse,
+} from "../utils";
 import { logger } from "../../utils/logger";
 import { FavoriteSeries } from "../../types";
 
@@ -72,6 +77,9 @@ export const useComicStats = (
         const data: ComicStats = await response.json();
         setStats(data);
 
+        // Cache stats for offline use
+        void setCachedApiResponse(url, data);
+
         logger.stats.info("Stats loaded successfully", {
           total: data.total,
           collected: data.collected,
@@ -79,6 +87,27 @@ export const useComicStats = (
         });
         return data;
       } catch (err: any) {
+        const isOffline =
+          typeof navigator !== "undefined" && navigator.onLine === false;
+
+        if (isOffline) {
+          try {
+            const params = buildQueryParams(memoizedFilters);
+            const offlineUrl = `${getApiBaseUrl()}/comics/stats?${params}`;
+            const cached =
+              await getCachedApiResponse<ComicStats>(offlineUrl);
+            if (cached) {
+              logger.stats.warn(
+                "Using cached stats due to offline/network error"
+              );
+              setStats(cached);
+              return cached;
+            }
+          } catch (cacheError) {
+            logger.stats.error("Failed to load cached stats", cacheError);
+          }
+        }
+
         logger.stats.error("Failed to fetch stats", err);
         if (!silent) {
           setError(err.message);

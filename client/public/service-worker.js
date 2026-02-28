@@ -1,6 +1,5 @@
-const CACHE_NAME = "comic-tracker-v1";
-const STATIC_CACHE_NAME = "comic-tracker-static-v1";
-const DYNAMIC_CACHE_NAME = "comic-tracker-dynamic-v1";
+const STATIC_CACHE_NAME = "comic-tracker-static-v2";
+const RUNTIME_CACHE_NAME = "comic-tracker-runtime-v2";
 
 const STATIC_ASSETS = [
   "/",
@@ -8,8 +7,6 @@ const STATIC_ASSETS = [
   "/manifest.json",
   "/icon-192x192.png",
   "/icon-512x512.png",
-  "/assets/index-Ce-WZJsI.css",
-  "/assets/index-DGYXzT3m.js",
 ];
 
 self.addEventListener("install", (event) => {
@@ -20,18 +17,18 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
+    caches.keys().then((cacheNames) =>
+      Promise.all(
         cacheNames
           .filter(
             (name) =>
               name.startsWith("comic-tracker-") &&
               name !== STATIC_CACHE_NAME &&
-              name !== DYNAMIC_CACHE_NAME
+              name !== RUNTIME_CACHE_NAME
           )
           .map((name) => caches.delete(name))
-      );
-    })
+      )
+    )
   );
 });
 
@@ -39,47 +36,44 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // For navigation requests, always try the network first
+  // Always try network first for navigation, fall back to cached shell
   if (request.mode === "navigate") {
-    event.respondWith(fetch(request).catch(() => caches.match("/index.html")));
-    return;
-  }
-
-  // For static assets, use cache-first strategy
-  if (STATIC_ASSETS.includes(url.pathname)) {
     event.respondWith(
-      caches.match(request).then((response) => response || fetch(request))
+      fetch(request).catch(() => caches.match("/index.html"))
     );
     return;
   }
 
-  // For API requests or other dynamic content, use network-first strategy
+  // Cache-first for JS/CSS and other static assets under /assets
+  if (url.pathname.startsWith("/assets")) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          const copy = response.clone();
+          caches.open(RUNTIME_CACHE_NAME).then((cache) => {
+            cache.put(request, copy);
+          });
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Network-first with runtime cache fallback for everything else (incl. API)
   event.respondWith(
     fetch(request)
       .then((response) => {
-        const clonedResponse = response.clone();
-        caches.open(DYNAMIC_CACHE_NAME).then((cache) => {
-          cache.put(request, clonedResponse);
+        const copy = response.clone();
+        caches.open(RUNTIME_CACHE_NAME).then((cache) => {
+          cache.put(request, copy);
         });
         return response;
       })
-      .catch(() => {
-        return caches.match(request).then((response) => {
-          if (response) {
-            return response;
-          }
-          // If the request is for a page, return the offline page
-          if (request.headers.get("Accept").includes("text/html")) {
-            return caches.match("/index.html");
-          }
-        });
-      })
+      .catch(() =>
+        caches.match(request).then((cached) => cached || Promise.reject())
+      )
   );
 });
 
-// Handle offline functionality
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
-    self.skipWaiting();
-  }
-});

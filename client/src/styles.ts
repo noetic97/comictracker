@@ -74,3 +74,17 @@ export const RefreshIndicatorInner = styled.div`
   border-radius: 50%;
   animation: spin 1s linear infinite;
 `;
+
+export const OfflineBanner = styled.div`
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  background-color: rgba(251, 191, 36, 0.15);
+  color: #92400e;
+  border: 1px solid rgba(245, 158, 11, 0.6);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+`;
