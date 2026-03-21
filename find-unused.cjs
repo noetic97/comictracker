@@ -1,10 +1,18 @@
 const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const root = __dirname;
 
-// Run ts-prune for both client and server
-const clientOutput = execSync("cd client && ts-prune", { encoding: "utf-8" });
-const serverOutput = execSync("cd server && ts-prune", { encoding: "utf-8" });
+// ts-prune lives in node_modules (workspace-hoisted from client); bare `ts-prune`
+// is not on PATH outside npm scripts — use npx from each package root.
+const runTsPrune = (subdir) =>
+  execSync("npx ts-prune", {
+    cwd: path.join(root, subdir),
+    encoding: "utf-8",
+  });
+
+const clientOutput = runTsPrune("client");
+const serverOutput = runTsPrune("server");
 
 const filterOutput = (output, prefix) => {
   return output

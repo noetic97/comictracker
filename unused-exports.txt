@@ -1,10 +1,87 @@
-Client: src/GlobalStyles.ts:18 - default
-Client: src/styles.ts:3 - AppContainer
-Client: src/styles.ts:13 - HeaderContainer
+Client: src/GlobalStyles.ts:101 - default
+Client: src/styles.ts:18 - FloatingStatusMessage
+Client: src/hooks/useComicAnalysis.ts:5 - AnalysisState (used in module)
 Client: src/utils/api.ts:8 - getComics
-Client: src/utils/db.ts:52 - getComics
-Client: src/utils/db.ts:64 - addComics
-Client: src/utils/db.ts:98 - updateComic
-Client: src/utils/db.ts:108 - deleteComic
-Client: src/utils/db.ts:118 - searchComics
-Client: src/utils/db.ts:138 - syncComics
+Client: src/utils/apiDebugger.ts:3 - ApiCallDebugInfo (used in module)
+Client: src/utils/apiService.ts:328 - checkApiHealth
+Client: src/utils/apiService.ts:338 - apiDebugger (used in module)
+Client: src/utils/chunkProcessor.ts:157 - processComicsInChunksWithDefaults
+Client: src/utils/comicStateManager.ts:169 - batchUpdateComics
+Client: src/utils/comicStateManager.ts:227 - validateStateChangeResponse
+Client: src/utils/db.ts:63 - clearAllComics
+Client: src/utils/db.ts:99 - getComics
+Client: src/utils/db.ts:114 - addComics
+Client: src/utils/db.ts:150 - updateComic
+Client: src/utils/db.ts:160 - deleteComic
+Client: src/utils/db.ts:171 - getFavoriteSeries
+Client: src/utils/db.ts:181 - addFavoriteSeries
+Client: src/utils/db.ts:204 - removeFavoriteSeries
+Client: src/utils/db.ts:216 - isFavoriteSeries
+Client: src/utils/db.ts:235 - searchComics
+Client: src/utils/db.ts:255 - syncComics
+Client: src/utils/formatters.ts:23 - calculateRate (used in module)
+Client: src/utils/formatters.ts:34 - formatPercentage (used in module)
+Client: src/utils/formatters.ts:64 - formatFileSize
+Client: src/utils/formatters.ts:99 - truncateText
+Client: src/utils/formatters.ts:107 - pluralize
+Client: src/utils/gradeScale.ts:76 - getScaleEntry (used in module)
+Client: src/utils/gradeScale.ts:8 - GradeScaleEntry (used in module)
+Client: src/utils/gradeScale.ts:44 - VALID_GRADE_LABELS
+Client: src/utils/hiddenSeries.ts:25 - setHiddenSeries (used in module)
+Client: src/utils/logger.ts:83 - enableDebugMode (used in module)
+Client: src/utils/logger.ts:90 - disableDebugMode (used in module)
+Client: src/utils/reportGenerator.ts:332 - generateComprehensiveReport
+Client: src/utils/reportGenerator.ts:437 - generateSmartRecommendations (used in module)
+Client: src/utils/reportGenerator.ts:513 - generateErrorReport
+Client: src/utils/reportGenerator.ts:592 - generateAnalysisJSON
+Client: src/utils/sortingUtils.ts:9 - normalizeForSorting (used in module)
+Client: src/utils/sortingUtils.ts:27 - createSeriesSortKey (used in module)
+Client: src/utils/sortingUtils.ts:42 - sortBySeriesIgnoringArticles
+Client: src/utils/urlParams.ts:3 - ViewParams (used in module)
+Client: src/utils/urlParams.ts:42 - LAST_VIEW_STORAGE_KEY (used in module)
+Client: src/components/FilterSort/styles.ts:40 - DetailViewNote
+Client: src/components/FilterSort/styles.ts:137 - ToggleContainer
+Client: src/components/ImportCSV/styles.ts:10 - AnalysisResults
+Client: src/components/ImportCSV/styles.ts:18 - AnalysisResultsHeader
+Client: src/components/ImportCSV/styles.ts:29 - AnalysisResultsTitle
+Client: src/components/ImportCSV/styles.ts:40 - AnalysisStatsGrid
+Client: src/components/ImportCSV/styles.ts:47 - AnalysisStat
+Client: src/components/ImportCSV/styles.ts:55 - AnalysisNumber
+Client: src/components/ImportCSV/styles.ts:70 - AnalysisLabel
+Client: src/components/ImportCSV/styles.ts:78 - MissingComicsList
+Client: src/components/ImportCSV/styles.ts:88 - MissingComicsTitle
+Client: src/components/ImportCSV/styles.ts:95 - MissingComicItem
+Client: src/components/SeriesDetailView/styles.ts:42 - ItemsPerPageControl
+Client: src/utils/csv/csvFormatDetection.ts:77 - createFieldMapping (used in module)
+Client: src/utils/csv/csvFormatDetection.ts:149 - validateCSVHeaders (used in module)
+Client: src/utils/csv/csvFormatDetection.ts:181 - quickFormatCheck
+Client: src/utils/csv/csvParser.ts:11 - EnhancedParseResult (used in module)
+Client: src/utils/csv/csvParser.ts:30 - parseComicsCSVEnhanced (used in module)
+Client: src/utils/csv/csvParser.ts:132 - parseComicsCSVWithAutoDetection (used in module)
+Client: src/utils/csv/csvParser.ts:190 - previewCSVStructure (used in module)
+Client: src/utils/csv/csvParser.ts:252 - validateCSVFile
+Client: src/utils/validation/sharedValidation.ts:51 - parseIssueNumber (used in module)
+Client: src/components/ComicList/ControlsSection/styles.ts:22 - ToggleButton
+Client: src/components/ComicList/SeriesComicList/styles.ts:77 - GrailButton
+Client: src/components/ComicList/SeriesComicList/styles.ts:139 - CollectButton
+Client: src/components/ImportCSV/AnalysisResultsDisplay/styles.ts:209 - MissingComicsTitle
+Client: src/components/ImportCSV/ImportResultsDisplay/styles.ts:203 - ResultsMeta
+Client: src/components/SeriesDetailView/ComicsGrid/styles.ts:237 - ComicValue
+Server: adapter.ts:8 - HandlerResponse (used in module)
+Server: adapter.ts:14 - NetlifyHandler (used in module)
+Server: Users/noetic/Projects/comictracker/functions/utils/cors.ts:7 - corsHeaders (used in module)
+Server: Users/noetic/Projects/comictracker/functions/utils/db.ts:49 - RequestLike (used in module)
+Server: Users/noetic/Projects/comictracker/functions/utils/db.ts:56 - getUserContext (used in module)
+Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:17 - normalizeForSorting (used in module)
+Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:40 - createSeriesSortKey
+Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:115 - SeriesSummary (used in module)
+Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:203 - Comic (used in module)
+Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:218 - ComicSortField (used in module)
+Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:236 - sortComics
+Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:319 - parseSortString
+Server: Users/noetic/Projects/comictracker/functions/services/comics/validationService.ts:310 - transformComicInput (used in module)
+Server: Users/noetic/Projects/comictracker/functions/services/comics/validationService.ts:364 - validateComicFields (used in module)
+Server: Users/noetic/Projects/comictracker/functions/services/comics/validationService.ts:444 - normalizeComic
+Server: Users/noetic/Projects/comictracker/functions/services/comics/validationService.ts:471 - createComicKey
+Server: Users/noetic/Projects/comictracker/functions/services/comics/validationService.ts:492 - generateComicId (used in module)
+Server: Users/noetic/Projects/comictracker/functions/services/comics/validationService.ts:501 - generateFavoriteSeriesId
