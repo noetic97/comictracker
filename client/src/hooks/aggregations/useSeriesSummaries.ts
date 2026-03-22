@@ -1,12 +1,17 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { AggregationFilters, SeriesSummary } from "./types";
-import {
-  getApiBaseUrl,
-  buildQueryParams,
-  getCachedApiResponse,
-  setCachedApiResponse,
-} from "../utils";
+import { getApiBaseUrl, buildQueryParams } from "../utils";
 import { FavoriteSeries } from "../../types";
+import {
+  getAllPendingComicPatches,
+  getMergedOfflineComics,
+  hasOfflineComicsSync,
+} from "../../utils/db";
+import {
+  computeSeriesSummaries,
+  filterComicsForSeriesSummaries,
+} from "../../utils/offlineComicQuery";
+import { isLikelyOfflineFetchFailure } from "../offlineRead";
 
 /**
  * Hook for fetching series summaries for a specific publisher
@@ -74,31 +79,45 @@ export const useSeriesSummaries = (
 
       let data: SeriesSummary[] = await response.json();
 
-      setSeries(data);
+      const patchCount = Object.keys(await getAllPendingComicPatches()).length;
+      if (patchCount > 0 && (await hasOfflineComicsSync())) {
+        const merged = await getMergedOfflineComics();
+        const filtered = filterComicsForSeriesSummaries(
+          merged,
+          publisher,
+          memoizedFilters,
+          favoriteSeries
+        );
+        data = computeSeriesSummaries(filtered, memoizedFilters.sortBy);
+      }
 
-      // Cache series for offline use
-      void setCachedApiResponse(url, data);
+      setSeries(data);
 
       console.log(`✅ Series loaded for ${publisher}:`, data.length);
     } catch (err: any) {
-      const isOffline =
-        typeof navigator !== "undefined" && navigator.onLine === false;
-
-      if (isOffline) {
+      if (
+        isLikelyOfflineFetchFailure(err) &&
+        (await hasOfflineComicsSync())
+      ) {
         try {
-          const params = buildQueryParams({ ...memoizedFilters, publisher });
-          const offlineUrl = `${getApiBaseUrl()}/comics/series?${params}`;
-          const cached =
-            await getCachedApiResponse<SeriesSummary[]>(offlineUrl);
-          if (cached && cached.length > 0) {
-            console.warn(
-              "📦 Using cached series summaries due to offline/network error"
-            );
-            setSeries(cached);
-            return;
-          }
-        } catch (cacheError) {
-          console.error("Failed to load cached series summaries", cacheError);
+          const merged = await getMergedOfflineComics();
+          const filtered = filterComicsForSeriesSummaries(
+            merged,
+            publisher,
+            memoizedFilters,
+            favoriteSeries
+          );
+          const fromIdb = computeSeriesSummaries(
+            filtered,
+            memoizedFilters.sortBy
+          );
+          console.warn(
+            "📦 Using synced IndexedDB for series summaries (offline / network error)"
+          );
+          setSeries(fromIdb);
+          return;
+        } catch (idbError) {
+          console.error("IDB series summaries failed", idbError);
         }
       }
 

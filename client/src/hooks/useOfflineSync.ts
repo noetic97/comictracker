@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiService } from "../utils/apiService";
-import { replaceAllComics } from "../utils/db";
+import {
+  OFFLINE_LAST_SYNC_KEY,
+  syncCollectionToIndexedDB,
+} from "../utils/offlineFullSync";
 import { logger } from "../utils/logger";
-
-const LAST_SYNC_KEY = "offlineLastSyncAt";
 
 export const useOfflineSync = () => {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -11,10 +11,38 @@ export const useOfflineSync = () => {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(LAST_SYNC_KEY);
+    const saved = window.localStorage.getItem(OFFLINE_LAST_SYNC_KEY);
     if (saved) {
       setLastSyncedAt(saved);
     }
+  }, []);
+
+  useEffect(() => {
+    const onSynced = (e: Event) => {
+      const syncedAt = (e as CustomEvent<{ syncedAt: string }>).detail
+        ?.syncedAt;
+      if (syncedAt) {
+        setLastSyncedAt(syncedAt);
+      }
+    };
+    const onSyncFailed = (e: Event) => {
+      const message = (e as CustomEvent<{ message: string }>).detail?.message;
+      if (message) {
+        setError(message);
+      }
+    };
+    window.addEventListener("comictracker-offline-collection-synced", onSynced);
+    window.addEventListener("comictracker-offline-sync-failed", onSyncFailed);
+    return () => {
+      window.removeEventListener(
+        "comictracker-offline-collection-synced",
+        onSynced,
+      );
+      window.removeEventListener(
+        "comictracker-offline-sync-failed",
+        onSyncFailed,
+      );
+    };
   }, []);
 
   const syncNow = useCallback(async () => {
@@ -24,23 +52,7 @@ export const useOfflineSync = () => {
     setError(null);
 
     try {
-      logger.comics.info("Starting full offline sync of comics collection");
-
-      const { comics } = await apiService.comics.getAll();
-
-      logger.comics.info("Fetched comics for offline sync", {
-        count: comics.length,
-      });
-
-      await replaceAllComics(comics);
-
-      const timestamp = new Date().toISOString();
-      window.localStorage.setItem(LAST_SYNC_KEY, timestamp);
-      setLastSyncedAt(timestamp);
-
-      logger.comics.info("Offline sync completed successfully", {
-        syncedAt: timestamp,
-      });
+      await syncCollectionToIndexedDB();
     } catch (err: any) {
       const message = err?.message || "Failed to sync collection for offline use";
       logger.comics.error("Offline sync failed", err);
@@ -57,4 +69,3 @@ export const useOfflineSync = () => {
     syncNow,
   };
 };
-

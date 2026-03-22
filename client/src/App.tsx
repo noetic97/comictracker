@@ -32,6 +32,8 @@ import {
 import { useHiddenPublishers } from "./hooks/useHiddenPublishers";
 import { useHiddenSeries } from "./hooks/useHiddenSeries";
 import { useOfflineSync } from "./hooks/useOfflineSync";
+import { getFavoriteSeries } from "./utils/db";
+import { syncCollectionToIndexedDB } from "./utils/offlineFullSync";
 
 const ThemedAppWithLoading: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -56,8 +58,20 @@ const ThemedAppWithLoading: React.FC = () => {
   } | null>(null);
   const [seriesPage, setSeriesPage] = useState(1);
 
-  const { hiddenSet, showHidden: showHiddenPublishers, setShowHidden: setShowHiddenPublishers, hidePublisher, unhidePublisher } = useHiddenPublishers();
-  const { hiddenSet: hiddenSeriesSet, showHidden: showHiddenSeries, setShowHidden: setShowHiddenSeries, hideSeries, unhideSeries } = useHiddenSeries();
+  const {
+    hiddenSet,
+    showHidden: showHiddenPublishers,
+    setShowHidden: setShowHiddenPublishers,
+    hidePublisher,
+    unhidePublisher,
+  } = useHiddenPublishers();
+  const {
+    hiddenSet: hiddenSeriesSet,
+    showHidden: showHiddenSeries,
+    setShowHidden: setShowHiddenSeries,
+    hideSeries,
+    unhideSeries,
+  } = useHiddenSeries();
 
   // UI state
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -70,8 +84,12 @@ const ThemedAppWithLoading: React.FC = () => {
   // Use loading manager
   const { setLoadingPhase } = useLoadingManager();
 
-  const { isSyncing, error: offlineSyncError, lastSyncedAt, syncNow } =
-    useOfflineSync();
+  const {
+    isSyncing,
+    error: offlineSyncError,
+    lastSyncedAt,
+    syncNow,
+  } = useOfflineSync();
 
   // Restore view from URL on mount, or from localStorage when URL has no params
   useEffect(() => {
@@ -140,7 +158,23 @@ const ThemedAppWithLoading: React.FC = () => {
         logger.info("Loading initial app data");
 
         // Only load favorites and global settings - components will load their own comic data
-        const favoritesResponse = await apiService.favorites.getAll();
+        let favoritesResponse: FavoriteSeries[];
+        try {
+          favoritesResponse = await apiService.favorites.getAll();
+        } catch (apiErr) {
+          const fromIdb = await getFavoriteSeries();
+          if (fromIdb.length > 0) {
+            logger.info(
+              "Favorites loaded from offline sync (API unavailable)",
+              {
+                count: fromIdb.length,
+              },
+            );
+            favoritesResponse = fromIdb;
+          } else {
+            throw apiErr;
+          }
+        }
 
         logger.info("Favorites loaded successfully", {
           count: favoritesResponse.length,
@@ -199,20 +233,20 @@ const ThemedAppWithLoading: React.FC = () => {
   const handleToggleFavoriteSeries = async (
     publisher: string,
     series: string,
-    volume: string
+    volume: string,
   ) => {
     try {
       const existingFavorite = favoriteSeries.find(
         (fav) =>
           fav.publisher === publisher &&
           fav.series === series &&
-          fav.volume === volume
+          fav.volume === volume,
       );
 
       if (existingFavorite) {
         await apiService.favorites.remove(existingFavorite.id);
         setFavoriteSeries((prev) =>
-          prev.filter((fav) => fav.id !== existingFavorite.id)
+          prev.filter((fav) => fav.id !== existingFavorite.id),
         );
       } else {
         const newFavorite = await apiService.favorites.add({
@@ -291,7 +325,7 @@ const ThemedAppWithLoading: React.FC = () => {
       onError={(error, errorInfo) => {
         logger.error("Application crashed", { error, errorInfo });
         setError(
-          `Application error: ${error.message}. Please refresh the page.`
+          `Application error: ${error.message}. Please refresh the page.`,
         );
       }}
     >
@@ -386,6 +420,23 @@ const ThemedAppWithLoading: React.FC = () => {
           isOpen={isImportModalOpen}
           onClose={closeImportModal}
           onImport={handleImport}
+          afterSuccessfulImport={async () => {
+            try {
+              await syncCollectionToIndexedDB();
+            } catch (err: unknown) {
+              logger.comics.error("Post-import offline sync failed", err);
+              window.dispatchEvent(
+                new CustomEvent("comictracker-offline-sync-failed", {
+                  detail: {
+                    message:
+                      err instanceof Error
+                        ? err.message
+                        : "Could not refresh offline copy after import. Use Sync in the menu.",
+                  },
+                }),
+              );
+            }
+          }}
         />
 
         {renderRefreshIndicator()}

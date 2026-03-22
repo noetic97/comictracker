@@ -103,7 +103,8 @@ const SeriesDetailView: React.FC<SeriesDetailViewProps> = ({
       grade: filterGrade || undefined,
       minValue: filterMinValue || undefined,
       maxValue: filterMaxValue || undefined,
-    }
+    },
+    favoriteSeries
   );
 
   // Fetch series-specific stats using the same filters

@@ -14,14 +14,19 @@ import * as S from "./styles";
 
 interface Props {
   onImport: (comics: Comic[]) => void;
+  /** Runs after a successful CSV import (e.g. refresh offline IndexedDB copy). */
+  afterSuccessfulImport?: () => void | Promise<void>;
 }
 
-const ImportCSV: React.FC<Props> = ({ onImport }) => {
+const ImportCSV: React.FC<Props> = ({ onImport, afterSuccessfulImport }) => {
   // Custom hooks for modular functionality
   const csvImport = useCSVImport((results) => {
     console.log("Import completed, refreshing UI...", results);
     // Trigger parent refresh to get updated comics with real IDs from server
     onImport([]);
+    void Promise.resolve(afterSuccessfulImport?.()).catch((err) => {
+      console.error("afterSuccessfulImport failed:", err);
+    });
   });
 
   const comicAnalysis = useComicAnalysis();

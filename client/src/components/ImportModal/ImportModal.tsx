@@ -7,16 +7,21 @@ interface ImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImport: (comics: Comic[]) => void;
+  afterSuccessfulImport?: () => void | Promise<void>;
 }
 
 const ImportModal: React.FC<ImportModalProps> = ({
   isOpen,
   onClose,
   onImport,
+  afterSuccessfulImport,
 }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Import Comics" size="large">
-      <ImportCSV onImport={onImport} />
+      <ImportCSV
+        onImport={onImport}
+        afterSuccessfulImport={afterSuccessfulImport}
+      />
     </Modal>
   );
 };

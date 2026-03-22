@@ -1,13 +1,18 @@
 import { AggregationFilters, PublisherSummary } from "./types";
 import { useState, useCallback, useMemo, useEffect } from "react";
-import {
-  getApiBaseUrl,
-  buildQueryParams,
-  getCachedApiResponse,
-  setCachedApiResponse,
-} from "../utils";
+import { getApiBaseUrl, buildQueryParams } from "../utils";
 import { logger } from "../../utils/logger";
 import { FavoriteSeries } from "../../types";
+import {
+  getAllPendingComicPatches,
+  getMergedOfflineComics,
+  hasOfflineComicsSync,
+} from "../../utils/db";
+import {
+  computePublisherSummaries,
+  filterComicsForAggregations,
+} from "../../utils/offlineComicQuery";
+import { isLikelyOfflineFetchFailure } from "../offlineRead";
 
 /**
  * Hook for fetching publisher summaries
@@ -70,10 +75,18 @@ export const usePublisherSummaries = (
 
       let data: PublisherSummary[] = await response.json();
 
-      setPublishers(data);
+      const patchCount = Object.keys(await getAllPendingComicPatches()).length;
+      if (patchCount > 0 && (await hasOfflineComicsSync())) {
+        const merged = await getMergedOfflineComics();
+        const filtered = filterComicsForAggregations(
+          merged,
+          memoizedFilters,
+          favoriteSeries
+        );
+        data = computePublisherSummaries(filtered, memoizedFilters.sortBy);
+      }
 
-      // Cache publishers for offline use
-      void setCachedApiResponse(url, data);
+      setPublishers(data);
 
       logger.stats.info("Publishers loaded successfully", {
         count: data.length,
@@ -83,27 +96,28 @@ export const usePublisherSummaries = (
             : "all",
       });
     } catch (err: any) {
-      const isOffline =
-        typeof navigator !== "undefined" && navigator.onLine === false;
-
-      if (isOffline) {
+      if (
+        isLikelyOfflineFetchFailure(err) &&
+        (await hasOfflineComicsSync())
+      ) {
         try {
-          const params = buildQueryParams(memoizedFilters);
-          const offlineUrl = `${getApiBaseUrl()}/comics/publishers?${params}`;
-          const cached =
-            await getCachedApiResponse<PublisherSummary[]>(offlineUrl);
-          if (cached && cached.length > 0) {
-            logger.stats.warn(
-              "Using cached publisher summaries due to offline/network error"
-            );
-            setPublishers(cached);
-            return;
-          }
-        } catch (cacheError) {
-          logger.stats.error(
-            "Failed to load cached publisher summaries",
-            cacheError
+          const merged = await getMergedOfflineComics();
+          const filtered = filterComicsForAggregations(
+            merged,
+            memoizedFilters,
+            favoriteSeries
           );
+          const fromIdb = computePublisherSummaries(
+            filtered,
+            memoizedFilters.sortBy
+          );
+          logger.stats.warn(
+            "Using synced IndexedDB for publisher summaries (offline / network error)"
+          );
+          setPublishers(fromIdb);
+          return;
+        } catch (idbError) {
+          logger.stats.error("IDB publisher summaries failed", idbError);
         }
       }
 

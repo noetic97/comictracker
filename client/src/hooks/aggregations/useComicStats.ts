@@ -1,13 +1,18 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { AggregationFilters, ComicStats } from "./types";
-import {
-  getApiBaseUrl,
-  buildQueryParams,
-  getCachedApiResponse,
-  setCachedApiResponse,
-} from "../utils";
+import { getApiBaseUrl, buildQueryParams } from "../utils";
 import { logger } from "../../utils/logger";
 import { FavoriteSeries } from "../../types";
+import {
+  getAllPendingComicPatches,
+  getMergedOfflineComics,
+  hasOfflineComicsSync,
+} from "../../utils/db";
+import {
+  computeComicStats,
+  filterComicsForAggregations,
+} from "../../utils/offlineComicQuery";
+import { isLikelyOfflineFetchFailure } from "../offlineRead";
 
 /**
  * Hook for fetching comic statistics
@@ -74,11 +79,20 @@ export const useComicStats = (
           );
         }
 
-        const data: ComicStats = await response.json();
-        setStats(data);
+        let data: ComicStats = await response.json();
 
-        // Cache stats for offline use
-        void setCachedApiResponse(url, data);
+        const patchCount = Object.keys(await getAllPendingComicPatches()).length;
+        if (patchCount > 0 && (await hasOfflineComicsSync())) {
+          const merged = await getMergedOfflineComics();
+          const filtered = filterComicsForAggregations(
+            merged,
+            memoizedFilters,
+            favoriteSeries
+          );
+          data = computeComicStats(filtered);
+        }
+
+        setStats(data);
 
         logger.stats.info("Stats loaded successfully", {
           total: data.total,
@@ -87,24 +101,25 @@ export const useComicStats = (
         });
         return data;
       } catch (err: any) {
-        const isOffline =
-          typeof navigator !== "undefined" && navigator.onLine === false;
-
-        if (isOffline) {
+        if (
+          isLikelyOfflineFetchFailure(err) &&
+          (await hasOfflineComicsSync())
+        ) {
           try {
-            const params = buildQueryParams(memoizedFilters);
-            const offlineUrl = `${getApiBaseUrl()}/comics/stats?${params}`;
-            const cached =
-              await getCachedApiResponse<ComicStats>(offlineUrl);
-            if (cached) {
-              logger.stats.warn(
-                "Using cached stats due to offline/network error"
-              );
-              setStats(cached);
-              return cached;
-            }
-          } catch (cacheError) {
-            logger.stats.error("Failed to load cached stats", cacheError);
+            const merged = await getMergedOfflineComics();
+            const filtered = filterComicsForAggregations(
+              merged,
+              memoizedFilters,
+              favoriteSeries
+            );
+            const fromIdb = computeComicStats(filtered);
+            logger.stats.warn(
+              "Using synced IndexedDB for stats (offline / network error)"
+            );
+            setStats(fromIdb);
+            return fromIdb;
+          } catch (idbError) {
+            logger.stats.error("IDB stats failed", idbError);
           }
         }
 

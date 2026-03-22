@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { Star, Check, Pencil } from "lucide-react";
-import { Comic, FilterOption, SortOption } from "../../../types";
+import { Comic, FavoriteSeries, FilterOption, SortOption } from "../../../types";
 import {
   useSeriesComics,
   useOptimisticComics,
@@ -33,6 +33,7 @@ interface SeriesComicsListProps {
   totalIssues: number;
   filterOption: FilterOption;
   searchFilter: string;
+  favoriteSeries: FavoriteSeries[];
   /** Not used: quick view always sorts by issue number to match detail view */
   sortBy?: SortOption;
   onStatsRefresh?: (() => Promise<any>) | null;
@@ -48,6 +49,7 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
   totalIssues,
   filterOption,
   searchFilter,
+  favoriteSeries,
   onStatsRefresh,
 }) => {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
@@ -68,7 +70,8 @@ const SeriesComicsList: React.FC<SeriesComicsListProps> = ({
     currentPage,
     itemsPerPage,
     true,
-    { filterOption, search: searchFilter, sortBy: "issueNumber" }
+    { filterOption, search: searchFilter, sortBy: "issueNumber" },
+    favoriteSeries
   );
 
   // Use optimistic comics hook for immediate UI updates

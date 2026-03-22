@@ -1,6 +1,10 @@
 import { Comic } from "../types";
 import { apiService } from "./apiService";
 import { StateChangeResult, StateChangeOptions } from "../contracts";
+import {
+  clearPendingComicFields,
+  upsertPendingComicPatch,
+} from "./db";
 
 /**
  * Safely toggle a comic's collected status
@@ -26,6 +30,19 @@ export const toggleComicCollected = async (
       currentStatus: comic.collected,
     });
 
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const updatedComic = createOptimisticUpdate(comic, "collected");
+      await upsertPendingComicPatch(comic.id, {
+        collected: updatedComic.collected,
+      });
+      onProgress?.(`Updated ${comic.series} #${comic.issue} (offline)`);
+      return {
+        success: true,
+        comic: updatedComic,
+        originalComic: comic,
+      };
+    }
+
     // Make API call with retry logic
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= retryCount; attempt++) {
@@ -47,6 +64,8 @@ export const toggleComicCollected = async (
           issue: updatedComic.issue,
           newStatus: updatedComic.collected,
         });
+
+        await clearPendingComicFields(comic.id, ["collected"]);
 
         onProgress?.(`Updated ${comic.series} #${comic.issue}`);
 
@@ -109,6 +128,19 @@ export const toggleComicGrail = async (
       currentStatus: comic.isGrail,
     });
 
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const updatedComic = createOptimisticUpdate(comic, "grail");
+      await upsertPendingComicPatch(comic.id, {
+        isGrail: updatedComic.isGrail,
+      });
+      onProgress?.(`Updated ${comic.series} #${comic.issue} (offline)`);
+      return {
+        success: true,
+        comic: updatedComic,
+        originalComic: comic,
+      };
+    }
+
     // Make API call with retry logic
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= retryCount; attempt++) {
@@ -130,6 +162,8 @@ export const toggleComicGrail = async (
           issue: updatedComic.issue,
           newStatus: updatedComic.isGrail,
         });
+
+        await clearPendingComicFields(comic.id, ["isGrail"]);
 
         onProgress?.(`Updated ${comic.series} #${comic.issue}`);
 

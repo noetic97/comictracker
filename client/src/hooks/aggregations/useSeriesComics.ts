@@ -1,12 +1,14 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { AggregationFilters } from "./types";
-import { Comic } from "../../types/comic";
+import { Comic, FavoriteSeries } from "../../types";
+import { getApiBaseUrl, buildQueryParams } from "../utils";
 import {
-  getApiBaseUrl,
-  buildQueryParams,
-  getCachedApiResponse,
-  setCachedApiResponse,
-} from "../utils";
+  applyPendingPatchesToComics,
+  hasOfflineComicsSync,
+  getMergedOfflineComics,
+} from "../../utils/db";
+import { querySeriesComicsOffline } from "../../utils/offlineComicQuery";
+import { isLikelyOfflineFetchFailure } from "../offlineRead";
 
 /**
  * Hook for fetching comics with silent refetch capability
@@ -18,7 +20,8 @@ export const useSeriesComics = (
   page: number,
   perPage: number,
   enabled: boolean,
-  extraFilters: AggregationFilters = {}
+  extraFilters: AggregationFilters = {},
+  favoriteSeries: FavoriteSeries[] = []
 ) => {
   const [comics, setComics] = useState<Comic[]>([]);
   const [loading, setLoading] = useState(false);
@@ -136,32 +139,40 @@ export const useSeriesComics = (
 
         const raw = await response.json();
         const list: Comic[] = Array.isArray(raw) ? raw : raw?.comics ?? [];
+        const mergedList = await applyPendingPatchesToComics(list);
 
         // Always update comics, whether silent or not
-        setComics(list);
+        setComics(mergedList);
 
-        // Best-effort: cache successful response for offline use
-        void setCachedApiResponse(url, list);
-
-        return list;
+        return mergedList;
       } catch (err: any) {
-        const isOffline =
-          typeof navigator !== "undefined" && navigator.onLine === false;
-
-        if (isOffline) {
-          try {
-            const url = `${getApiBaseUrl()}/comics?${lastFetchParamsRef.current}`;
-            const cached =
-              await getCachedApiResponse<Comic[]>(url);
-            if (cached && cached.length > 0) {
+        if (isLikelyOfflineFetchFailure(err)) {
+          if (await hasOfflineComicsSync()) {
+            try {
+              const limit = Math.min(perPage, 2000);
+              const offset = (page - 1) * limit;
+              const order = !extraFilters.sortBy
+                ? "series.asc,issueNumber.asc,id.asc"
+                : `${extraFilters.sortBy}.${extraFilters.sortOrder ?? "asc"},id.asc`;
+              const merged = await getMergedOfflineComics();
+              const fromIdb = querySeriesComicsOffline(merged, {
+                publisher: publisher!,
+                series: series!,
+                volume,
+                extraFilters,
+                favoriteSeries,
+                offset,
+                limit,
+                order,
+              });
               console.warn(
-                "📦 Using cached series comics due to offline/network error"
+                "📦 Using synced IndexedDB comics (offline / network error)"
               );
-              setComics(cached);
-              return cached;
+              setComics(fromIdb);
+              return fromIdb;
+            } catch (idbError) {
+              console.error("Failed to load series comics from IDB", idbError);
             }
-          } catch (cacheError) {
-            console.error("Failed to load cached series comics", cacheError);
           }
         }
 
@@ -179,7 +190,19 @@ export const useSeriesComics = (
         }
       }
     },
-    [memoized, comics]
+    [
+      memoized,
+      comics,
+      publisher,
+      series,
+      volume,
+      page,
+      perPage,
+      extraFilters.sortBy,
+      extraFilters.sortOrder,
+      favoriteSeries,
+      enabled,
+    ]
   );
 
   // Standard refetch that shows loading state

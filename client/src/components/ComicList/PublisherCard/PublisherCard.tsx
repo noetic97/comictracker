@@ -216,6 +216,7 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
                     }
                     filterOption={filterOption}
                     searchFilter={searchFilter}
+                    favoriteSeries={favoriteSeries}
                     sortBy={sortBy}
                     onStatsRefresh={onStatsRefresh}
                     isHidden={isSeriesHidden}
