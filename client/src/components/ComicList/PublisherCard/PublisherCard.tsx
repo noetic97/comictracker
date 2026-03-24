@@ -116,34 +116,36 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
     else if (!isHidden && onHidePublisher) onHidePublisher(publisherSummary.publisher);
   };
 
+  const stopHidePointerBubble = (e: React.PointerEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <S.PublisherCard $isExpanded={isExpanded} data-sc="PublisherCard">
-      <S.PublisherButton
-        $isExpanded={isExpanded}
-        onClick={() => onTogglePublisher(publisherSummary.publisher)}
-      >
-        <S.PublisherTopBlock>
-          <S.PublisherHeaderRow>
-            <S.PublisherName>{publisherSummary.publisher}</S.PublisherName>
-            {(onHidePublisher || onUnhidePublisher) && (
-              <S.HideButton
-                type="button"
-                onClick={handleHideClick}
-                title={isHidden ? "Unhide publisher" : "Hide publisher"}
-                aria-label={isHidden ? "Unhide publisher" : "Hide publisher"}
-              >
-                {isHidden ? (
-                  <Eye size={18} />
-                ) : (
-                  <EyeOff size={18} />
-                )}
-              </S.HideButton>
+      <S.PublisherTapContainer>
+        {(onHidePublisher || onUnhidePublisher) && (
+          <S.HideButton
+            type="button"
+            onClick={handleHideClick}
+            onPointerDown={stopHidePointerBubble}
+            title={isHidden ? "Unhide publisher" : "Hide publisher"}
+            aria-label={isHidden ? "Unhide publisher" : "Hide publisher"}
+          >
+            {isHidden ? <Eye size={20} /> : <EyeOff size={20} />}
+          </S.HideButton>
+        )}
+        <S.PublisherButton
+          $isExpanded={isExpanded}
+          onClick={() => onTogglePublisher(publisherSummary.publisher)}
+        >
+          <S.PublisherTopBlock>
+            <S.PublisherHeaderRow>
+              <S.PublisherName>{publisherSummary.publisher}</S.PublisherName>
+            </S.PublisherHeaderRow>
+            {showHiddenMode && isHidden && (
+              <S.HiddenBadge>Hidden</S.HiddenBadge>
             )}
-          </S.PublisherHeaderRow>
-          {showHiddenMode && isHidden && (
-            <S.HiddenBadge>Hidden</S.HiddenBadge>
-          )}
-        </S.PublisherTopBlock>
+          </S.PublisherTopBlock>
         <S.PublisherCardCountsContainer>
           <S.PublisherCardCounts>
             {publisherSummary.seriesCount} series
@@ -160,7 +162,8 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
             </S.PublisherCardCounts>
           )}
         </S.PublisherCardCountsContainer>
-      </S.PublisherButton>
+        </S.PublisherButton>
+      </S.PublisherTapContainer>
 
       <S.SeriesList className={isExpanded ? "expanded" : ""}>
         {isExpanded && (

@@ -1,6 +1,12 @@
 import styled from "styled-components";
 import { readableTextColor } from "../../../themes/colorUtils";
 
+/** Wraps the main publisher tap target + absolutely positioned hide control (avoids nested buttons). */
+export const PublisherTapContainer = styled.div`
+  position: relative;
+  width: 100%;
+`;
+
 export const PublisherCard = styled.div<{ $isExpanded: boolean }>`
   background-color: ${({ theme }) => theme.colors.card};
   border-radius: 12px;
@@ -100,19 +106,37 @@ export const PublisherName = styled.span`
   font-size: 1.1rem;
 `;
 
+/** Min ~44×44px touch target (WCAG / mobile); sits above the card tap area. */
 export const HideButton = styled.button`
-  background: none;
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  box-sizing: border-box;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.5rem;
   border: none;
-  padding: 0.25rem;
+  border-radius: 10px;
   cursor: pointer;
   color: inherit;
-  opacity: 0.85;
+  opacity: 0.9;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  background: rgba(255, 255, 255, 0.18);
 
   &:hover {
     opacity: 1;
+    background: rgba(255, 255, 255, 0.28);
+  }
+
+  &:active {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.36);
   }
 `;
 
