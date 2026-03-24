@@ -1,6 +1,5 @@
 /**
- * Local Express server: serves API and static SPA.
- * Replaces Netlify for local and self-hosted deployment.
+ * Local Express server: JSON API (see `api/`) and static SPA from `client/dist`.
  */
 
 // Load .env from project root (where package.json lives)
@@ -28,7 +27,7 @@ if (dbUrl?.startsWith("file:./") || dbUrl?.startsWith("file:.")) {
   process.env.DATABASE_URL = `file:${absolutePath}`;
 }
 import express from "express";
-import { initSqliteConcurrency } from "../functions/utils/db";
+import { initSqliteConcurrency } from "../api/utils/db";
 import { createRequestHandler } from "./adapter";
 import { healthHandler } from "./routes/health";
 import { comicsHandler } from "./routes/comics";
@@ -52,7 +51,7 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
-// API routes (mirror Netlify redirects: /api/* -> handlers)
+// API routes — handlers live under `api/`
 app.all("/api/health", createRequestHandler(healthHandler));
 app.all("/api/comics*", createRequestHandler(comicsHandler));
 app.all("/api/favorites*", createRequestHandler(favoritesHandler));

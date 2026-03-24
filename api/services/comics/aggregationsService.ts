@@ -1,6 +1,5 @@
 /**
- * Aggregations Service - handles complex comic data aggregations
- * Uses Prisma (SQLite) instead of Supabase.
+ * Aggregations and list endpoints via Prisma (SQLite).
  */
 
 import { PrismaClient } from "@prisma/client";

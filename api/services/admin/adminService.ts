@@ -1,6 +1,5 @@
 /**
- * Admin Service - Core data access layer for admin operations
- * Uses Prisma (SQLite) instead of Supabase.
+ * Admin maintenance via Prisma (SQLite).
  */
 
 import { PrismaClient } from "@prisma/client";

@@ -1,2 +1,2 @@
-import { handler } from "../../functions/favorites";
+import { handler } from "../../api/favorites";
 export const favoritesHandler = handler;

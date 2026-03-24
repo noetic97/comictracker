@@ -1,6 +1,5 @@
 /**
- * Bulk Service - Core data access layer for bulk comic operations
- * Uses Prisma (SQLite) instead of Supabase.
+ * Bulk comic operations via Prisma (SQLite).
  *
  * "Copy" = one physical copy of a comic. Same (publisher, series, volume, issue, type)
  * with different grade, pricePaid, dateAdded, or storageLocation → separate copies.

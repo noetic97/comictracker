@@ -1,6 +1,6 @@
 /**
  * Favorites Handler - Business logic layer for favorite series operations
- * Extracted from functions/favorites.ts for better separation of concerns
+ * HTTP-facing favorites (delegates to services).
  * Handles HTTP request/response logic and delegates to services
  */
 

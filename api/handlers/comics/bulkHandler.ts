@@ -1,6 +1,6 @@
 /**
  * Bulk Handler - Business logic layer for bulk comic operations
- * Extracted from functions/comics/bulkOperations.ts for better separation of concerns
+ * HTTP-facing bulk comic operations (delegates to services).
  * Handles HTTP request/response logic and delegates to services
  */
 

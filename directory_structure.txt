@@ -142,14 +142,9 @@
 │   └── service-worker.js
 ├── feature-roadmap.md
 ├── find-unused.cjs
-├── functions
-│   ├── comics.ts
-│   ├── favorites.ts
-│   └── utils
-│       ├── cors.ts
-│       └── prisma.ts
+├── api
+│   ├── (HTTP handlers: comics, favorites, admin, health, alerts; services; utils)
 ├── LICENSE
-├── netlify.toml
 ├── package-lock.json
 ├── package.json
 ├── prisma

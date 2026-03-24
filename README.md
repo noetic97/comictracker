@@ -35,8 +35,8 @@ Comic Tracker is a web application designed to help comic book enthusiasts manag
 
 The app is **single-tenant** with one default user. There is no Row Level Security; all API operations are scoped to that user in application code.
 
-- **Default user:** Created automatically from `DEFAULT_USER_EMAIL` (env or `user@comictracker.local`). See `functions/utils/db.ts` (`ensureDefaultUser`).
-- **Database:** SQLite via Prisma (no Supabase or Postgres).
+- **Default user:** Created automatically from `DEFAULT_USER_EMAIL` (env or `user@comictracker.local`). See `api/utils/db.ts` (`ensureDefaultUser`).
+- **Database:** SQLite via Prisma.
 - For multi-user later, add auth (e.g. JWT) and pass `userId` from the token; services already take `userId` for all queries.
 
 ## Getting Started
@@ -76,13 +76,15 @@ The app is **single-tenant** with one default user. There is no Row Level Securi
    npx prisma migrate deploy
    ```
 
-5. Start the development server (client on port 3000, API on port 3001):
+5. Start the development stack (Vite on port 3000, dev API on port 3002 by default so it does not clash with a prod server on 3001):
 
    ```
    npm run dev
    ```
 
-6. Open your browser at `http://localhost:3000`. The client proxies `/api` to the Node server.
+   Use `npm run dev:api-3001` only when nothing else is using port 3001.
+
+6. Open `http://localhost:3000`. The client proxies `/api` to the dev API port (see `client/vite.config.ts` and `.env.example`).
 
 ## Building for Production
 
@@ -109,7 +111,7 @@ To access the app outside your network:
 ## GitHub Actions
 
 - **Health Monitor** (`.github/workflows/health-monitor.yml`): Optional. Runs on a schedule and pings your deployed `/api/health` if you set the `HEALTH_URL` repo secret (e.g. `https://your-duckdns.example.com/api/health`). Optionally set `ALERT_URL` to POST alerts on failure. If neither secret is set, the job is skipped.
-- **Schema drift check**: Removed; it was for comparing against remote Supabase/Postgres. With SQLite + Prisma, the source of truth is `prisma/schema.prisma` and migrations in the repo. Use `npm run db:check-drift` locally against a DB if needed.
+- **Schema drift check:** The source of truth is `prisma/schema.prisma` and migrations in the repo. Use `npm run db:check-drift` locally against a DB if needed.
 
 ## Usage
 

@@ -68,20 +68,20 @@ Client: src/components/ImportCSV/AnalysisResultsDisplay/styles.ts:209 - MissingC
 Client: src/components/ImportCSV/ImportResultsDisplay/styles.ts:203 - ResultsMeta
 Client: src/components/SeriesDetailView/ComicsGrid/styles.ts:237 - ComicValue
 Server: adapter.ts:8 - HandlerResponse (used in module)
-Server: adapter.ts:14 - NetlifyHandler (used in module)
-Server: Users/noetic/Projects/comictracker/functions/utils/cors.ts:7 - corsHeaders (used in module)
-Server: Users/noetic/Projects/comictracker/functions/utils/db.ts:49 - RequestLike (used in module)
-Server: Users/noetic/Projects/comictracker/functions/utils/db.ts:56 - getUserContext (used in module)
-Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:17 - normalizeForSorting (used in module)
-Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:40 - createSeriesSortKey
-Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:115 - SeriesSummary (used in module)
-Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:203 - Comic (used in module)
-Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:218 - ComicSortField (used in module)
-Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:236 - sortComics
-Server: Users/noetic/Projects/comictracker/functions/services/comics/sortingService.ts:319 - parseSortString
-Server: Users/noetic/Projects/comictracker/functions/services/comics/validationService.ts:310 - transformComicInput (used in module)
-Server: Users/noetic/Projects/comictracker/functions/services/comics/validationService.ts:364 - validateComicFields (used in module)
-Server: Users/noetic/Projects/comictracker/functions/services/comics/validationService.ts:444 - normalizeComic
-Server: Users/noetic/Projects/comictracker/functions/services/comics/validationService.ts:471 - createComicKey
-Server: Users/noetic/Projects/comictracker/functions/services/comics/validationService.ts:492 - generateComicId (used in module)
-Server: Users/noetic/Projects/comictracker/functions/services/comics/validationService.ts:501 - generateFavoriteSeriesId
+Server: adapter.ts:14 - ApiRouteHandler (used in module)
+Server: Users/noetic/Projects/comictracker/api/utils/cors.ts:7 - corsHeaders (used in module)
+Server: Users/noetic/Projects/comictracker/api/utils/db.ts:49 - RequestLike (used in module)
+Server: Users/noetic/Projects/comictracker/api/utils/db.ts:56 - getUserContext (used in module)
+Server: Users/noetic/Projects/comictracker/api/services/comics/sortingService.ts:17 - normalizeForSorting (used in module)
+Server: Users/noetic/Projects/comictracker/api/services/comics/sortingService.ts:40 - createSeriesSortKey
+Server: Users/noetic/Projects/comictracker/api/services/comics/sortingService.ts:115 - SeriesSummary (used in module)
+Server: Users/noetic/Projects/comictracker/api/services/comics/sortingService.ts:203 - Comic (used in module)
+Server: Users/noetic/Projects/comictracker/api/services/comics/sortingService.ts:218 - ComicSortField (used in module)
+Server: Users/noetic/Projects/comictracker/api/services/comics/sortingService.ts:236 - sortComics
+Server: Users/noetic/Projects/comictracker/api/services/comics/sortingService.ts:319 - parseSortString
+Server: Users/noetic/Projects/comictracker/api/services/comics/validationService.ts:310 - transformComicInput (used in module)
+Server: Users/noetic/Projects/comictracker/api/services/comics/validationService.ts:364 - validateComicFields (used in module)
+Server: Users/noetic/Projects/comictracker/api/services/comics/validationService.ts:444 - normalizeComic
+Server: Users/noetic/Projects/comictracker/api/services/comics/validationService.ts:471 - createComicKey
+Server: Users/noetic/Projects/comictracker/api/services/comics/validationService.ts:492 - generateComicId (used in module)
+Server: Users/noetic/Projects/comictracker/api/services/comics/validationService.ts:501 - generateFavoriteSeriesId

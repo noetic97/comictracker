@@ -201,7 +201,7 @@ async function sendEmailAlert(
     html: body.replace(/\n/g, "<br>"),
   };
 
-  // Using SendGrid (you could also use Netlify Forms or other services)
+  // Outbound email via SendGrid when configured
   const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
     method: "POST",
     headers: {

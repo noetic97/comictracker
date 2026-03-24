@@ -73,7 +73,7 @@ export const getPrisma = (): PrismaClient => {
 };
 
 /**
- * Event-like shape (Netlify or Express adapter).
+ * Minimal request shape for `api/` handlers (from Express via `server/adapter`).
  */
 export interface RequestLike {
   headers?: { authorization?: string; [k: string]: string | undefined };
@@ -85,7 +85,7 @@ export interface RequestLike {
 export const getUserContext = async (
   eventOrReq: RequestLike
 ): Promise<UserContext> => {
-  // Future: parse Authorization header for multi-user
+  // Future: parse Authorization (or session) for multi-user
   return ensureDefaultUser(getPrisma());
 };
 

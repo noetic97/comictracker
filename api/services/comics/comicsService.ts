@@ -1,6 +1,5 @@
 /**
- * Comics Service - Core data access layer for comic CRUD operations
- * Uses Prisma (SQLite) instead of Supabase.
+ * Comics service — CRUD and queries via Prisma (SQLite).
  */
 
 import { PrismaClient } from "@prisma/client";

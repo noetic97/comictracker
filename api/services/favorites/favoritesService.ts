@@ -1,6 +1,5 @@
 /**
- * Favorites Service - Core data access layer for favorite series operations
- * Uses Prisma (SQLite) instead of Supabase.
+ * Favorite series via Prisma (SQLite).
  */
 
 import { PrismaClient } from "@prisma/client";

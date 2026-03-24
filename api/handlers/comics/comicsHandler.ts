@@ -1,6 +1,6 @@
 /**
  * Comics Handler - Business logic layer for comic operations
- * Extracted from functions/comics.ts for better separation of concerns
+ * HTTP-facing comic CRUD (delegates to services).
  * Handles HTTP request/response logic and delegates to services
  */
 

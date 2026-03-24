@@ -1,6 +1,6 @@
 /**
  * Validation Service - Centralized comic validation logic
- * Moved from functions/comics/validation.ts for better organization
+ * Comic validation and normalization (shared patterns for API and import).
  * Used by: bulkService, comicsService, and external validation needs
  */
 

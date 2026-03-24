@@ -1,6 +1,6 @@
 /**
  * Admin Handler - Business logic layer for admin operations
- * Extracted from functions/admin.ts for better separation of concerns
+ * HTTP-facing admin actions (delegates to services).
  * Handles HTTP request/response logic and delegates to services
  */
 
