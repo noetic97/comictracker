@@ -1,0 +1,47 @@
+# Comic Tracker — systemd unit (Express + static SPA)
+#
+# One-time on the machine (from repo root):
+#   npm ci
+#   npm run build:prod
+#
+# Install:
+#   sudo cp deploy/comictracker.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now comictracker.service
+#
+# Logs: journalctl -u comictracker -f
+#
+# If you do not use notify-crash@.service, remove the OnFailure= line below.
+
+[Unit]
+Description=Comic Tracker — comic collection API and web UI
+After=network.target
+OnFailure=notify-crash@%n.service
+
+[Service]
+Type=simple
+User=noetic97
+Group=noetic97
+WorkingDirectory=/home/noetic97/projects/comictracker
+
+# nvm + Node from .nvmrc, then production start (tsx server/index.ts)
+ExecStart=/bin/bash -lc 'export NVM_DIR="/home/noetic97/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && cd "/home/noetic97/projects/comictracker" && nvm use --silent && exec npm start'
+
+Restart=always
+RestartSec=10
+
+# Env: copy .env.example to .env and adjust; optional line prefix "-" ignores a missing file
+EnvironmentFile=-/home/noetic97/projects/comictracker/.env
+Environment=NODE_ENV=production
+
+# Security hardening (same spirit as your comic-finder unit)
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=comictracker
+
+[Install]
+WantedBy=multi-user.target
