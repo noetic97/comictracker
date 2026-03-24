@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FilterOption, FavoriteSeries, PullListDetail, SortOption } from "./types";
 import ComicActionsErrorBoundary from "./components/shared/ComicActionErrorBoundary";
 import ErrorMessage from "./components/shared/ErrorMessage";
@@ -37,6 +37,12 @@ import { useOfflineSync } from "./hooks/useOfflineSync";
 import { usePullLists } from "./hooks/usePullLists";
 import { getFavoriteSeries } from "./utils/db";
 import { syncCollectionToIndexedDB } from "./utils/offlineFullSync";
+import {
+  getAutoHidePublishersApplied,
+  getAutoHideSeriesApplied,
+  setAutoHidePublishersApplied,
+  setAutoHideSeriesApplied,
+} from "./utils/autoHideCollectedFlags";
 
 const ThemedAppWithLoading: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -73,6 +79,26 @@ const ThemedAppWithLoading: React.FC = () => {
     hideCollectedPublishers: () => Promise<void>;
     hideCollectedSeries: () => Promise<void>;
   } | null>(null);
+  const [autoHidePubActive, setAutoHidePubActive] = useState(
+    getAutoHidePublishersApplied
+  );
+  const [autoHideSerActive, setAutoHideSerActive] = useState(
+    getAutoHideSeriesApplied
+  );
+
+  const handleAutoHideCollectedOutcome = useCallback(
+    (kind: "publishers" | "series", count: number) => {
+      const applied = count > 0;
+      if (kind === "publishers") {
+        setAutoHidePublishersApplied(applied);
+        setAutoHidePubActive(applied);
+      } else {
+        setAutoHideSeriesApplied(applied);
+        setAutoHideSerActive(applied);
+      }
+    },
+    []
+  );
 
   const {
     hiddenSet,
@@ -486,13 +512,8 @@ const ThemedAppWithLoading: React.FC = () => {
             setFilterMinValue={setFilterMinValue}
             filterMaxValue={filterMaxValue}
             setFilterMaxValue={setFilterMaxValue}
-            showHiddenPublishers={showHiddenPublishers}
-            onShowHiddenPublishersChange={setShowHiddenPublishers}
-            showHiddenSeries={showHiddenSeries}
-            onShowHiddenSeriesChange={setShowHiddenSeries}
             isOpen={isFilterModalOpen}
             onClose={() => setIsFilterModalOpen(false)}
-            isDetailView={selectedSeries != null || selectedPullList != null}
             onClearAllFilters={handleClearFilters}
             onOpenMultiPull={handleOpenMultiPull}
             activePullListName={selectedPullList?.name ?? null}
@@ -541,6 +562,7 @@ const ThemedAppWithLoading: React.FC = () => {
           onBackFromMultiPull={() => setSelectedPullList(null)}
           onRemoveFromPullList={handleRemoveFromPullList}
           onAutoHideActionsReady={setAutoHideActions}
+          onAutoHideCollectedOutcome={handleAutoHideCollectedOutcome}
         />
 
         <HamburgerMenu
@@ -553,6 +575,12 @@ const ThemedAppWithLoading: React.FC = () => {
           isSyncingOffline={isSyncing}
           lastSyncedAt={lastSyncedAt}
           offlineSyncError={offlineSyncError}
+          showHiddenPublishers={showHiddenPublishers}
+          onShowHiddenPublishersChange={setShowHiddenPublishers}
+          showHiddenSeries={showHiddenSeries}
+          onShowHiddenSeriesChange={setShowHiddenSeries}
+          autoHidePublishersActive={autoHidePubActive}
+          autoHideSeriesActive={autoHideSerActive}
           onHideCollectedPublishers={
             autoHideActions
               ? () => {

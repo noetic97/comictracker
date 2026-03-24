@@ -2,13 +2,16 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
+const repoRoot = path.resolve(__dirname, "..");
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Load .env.local so proxy target matches API server port (VITE_API_PORT=3002 if server used 3002)
-  const env = loadEnv(mode, process.cwd(), "");
+  // Load repo-root .env* so VITE_* (and proxy port) match server `.env` without duplicating under client/
+  const env = loadEnv(mode, repoRoot, "");
   const apiPort = env.VITE_API_PORT || "3001";
 
   return {
+    envDir: repoRoot,
     plugins: [react()],
     resolve: {
       alias: {

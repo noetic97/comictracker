@@ -36,12 +36,6 @@ vi.mock("./styles", () => ({
   ToggleContainer: (props: React.PropsWithChildren) => (
     <div data-testid="toggle-container" {...props} />
   ),
-  ShowHiddenGroup: (props: React.PropsWithChildren) => (
-    <div data-testid="show-hidden-group" {...props} />
-  ),
-  ShowHiddenLabel: (props: React.PropsWithChildren) => (
-    <label data-testid="show-hidden-label" {...props} />
-  ),
   ValueRangeRow: (props: React.PropsWithChildren) => (
     <div data-testid="value-range-row" {...props} />
   ),
@@ -93,9 +87,6 @@ describe("FilterSort Component", () => {
   const mockSetSortBy = vi.fn();
   const mockSetItemsPerPage = vi.fn();
   const mockOnClose = vi.fn();
-  const mockOnShowHiddenPublishersChange = vi.fn();
-  const mockOnShowHiddenSeriesChange = vi.fn();
-
   const defaultProps = {
     filter: "",
     setFilter: mockSetFilter,
@@ -113,10 +104,6 @@ describe("FilterSort Component", () => {
     setFilterMinValue: vi.fn(),
     filterMaxValue: "",
     setFilterMaxValue: vi.fn(),
-    showHiddenPublishers: false,
-    onShowHiddenPublishersChange: mockOnShowHiddenPublishersChange,
-    showHiddenSeries: false,
-    onShowHiddenSeriesChange: mockOnShowHiddenSeriesChange,
     isOpen: true,
     onClose: mockOnClose,
   };
@@ -152,16 +139,6 @@ describe("FilterSort Component", () => {
       target: { value: "50" },
     });
     expect(mockSetItemsPerPage).toHaveBeenCalledWith(50);
-  });
-  it("toggles show hidden publishers when checkbox is clicked", () => {
-    render(<FilterSort {...defaultProps} />);
-    fireEvent.click(screen.getByLabelText("Show hidden publishers"));
-    expect(mockOnShowHiddenPublishersChange).toHaveBeenCalledWith(true);
-  });
-  it("toggles show hidden series when checkbox is clicked", () => {
-    render(<FilterSort {...defaultProps} />);
-    fireEvent.click(screen.getByLabelText("Show hidden series"));
-    expect(mockOnShowHiddenSeriesChange).toHaveBeenCalledWith(true);
   });
   it("clears filter when clear button is clicked", () => {
     render(<FilterSort {...defaultProps} />);

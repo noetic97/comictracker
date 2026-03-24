@@ -1,6 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
+import { initRemoteDebugLogging } from "./utils/remoteDebugLog";
+
+initRemoteDebugLogging();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

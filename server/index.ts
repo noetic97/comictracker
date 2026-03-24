@@ -5,15 +5,12 @@
 // Load .env from project root (where package.json lives)
 import path from "path";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 
-try {
-  require("dotenv").config({ path: path.join(projectRoot, ".env") });
-} catch {
-  // dotenv not installed; use env or default below
-}
+dotenv.config({ path: path.join(projectRoot, ".env") });
 
 // Default SQLite DB if no DATABASE_URL (so Prisma can connect without .env)
 if (!process.env.DATABASE_URL) {
@@ -36,11 +33,39 @@ import { adminHandler } from "./routes/admin";
 import { alertsHandler } from "./routes/alerts";
 import { hiddenPublishersHandler } from "./routes/hiddenPublishers";
 import { pullListsHandler } from "./routes/pullLists";
+import { setupFileLogging, createClientLogPostHandler } from "./fileLog";
+
+setupFileLogging(projectRoot);
+
+function logProcessError(prefix: string, err: unknown): void {
+  console.error(`[comictracker] ${prefix}`);
+  if (err instanceof Error) {
+    console.error(err.stack || err.message);
+  } else {
+    console.error(err);
+  }
+}
+
+process.on("uncaughtException", (err, origin) => {
+  logProcessError(`uncaughtException (origin: ${origin})`, err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  logProcessError("unhandledRejection", reason);
+});
 
 const app = express();
 const PORT_WANTED = Number(process.env.PORT) || 3001;
 
 app.use(express.json({ limit: "10mb" }));
+
+const clientLogIngest =
+  process.env.ENABLE_CLIENT_LOG_INGEST === "true" ||
+  process.env.ENABLE_CLIENT_LOG_INGEST === "1";
+if (clientLogIngest) {
+  app.post("/api/debug/client-log", createClientLogPostHandler(projectRoot));
+}
 
 // CORS for API
 app.use("/api", (req, res, next) => {

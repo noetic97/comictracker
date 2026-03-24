@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   FavoriteSeries,
   FilterOption,
@@ -70,6 +70,11 @@ interface Props {
     hideCollectedPublishers: () => Promise<void>;
     hideCollectedSeries: () => Promise<void>;
   }) => void;
+  /** Fired after auto-hide runs so UI can show "active" and persist across refresh. */
+  onAutoHideCollectedOutcome?: (
+    kind: "publishers" | "series",
+    hiddenCount: number
+  ) => void;
 }
 
 const ComicList: React.FC<Props> = ({
@@ -105,6 +110,7 @@ const ComicList: React.FC<Props> = ({
   onBackFromMultiPull,
   onRemoveFromPullList,
   onAutoHideActionsReady,
+  onAutoHideCollectedOutcome,
 }) => {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -190,25 +196,30 @@ const ComicList: React.FC<Props> = ({
   // Handle errors
   const combinedError = error || publishersError;
 
-  const hideFullyCollectedPublishers = async () => {
+  const hideFullyCollectedPublishers = useCallback(async () => {
     try {
       const targets = publishers.filter(
         (p) => p.totalComics > 0 && p.totalComics === p.collectedComics
       );
-      targets.forEach((p) => hidePublisher(p.publisher));
+      // Sequential awaits: hidePublisher is async and updates API state; parallel calls race on stale hiddenList.
+      for (const p of targets) {
+        await hidePublisher(p.publisher);
+      }
+      const count = targets.length;
+      onAutoHideCollectedOutcome?.("publishers", count);
       setNotice(
-        targets.length > 0
-          ? `Hidden ${targets.length} fully collected publisher${
-              targets.length === 1 ? "" : "s"
+        count > 0
+          ? `Hidden ${count} fully collected publisher${
+              count === 1 ? "" : "s"
             }.`
           : "No fully collected publishers to hide."
       );
     } catch (err: any) {
       setError(`Failed to auto-hide publishers: ${err?.message ?? "Unknown error"}`);
     }
-  };
+  }, [publishers, hidePublisher, onAutoHideCollectedOutcome]);
 
-  const hideFullyCollectedSeries = async () => {
+  const hideFullyCollectedSeries = useCallback(async () => {
     try {
       const baseFilters = {
         filterOption,
@@ -236,18 +247,33 @@ const ComicList: React.FC<Props> = ({
             Number(s.issueCount) > 0 &&
             Number(s.issueCount) === Number(s.collectedCount)
         );
-      targets.forEach((s: any) =>
-        hideSeries(seriesStorageKey(s.publisher, s.series, s.volume))
-      );
+      for (const s of targets) {
+        const vol =
+          s.volume === undefined || s.volume === null ? "" : String(s.volume);
+        hideSeries(seriesStorageKey(s.publisher, s.series, vol));
+      }
+      const count = targets.length;
+      onAutoHideCollectedOutcome?.("series", count);
       setNotice(
-        targets.length > 0
-          ? `Hidden ${targets.length} fully collected series.`
+        count > 0
+          ? `Hidden ${count} fully collected series.`
           : "No fully collected series to hide."
       );
     } catch (err: any) {
       setError(`Failed to auto-hide series: ${err?.message ?? "Unknown error"}`);
     }
-  };
+  }, [
+    publishers,
+    filterOption,
+    searchFilter,
+    sortBy,
+    filterType,
+    filterGrade,
+    filterMinValue,
+    filterMaxValue,
+    hideSeries,
+    onAutoHideCollectedOutcome,
+  ]);
 
   React.useEffect(() => {
     if (!onAutoHideActionsReady) return;
@@ -255,7 +281,11 @@ const ComicList: React.FC<Props> = ({
       hideCollectedPublishers: hideFullyCollectedPublishers,
       hideCollectedSeries: hideFullyCollectedSeries,
     });
-  }, [onAutoHideActionsReady, hideFullyCollectedPublishers, hideFullyCollectedSeries]);
+  }, [
+    onAutoHideActionsReady,
+    hideFullyCollectedPublishers,
+    hideFullyCollectedSeries,
+  ]);
 
   // Render series detail view
   if (viewMode === "series-detail" && selectedSeries) {

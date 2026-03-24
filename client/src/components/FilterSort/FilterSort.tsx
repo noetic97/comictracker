@@ -22,14 +22,8 @@ interface Props {
   setFilterMinValue: (value: string) => void;
   filterMaxValue: string;
   setFilterMaxValue: (value: string) => void;
-  showHiddenPublishers: boolean;
-  onShowHiddenPublishersChange: (show: boolean) => void;
-  showHiddenSeries: boolean;
-  onShowHiddenSeriesChange: (show: boolean) => void;
   isOpen: boolean;
   onClose: () => void;
-  /** When true, detail view is active; sort-by is hidden and a note is shown. */
-  isDetailView?: boolean;
   /** Reset all filter fields to defaults (search, filter option, type, grade, value range). */
   onClearAllFilters?: () => void;
   onOpenMultiPull?: () => void;
@@ -54,13 +48,8 @@ const FilterSort: React.FC<Props> = memo(
     setFilterMinValue,
     filterMaxValue,
     setFilterMaxValue,
-    showHiddenPublishers,
-    onShowHiddenPublishersChange,
-    showHiddenSeries,
-    onShowHiddenSeriesChange,
     isOpen,
     onClose,
-    isDetailView = false,
     onClearAllFilters,
     onOpenMultiPull,
     activePullListName,
@@ -197,35 +186,6 @@ const FilterSort: React.FC<Props> = memo(
             <option value={2000}>2000 (max)</option>
           </S.StyledSelect>
 
-          {!isDetailView && (
-            <>
-              <S.FilterLabel>Visibility</S.FilterLabel>
-              <S.ShowHiddenGroup>
-                <S.ShowHiddenLabel>
-                  <input
-                    type="checkbox"
-                    id="show-hidden-publishers"
-                    checked={showHiddenPublishers}
-                    onChange={(e) => onShowHiddenPublishersChange(e.target.checked)}
-                    aria-label="Show hidden publishers"
-                    data-sc="ShowHiddenPublishers"
-                  />
-                  <span>Show hidden publishers</span>
-                </S.ShowHiddenLabel>
-                <S.ShowHiddenLabel>
-                  <input
-                    type="checkbox"
-                    id="show-hidden-series"
-                    checked={showHiddenSeries}
-                    onChange={(e) => onShowHiddenSeriesChange(e.target.checked)}
-                    aria-label="Show hidden series"
-                    data-sc="ShowHiddenSeries"
-                  />
-                  <span>Show hidden series</span>
-                </S.ShowHiddenLabel>
-              </S.ShowHiddenGroup>
-            </>
-          )}
         </S.FilterSortContent>
       </S.FilterSortContainer>
     );

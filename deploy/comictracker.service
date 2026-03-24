@@ -12,8 +12,10 @@
 #   sudo systemctl enable --now comictracker.service
 #
 # Logs: journalctl -u comictracker -f
-#
-# If you do not use notify-crash@.service, remove the OnFailure= line below.
+# Optional file + browser client log lines: set in .env (see .env.example)
+#   LOG_FILE=logs/comictracker.log
+#   ENABLE_CLIENT_LOG_INGEST=true
+#   CLIENT_LOG_FILE=logs/comictracker-client.log
 
 [Unit]
 Description=Comic Tracker — comic collection API and web UI
