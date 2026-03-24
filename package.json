@@ -6,6 +6,7 @@
     "client"
   ],
   "scripts": {
+    "postinstall": "prisma generate",
     "kill-dev-ports": "lsof -ti:3000 | xargs kill -9 2>/dev/null; lsof -ti:3001 | xargs kill -9 2>/dev/null; lsof -ti:3002 | xargs kill -9 2>/dev/null; echo Done",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "cd client && npm run dev",
