@@ -7,6 +7,8 @@ import {
 } from "../../types";
 import { usePublisherSummaries, useExpandedState } from "../../hooks";
 import { logger } from "../../utils/logger";
+import { getApiBaseUrl, buildQueryParams } from "../../hooks/utils";
+import { seriesStorageKey } from "../../utils/hiddenSeries";
 import * as S from "./styles";
 import ErrorMessage from "../shared/ErrorMessage";
 import ControlsSection from "./ControlsSection";
@@ -104,6 +106,7 @@ const ComicList: React.FC<Props> = ({
   onRemoveFromPullList,
 }) => {
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [seriesPages, setSeriesPages] = useState<Record<string, number>>({});
   const [globalStatsRefresh, setGlobalStatsRefresh] = useState<
     (() => Promise<any>) | null
@@ -186,6 +189,65 @@ const ComicList: React.FC<Props> = ({
   // Handle errors
   const combinedError = error || publishersError;
 
+  const hideFullyCollectedPublishers = async () => {
+    try {
+      const targets = publishers.filter(
+        (p) => p.totalComics > 0 && p.totalComics === p.collectedComics
+      );
+      targets.forEach((p) => hidePublisher(p.publisher));
+      setNotice(
+        targets.length > 0
+          ? `Hidden ${targets.length} fully collected publisher${
+              targets.length === 1 ? "" : "s"
+            }.`
+          : "No fully collected publishers to hide."
+      );
+    } catch (err: any) {
+      setError(`Failed to auto-hide publishers: ${err?.message ?? "Unknown error"}`);
+    }
+  };
+
+  const hideFullyCollectedSeries = async () => {
+    try {
+      const baseFilters = {
+        filterOption,
+        search: searchFilter,
+        sortBy,
+        type: filterType || undefined,
+        grade: filterGrade || undefined,
+        minValue: filterMinValue || undefined,
+        maxValue: filterMaxValue || undefined,
+      };
+
+      const allSeries = await Promise.all(
+        publishers.map(async (p) => {
+          const params = buildQueryParams({ ...baseFilters, publisher: p.publisher });
+          const res = await fetch(`${getApiBaseUrl()}/comics/series?${params}`);
+          if (!res.ok) return [];
+          return res.json();
+        })
+      );
+
+      const targets = allSeries
+        .flat()
+        .filter(
+          (s: any) =>
+            Number(s.issueCount) > 0 &&
+            Number(s.issueCount) === Number(s.collectedCount)
+        );
+      targets.forEach((s: any) =>
+        hideSeries(seriesStorageKey(s.publisher, s.series, s.volume))
+      );
+      setNotice(
+        targets.length > 0
+          ? `Hidden ${targets.length} fully collected series.`
+          : "No fully collected series to hide."
+      );
+    } catch (err: any) {
+      setError(`Failed to auto-hide series: ${err?.message ?? "Unknown error"}`);
+    }
+  };
+
   // Render series detail view
   if (viewMode === "series-detail" && selectedSeries) {
     return (
@@ -260,6 +322,13 @@ const ComicList: React.FC<Props> = ({
           onDismiss={() => setError(null)}
         />
       )}
+      {notice && (
+        <ErrorMessage
+          message={notice}
+          type="warning"
+          onDismiss={() => setNotice(null)}
+        />
+      )}
 
       <ControlsSection
         filterOption={filterOption}
@@ -269,6 +338,8 @@ const ComicList: React.FC<Props> = ({
         onOpenMultiPull={onOpenMultiPull}
         canOpenMultiPull={true}
         activePullListName={activePullListName}
+        onAutoHideCollectedPublishers={hideFullyCollectedPublishers}
+        onAutoHideCollectedSeries={hideFullyCollectedSeries}
         onStatsRefreshReady={(refreshFn) =>
           setGlobalStatsRefresh(() => refreshFn)
         }

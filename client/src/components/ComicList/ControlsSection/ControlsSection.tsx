@@ -13,6 +13,8 @@ interface ControlsSectionProps {
   onOpenMultiPull?: () => void;
   canOpenMultiPull?: boolean;
   activePullListName?: string | null;
+  onAutoHideCollectedPublishers?: () => Promise<void>;
+  onAutoHideCollectedSeries?: () => Promise<void>;
 }
 
 const ControlsSection: React.FC<ControlsSectionProps> = ({
@@ -24,6 +26,8 @@ const ControlsSection: React.FC<ControlsSectionProps> = ({
   onOpenMultiPull,
   canOpenMultiPull = false,
   activePullListName,
+  onAutoHideCollectedPublishers,
+  onAutoHideCollectedSeries,
 }) => {
   const handleStatsRefreshReady = useCallback(
     (silentRefetch: () => Promise<any>) => {
@@ -62,6 +66,24 @@ const ControlsSection: React.FC<ControlsSectionProps> = ({
               </S.ActivePill>
             )}
           </div>
+        )}
+        {onAutoHideCollectedPublishers && (
+          <S.ToggleButton
+            type="button"
+            onClick={() => onAutoHideCollectedPublishers()}
+            title="Hide fully collected publishers"
+          >
+            Hide Collected Publishers
+          </S.ToggleButton>
+        )}
+        {onAutoHideCollectedSeries && (
+          <S.ToggleButton
+            type="button"
+            onClick={() => onAutoHideCollectedSeries()}
+            title="Hide fully collected series"
+          >
+            Hide Collected Series
+          </S.ToggleButton>
         )}
         <StatsDisplay
           filterOption={filterOption}
