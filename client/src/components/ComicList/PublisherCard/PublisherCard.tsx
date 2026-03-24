@@ -43,6 +43,7 @@ interface PublisherCardProps {
   showHiddenSeries?: boolean;
   onHideSeries?: (storageKey: string) => void;
   onUnhideSeries?: (storageKey: string) => void;
+  onAddToPullList?: (publisher: string, series: string, volume: string) => void;
 }
 
 const PublisherCard: React.FC<PublisherCardProps> = ({
@@ -73,6 +74,7 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
   showHiddenSeries = false,
   onHideSeries,
   onUnhideSeries,
+  onAddToPullList,
 }) => {
   // Only fetch series data when this publisher is expanded
   const {
@@ -227,6 +229,7 @@ const PublisherCard: React.FC<PublisherCardProps> = ({
                     seriesStorageKey={storageKey}
                     onHideSeries={onHideSeries}
                     onUnhideSeries={onUnhideSeries}
+                    onAddToPullList={onAddToPullList}
                   />
                 );
               })

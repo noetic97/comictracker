@@ -7,6 +7,8 @@ export interface DatabaseCounts {
   favorites: number;
   alerts: number;
   hiddenPublishers: number;
+  pullLists: number;
+  pullListSeries: number;
   total: number;
 }
 
@@ -174,6 +176,27 @@ export interface FavoriteSeries extends FavoriteSeriesData {
 export interface FavoriteCheckResult {
   isFavorite: boolean;
   favorite?: FavoriteSeries;
+}
+
+/**
+ * Pull List Service
+ */
+export interface PullListSeriesData {
+  publisher: string;
+  series: string;
+  volume: string;
+}
+
+export interface PullListSummary {
+  id: string;
+  name: string;
+  seriesCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PullListDetail extends PullListSummary {
+  series: PullListSeriesData[];
 }
 
 export interface ComicStats {

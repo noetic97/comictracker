@@ -1,4 +1,4 @@
-import { Comic, FavoriteSeries } from "../types";
+import { Comic, FavoriteSeries, PullListDetail, PullListSummary } from "../types";
 import { debugFetch, apiDebugger } from "./apiDebugger";
 import { logger } from "./logger";
 
@@ -325,6 +325,81 @@ export const apiService = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(state),
       });
+      return handleResponse(response);
+    },
+  },
+
+  pullLists: {
+    getAll: async (): Promise<PullListSummary[]> => {
+      const response = await debugFetch(`${API_BASE_URL}/pull-lists`);
+      return handleResponse(response);
+    },
+
+    create: async (name: string): Promise<PullListSummary> => {
+      const response = await debugFetch(`${API_BASE_URL}/pull-lists`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      return handleResponse(response);
+    },
+
+    rename: async (id: string, name: string): Promise<PullListSummary> => {
+      const response = await debugFetch(
+        `${API_BASE_URL}/pull-lists/${encodeURIComponent(id)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        }
+      );
+      return handleResponse(response);
+    },
+
+    remove: async (id: string): Promise<void> => {
+      const response = await debugFetch(
+        `${API_BASE_URL}/pull-lists/${encodeURIComponent(id)}`,
+        {
+          method: "DELETE",
+        }
+      );
+      await handleResponse(response);
+    },
+
+    getSeries: async (id: string): Promise<PullListDetail> => {
+      const response = await debugFetch(
+        `${API_BASE_URL}/pull-lists/${encodeURIComponent(id)}/series`
+      );
+      return handleResponse(response);
+    },
+
+    addSeries: async (
+      id: string,
+      series: { publisher: string; series: string; volume?: string }
+    ): Promise<PullListDetail> => {
+      const response = await debugFetch(
+        `${API_BASE_URL}/pull-lists/${encodeURIComponent(id)}/series`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(series),
+        }
+      );
+      return handleResponse(response);
+    },
+
+    removeSeries: async (
+      id: string,
+      series: { publisher: string; series: string; volume?: string }
+    ): Promise<PullListDetail> => {
+      const response = await debugFetch(
+        `${API_BASE_URL}/pull-lists/${encodeURIComponent(id)}/series`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(series),
+        }
+      );
       return handleResponse(response);
     },
   },

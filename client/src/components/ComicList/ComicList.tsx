@@ -13,6 +13,8 @@ import ControlsSection from "./ControlsSection";
 import PublisherCard from "./PublisherCard";
 import ToTopButton from "./ToTopButton";
 import SeriesDetailView from "../SeriesDetailView";
+import MultiPullDetailView from "../MultiPullDetailView";
+import { PullListDetail } from "../../types";
 
 interface Props {
   itemsPerPage: number;
@@ -54,6 +56,16 @@ interface Props {
   showHiddenSeries: boolean;
   onHideSeries: (storageKey: string) => void;
   onUnhideSeries: (storageKey: string) => void;
+  onAddToPullList: (publisher: string, series: string, volume: string) => void;
+  onOpenMultiPull: () => void;
+  activePullListName?: string | null;
+  selectedPullList: PullListDetail | null;
+  onBackFromMultiPull: () => void;
+  onRemoveFromPullList: (series: {
+    publisher: string;
+    series: string;
+    volume?: string;
+  }) => Promise<void>;
 }
 
 const ComicList: React.FC<Props> = ({
@@ -84,6 +96,12 @@ const ComicList: React.FC<Props> = ({
   showHiddenSeries,
   onHideSeries: hideSeries,
   onUnhideSeries: unhideSeries,
+  onAddToPullList,
+  onOpenMultiPull,
+  activePullListName,
+  selectedPullList,
+  onBackFromMultiPull,
+  onRemoveFromPullList,
 }) => {
   const [error, setError] = useState<string | null>(null);
   const [seriesPages, setSeriesPages] = useState<Record<string, number>>({});
@@ -91,7 +109,11 @@ const ComicList: React.FC<Props> = ({
     (() => Promise<any>) | null
   >(null);
 
-  const viewMode: ViewMode = selectedSeries ? "series-detail" : "grid";
+  const viewMode: ViewMode = selectedSeries
+    ? "series-detail"
+    : selectedPullList
+      ? "series-detail"
+      : "grid";
 
   // Debug logging for stats callback
   React.useEffect(() => {
@@ -204,6 +226,30 @@ const ComicList: React.FC<Props> = ({
     );
   }
 
+  if (selectedPullList) {
+    return (
+      <MultiPullDetailView
+        pullList={selectedPullList}
+        onBack={onBackFromMultiPull}
+        onRemoveSeries={onRemoveFromPullList}
+        itemsPerPage={itemsPerPage}
+        setItemsPerPage={setItemsPerPage}
+        filterOption={filterOption}
+        searchFilter={searchFilter}
+        filterType={filterType}
+        filterGrade={filterGrade}
+        filterMinValue={filterMinValue}
+        filterMaxValue={filterMaxValue}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        setSortBy={setSortBy}
+        setSortOrder={setSortOrder}
+        favoriteSeries={favoriteSeries}
+        onToggleFavoriteSeries={onToggleFavoriteSeries}
+      />
+    );
+  }
+
   // Render grid view
   return (
     <S.ComicListContainer data-sc="ComicListContainer">
@@ -220,6 +266,9 @@ const ComicList: React.FC<Props> = ({
         searchFilter={searchFilter}
         sortBy={sortBy}
         favoriteSeries={favoriteSeries}
+        onOpenMultiPull={onOpenMultiPull}
+        canOpenMultiPull={true}
+        activePullListName={activePullListName}
         onStatsRefreshReady={(refreshFn) =>
           setGlobalStatsRefresh(() => refreshFn)
         }
@@ -261,6 +310,7 @@ const ComicList: React.FC<Props> = ({
               showHiddenSeries={showHiddenSeries}
               onHideSeries={hideSeries}
               onUnhideSeries={unhideSeries}
+              onAddToPullList={onAddToPullList}
             />
           ))}
         </S.PublisherGrid>

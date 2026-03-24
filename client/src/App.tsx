@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FilterOption, FavoriteSeries, SortOption } from "./types";
+import { FilterOption, FavoriteSeries, PullListDetail, SortOption } from "./types";
 import ComicActionsErrorBoundary from "./components/shared/ComicActionErrorBoundary";
 import ErrorMessage from "./components/shared/ErrorMessage";
 import ImportModal from "./components/ImportModal";
@@ -7,6 +7,8 @@ import Header from "./components/Header/index.ts";
 import FilterSort from "./components/FilterSort/index.ts";
 import ComicList from "./components/ComicList/index.ts";
 import HamburgerMenu from "./components/HamburgerMenu/index.ts";
+import Modal from "./components/shared/Modal";
+import Button from "./components/shared/Button";
 import { logger } from "./utils/logger";
 import * as S from "./styles";
 import { apiService } from "./utils/apiService";
@@ -32,6 +34,7 @@ import {
 import { useHiddenPublishers } from "./hooks/useHiddenPublishers";
 import { useHiddenSeries } from "./hooks/useHiddenSeries";
 import { useOfflineSync } from "./hooks/useOfflineSync";
+import { usePullLists } from "./hooks/usePullLists";
 import { getFavoriteSeries } from "./utils/db";
 import { syncCollectionToIndexedDB } from "./utils/offlineFullSync";
 
@@ -57,6 +60,15 @@ const ThemedAppWithLoading: React.FC = () => {
     volume?: string;
   } | null>(null);
   const [seriesPage, setSeriesPage] = useState(1);
+  const [selectedPullList, setSelectedPullList] = useState<PullListDetail | null>(null);
+  const [isPullListModalOpen, setIsPullListModalOpen] = useState(false);
+  const [pullListModalMode, setPullListModalMode] = useState<"open" | "add">("open");
+  const [pendingPullSeries, setPendingPullSeries] = useState<{
+    publisher: string;
+    series: string;
+    volume: string;
+  } | null>(null);
+  const [newPullListName, setNewPullListName] = useState("");
 
   const {
     hiddenSet,
@@ -90,6 +102,14 @@ const ThemedAppWithLoading: React.FC = () => {
     lastSyncedAt,
     syncNow,
   } = useOfflineSync();
+  const {
+    lists: pullLists,
+    createList,
+    renameList,
+    deleteList,
+    getListDetail,
+    addSeriesToList,
+  } = usePullLists();
 
   // Restore view from URL on mount, or from localStorage when URL has no params
   useEffect(() => {
@@ -102,6 +122,7 @@ const ThemedAppWithLoading: React.FC = () => {
         setSortBy(last.sortBy);
         setItemsPerPage(last.itemsPerPage);
         setSelectedSeries(last.selectedSeries);
+        setSelectedPullList(null);
         setSeriesPage(last.page ?? 1);
         return;
       }
@@ -113,6 +134,7 @@ const ThemedAppWithLoading: React.FC = () => {
     setSortBy(applied.sortBy ?? "series");
     setItemsPerPage(applied.itemsPerPage ?? 25);
     setSelectedSeries(applied.selectedSeries ?? null);
+    setSelectedPullList(null);
     setSeriesPage(applied.page ?? 1);
   }, []);
 
@@ -286,6 +308,108 @@ const ThemedAppWithLoading: React.FC = () => {
     setFilterMaxValue("");
   };
 
+  const openPullListModal = (
+    mode: "open" | "add",
+    pending?: { publisher: string; series: string; volume: string }
+  ) => {
+    setPullListModalMode(mode);
+    setPendingPullSeries(pending ?? null);
+    setIsPullListModalOpen(true);
+  };
+
+  const closePullListModal = () => {
+    setIsPullListModalOpen(false);
+    setPendingPullSeries(null);
+    setNewPullListName("");
+  };
+
+  const handleCreatePullList = async () => {
+    const name = newPullListName.trim();
+    if (!name) return;
+    try {
+      const created = await createList(name);
+      setNewPullListName("");
+      if (pullListModalMode === "open") {
+        const detail = await getListDetail(created.id);
+        setSelectedSeries(null);
+        setSelectedPullList(detail);
+        setSeriesPage(1);
+        closePullListModal();
+      } else if (pendingPullSeries) {
+        const detail = await addSeriesToList(created.id, pendingPullSeries);
+        if (selectedPullList?.id === detail.id) setSelectedPullList(detail);
+        closePullListModal();
+      }
+    } catch (err: any) {
+      setError(`Failed to create pull list: ${err?.message ?? "Unknown error"}`);
+    }
+  };
+
+  const handleSelectPullList = async (listId: string) => {
+    try {
+      if (pullListModalMode === "open") {
+        const detail = await getListDetail(listId);
+        setSelectedSeries(null);
+        setSelectedPullList(detail);
+        setSeriesPage(1);
+      } else if (pendingPullSeries) {
+        const detail = await addSeriesToList(listId, pendingPullSeries);
+        if (selectedPullList?.id === detail.id) setSelectedPullList(detail);
+      }
+      closePullListModal();
+    } catch (err: any) {
+      setError(`Failed to use pull list: ${err?.message ?? "Unknown error"}`);
+    }
+  };
+
+  const handleOpenMultiPull = async () => {
+    openPullListModal("open");
+  };
+
+  const handleAddToPullList = async (
+    publisher: string,
+    series: string,
+    volume: string
+  ) => {
+    openPullListModal("add", { publisher, series, volume });
+  };
+
+  const handleRemoveFromPullList = async (item: {
+    publisher: string;
+    series: string;
+    volume?: string;
+  }) => {
+    if (!selectedPullList) return;
+    const updated = await apiService.pullLists.removeSeries(selectedPullList.id, item);
+    setSelectedPullList(updated);
+  };
+
+  const handleRenamePullList = async (id: string, currentName: string) => {
+    const next = window.prompt("Rename pull list", currentName);
+    if (next == null || !next.trim()) return;
+    try {
+      const updated = await renameList(id, next.trim());
+      if (selectedPullList?.id === id) {
+        setSelectedPullList({ ...selectedPullList, name: updated.name });
+      }
+    } catch (err: any) {
+      setError(`Failed to rename pull list: ${err?.message ?? "Unknown error"}`);
+    }
+  };
+
+  const handleDeletePullList = async (id: string, name: string) => {
+    const ok = window.confirm(`Delete pull list "${name}"?`);
+    if (!ok) return;
+    try {
+      await deleteList(id);
+      if (selectedPullList?.id === id) {
+        setSelectedPullList(null);
+      }
+    } catch (err: any) {
+      setError(`Failed to delete pull list: ${err?.message ?? "Unknown error"}`);
+    }
+  };
+
   const openImportModal = () => {
     setIsImportModalOpen(true);
   };
@@ -364,7 +488,7 @@ const ThemedAppWithLoading: React.FC = () => {
             onShowHiddenSeriesChange={setShowHiddenSeries}
             isOpen={isFilterModalOpen}
             onClose={() => setIsFilterModalOpen(false)}
-            isDetailView={selectedSeries != null}
+            isDetailView={selectedSeries != null || selectedPullList != null}
             onClearAllFilters={handleClearFilters}
           />
         </S.HeaderContainer>
@@ -391,9 +515,13 @@ const ThemedAppWithLoading: React.FC = () => {
           setSeriesPage={setSeriesPage}
           onOpenDetailView={(publisher, series, volume) => {
             setSeriesPage(1);
+            setSelectedPullList(null);
             setSelectedSeries({ publisher, series, volume });
           }}
-          onBackToGrid={() => setSelectedSeries(null)}
+          onBackToGrid={() => {
+            setSelectedSeries(null);
+            setSelectedPullList(null);
+          }}
           hiddenPublishersSet={hiddenSet}
           showHiddenPublishers={showHiddenPublishers}
           onHidePublisher={hidePublisher}
@@ -402,6 +530,12 @@ const ThemedAppWithLoading: React.FC = () => {
           showHiddenSeries={showHiddenSeries}
           onHideSeries={hideSeries}
           onUnhideSeries={unhideSeries}
+          onAddToPullList={handleAddToPullList}
+          onOpenMultiPull={handleOpenMultiPull}
+          activePullListName={selectedPullList?.name ?? null}
+          selectedPullList={selectedPullList}
+          onBackFromMultiPull={() => setSelectedPullList(null)}
+          onRemoveFromPullList={handleRemoveFromPullList}
         />
 
         <HamburgerMenu
@@ -438,6 +572,76 @@ const ThemedAppWithLoading: React.FC = () => {
             }
           }}
         />
+
+        <Modal
+          isOpen={isPullListModalOpen}
+          onClose={closePullListModal}
+          title={pullListModalMode === "open" ? "Open Multi-Pull" : "Add to Pull List"}
+          size="medium"
+        >
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
+            <input
+              type="text"
+              placeholder="New pull list name"
+              value={newPullListName}
+              onChange={(e) => setNewPullListName(e.target.value)}
+              style={{ flex: 1, padding: "0.55rem 0.7rem", borderRadius: 8, border: "1px solid #666" }}
+            />
+            <Button onClick={handleCreatePullList} variant="primary" size="small">
+              Create
+            </Button>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {pullLists.map((list) => (
+              <div
+                key={list.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "0.5rem",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: 8,
+                  padding: "0.45rem 0.55rem",
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 600 }}>{list.name}</div>
+                  <div style={{ opacity: 0.8, fontSize: "0.85rem" }}>
+                    {list.seriesCount} series
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "0.35rem" }}>
+                  <Button
+                    onClick={() => handleSelectPullList(list.id)}
+                    variant="primary"
+                    size="small"
+                  >
+                    {pullListModalMode === "open" ? "Open" : "Add"}
+                  </Button>
+                  <Button
+                    onClick={() => handleRenamePullList(list.id, list.name)}
+                    variant="secondary"
+                    size="small"
+                  >
+                    Rename
+                  </Button>
+                  <Button
+                    onClick={() => handleDeletePullList(list.id, list.name)}
+                    variant="tertiary"
+                    size="small"
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {pullLists.length === 0 && (
+              <div style={{ opacity: 0.8 }}>No pull lists yet. Create one above.</div>
+            )}
+          </div>
+        </Modal>
 
         {renderRefreshIndicator()}
 

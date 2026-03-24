@@ -35,6 +35,7 @@ import { favoritesHandler } from "./routes/favorites";
 import { adminHandler } from "./routes/admin";
 import { alertsHandler } from "./routes/alerts";
 import { hiddenPublishersHandler } from "./routes/hiddenPublishers";
+import { pullListsHandler } from "./routes/pullLists";
 
 const app = express();
 const PORT_WANTED = Number(process.env.PORT) || 3001;
@@ -59,6 +60,7 @@ app.all("/api/favorites*", createRequestHandler(favoritesHandler));
 app.all("/api/admin", createRequestHandler(adminHandler));
 app.all("/api/alerts", createRequestHandler(alertsHandler));
 app.all("/api/hidden-publishers", createRequestHandler(hiddenPublishersHandler));
+app.all("/api/pull-lists*", createRequestHandler(pullListsHandler));
 
 // Static SPA (production)
 const distPath = path.join(__dirname, "../client/dist");

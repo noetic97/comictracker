@@ -14,3 +14,4 @@ export { useDistinctTypes } from "./aggregations/useDistinctTypes";
 export { useOptimisticComics } from "./useOptimisticComics";
 export { useHiddenPublishers } from "./useHiddenPublishers";
 export { useHiddenSeries } from "./useHiddenSeries";
+export { usePullLists } from "./usePullLists";
