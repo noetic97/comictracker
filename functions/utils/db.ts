@@ -5,9 +5,37 @@ import { UserContext } from "../types/handlers";
 let prismaInstance: PrismaClient | null = null;
 let grailReasonColumnChecked = false;
 
+/** One-shot PRAGMAs for file DBs: WAL improves read/write overlap; busy_timeout waits on locks (see initSqliteConcurrency). */
+let sqlitePragmasPromise: Promise<void> | null = null;
+
 function getAdapter() {
   const databaseUrl = process.env.DATABASE_URL || "file:./prisma/dev-comics.db";
-  return new PrismaBetterSqlite3({ url: databaseUrl });
+  // better-sqlite3: ms to retry when the DB is locked before SQLITE_BUSY (default 5000).
+  return new PrismaBetterSqlite3({ url: databaseUrl, timeout: 10_000 });
+}
+
+function startSqlitePragmasIfNeeded(prisma: PrismaClient): void {
+  const url = process.env.DATABASE_URL || "";
+  if (!url.startsWith("file:")) return;
+  if (sqlitePragmasPromise) return;
+  sqlitePragmasPromise = (async () => {
+    try {
+      await prisma.$executeRawUnsafe(`PRAGMA journal_mode=WAL;`);
+      await prisma.$executeRawUnsafe(`PRAGMA busy_timeout=10000;`);
+    } catch (err) {
+      console.warn("SQLite WAL/busy_timeout setup failed:", err);
+    }
+  })();
+}
+
+/**
+ * Await once so WAL + busy_timeout are applied before heavy traffic.
+ * Safe to call from multiple places; subsequent calls resolve immediately.
+ */
+export async function initSqliteConcurrency(): Promise<void> {
+  const prisma = getPrisma();
+  startSqlitePragmasIfNeeded(prisma);
+  if (sqlitePragmasPromise) await sqlitePragmasPromise;
 }
 
 /**
@@ -39,6 +67,7 @@ export const getPrisma = (): PrismaClient => {
   if (!prismaInstance) {
     const adapter = getAdapter();
     prismaInstance = new PrismaClient({ adapter });
+    startSqlitePragmasIfNeeded(prismaInstance);
   }
   return prismaInstance;
 };
@@ -64,6 +93,7 @@ export const getUserContext = async (
  * Ensure default user exists and return context.
  */
 async function ensureDefaultUser(prisma: PrismaClient): Promise<UserContext> {
+  await initSqliteConcurrency();
   await ensureGrailReasonColumn(prisma);
 
   const defaultEmail =

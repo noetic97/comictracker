@@ -4,6 +4,8 @@
 #   npm ci
 #   npm run build:prod
 #
+# App URL: http://localhost:3001 (Vite dev UI is :3000; default npm run dev uses dev API :3002).
+#
 # Install:
 #   sudo cp deploy/comictracker.service /etc/systemd/system/
 #   sudo systemctl daemon-reload

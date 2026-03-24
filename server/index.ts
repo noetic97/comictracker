@@ -28,6 +28,7 @@ if (dbUrl?.startsWith("file:./") || dbUrl?.startsWith("file:.")) {
   process.env.DATABASE_URL = `file:${absolutePath}`;
 }
 import express from "express";
+import { initSqliteConcurrency } from "../functions/utils/db";
 import { createRequestHandler } from "./adapter";
 import { healthHandler } from "./routes/health";
 import { comicsHandler } from "./routes/comics";
@@ -86,4 +87,12 @@ function tryListen(port: number, maxTries = 5): void {
     }
   });
 }
-tryListen(PORT_WANTED);
+async function main() {
+  await initSqliteConcurrency();
+  tryListen(PORT_WANTED);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
