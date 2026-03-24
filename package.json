@@ -18,7 +18,7 @@
     "build": "npm run build:staging",
     "build:staging": "npx prisma generate && cd client && npm run build",
     "build:prod": "npx prisma generate && npx prisma migrate deploy && cd client && npm run build",
-    "build:prod:restart": "npm run build:prod && sudo systemctl restart comictracker",
+    "build:prod:restart": "sudo systemctl stop comictracker && npm run build:prod && sudo systemctl start comictracker",
     "start": "tsx server/index.ts",
     "db:check-drift": "npx prisma db pull --preview && git diff --exit-code prisma/schema.prisma || echo 'Schema drift detected!'",
     "db:generate": "npx prisma generate",
