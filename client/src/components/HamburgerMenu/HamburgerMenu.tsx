@@ -16,6 +16,8 @@ interface Props {
   isSyncingOffline?: boolean;
   lastSyncedAt?: string | null;
   offlineSyncError?: string | null;
+  onHideCollectedPublishers?: () => void;
+  onHideCollectedSeries?: () => void;
 }
 
 const HamburgerMenu: React.FC<Props> = ({
@@ -27,6 +29,8 @@ const HamburgerMenu: React.FC<Props> = ({
   isSyncingOffline,
   lastSyncedAt,
   offlineSyncError,
+  onHideCollectedPublishers,
+  onHideCollectedSeries,
 }) => {
   if (!isOpen) return null;
 
@@ -73,6 +77,36 @@ const HamburgerMenu: React.FC<Props> = ({
           {offlineSyncError && (
             <S.StatusIndicator>{offlineSyncError}</S.StatusIndicator>
           )}
+        </S.MenuOption>
+      )}
+
+      {onHideCollectedPublishers && (
+        <S.MenuOption data-sc="MenuOption">
+          <Button
+            onClick={() => {
+              onHideCollectedPublishers();
+              onClose();
+            }}
+            variant="secondary"
+            fullWidth
+          >
+            Hide Collected Publishers
+          </Button>
+        </S.MenuOption>
+      )}
+
+      {onHideCollectedSeries && (
+        <S.MenuOption data-sc="MenuOption">
+          <Button
+            onClick={() => {
+              onHideCollectedSeries();
+              onClose();
+            }}
+            variant="secondary"
+            fullWidth
+          >
+            Hide Collected Series
+          </Button>
         </S.MenuOption>
       )}
 

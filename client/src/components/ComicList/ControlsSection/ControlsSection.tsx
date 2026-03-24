@@ -10,11 +10,6 @@ interface ControlsSectionProps {
   sortBy: SortOption;
   favoriteSeries: FavoriteSeries[];
   onStatsRefreshReady?: (refreshStats: () => Promise<any>) => void;
-  onOpenMultiPull?: () => void;
-  canOpenMultiPull?: boolean;
-  activePullListName?: string | null;
-  onAutoHideCollectedPublishers?: () => Promise<void>;
-  onAutoHideCollectedSeries?: () => Promise<void>;
 }
 
 const ControlsSection: React.FC<ControlsSectionProps> = ({
@@ -23,11 +18,6 @@ const ControlsSection: React.FC<ControlsSectionProps> = ({
   sortBy,
   favoriteSeries,
   onStatsRefreshReady,
-  onOpenMultiPull,
-  canOpenMultiPull = false,
-  activePullListName,
-  onAutoHideCollectedPublishers,
-  onAutoHideCollectedSeries,
 }) => {
   const handleStatsRefreshReady = useCallback(
     (silentRefetch: () => Promise<any>) => {
@@ -46,45 +36,6 @@ const ControlsSection: React.FC<ControlsSectionProps> = ({
   return (
     <S.ControlsContainer>
       <S.ControlsRow>
-        {onOpenMultiPull && (
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <S.ToggleButton
-              type="button"
-              onClick={onOpenMultiPull}
-              disabled={!canOpenMultiPull}
-              title={
-                canOpenMultiPull
-                  ? "Open named pull list view"
-                  : "Create a pull list first"
-              }
-            >
-              Open Multi-Pull
-            </S.ToggleButton>
-            {activePullListName && (
-              <S.ActivePill title="Currently open pull list">
-                Active: {activePullListName}
-              </S.ActivePill>
-            )}
-          </div>
-        )}
-        {onAutoHideCollectedPublishers && (
-          <S.ToggleButton
-            type="button"
-            onClick={() => onAutoHideCollectedPublishers()}
-            title="Hide fully collected publishers"
-          >
-            Hide Collected Publishers
-          </S.ToggleButton>
-        )}
-        {onAutoHideCollectedSeries && (
-          <S.ToggleButton
-            type="button"
-            onClick={() => onAutoHideCollectedSeries()}
-            title="Hide fully collected series"
-          >
-            Hide Collected Series
-          </S.ToggleButton>
-        )}
         <StatsDisplay
           filterOption={filterOption}
           searchFilter={searchFilter}

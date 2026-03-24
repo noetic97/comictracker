@@ -59,8 +59,6 @@ interface Props {
   onHideSeries: (storageKey: string) => void;
   onUnhideSeries: (storageKey: string) => void;
   onAddToPullList: (publisher: string, series: string, volume: string) => void;
-  onOpenMultiPull: () => void;
-  activePullListName?: string | null;
   selectedPullList: PullListDetail | null;
   onBackFromMultiPull: () => void;
   onRemoveFromPullList: (series: {
@@ -68,6 +66,10 @@ interface Props {
     series: string;
     volume?: string;
   }) => Promise<void>;
+  onAutoHideActionsReady?: (actions: {
+    hideCollectedPublishers: () => Promise<void>;
+    hideCollectedSeries: () => Promise<void>;
+  }) => void;
 }
 
 const ComicList: React.FC<Props> = ({
@@ -99,11 +101,10 @@ const ComicList: React.FC<Props> = ({
   onHideSeries: hideSeries,
   onUnhideSeries: unhideSeries,
   onAddToPullList,
-  onOpenMultiPull,
-  activePullListName,
   selectedPullList,
   onBackFromMultiPull,
   onRemoveFromPullList,
+  onAutoHideActionsReady,
 }) => {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -248,6 +249,14 @@ const ComicList: React.FC<Props> = ({
     }
   };
 
+  React.useEffect(() => {
+    if (!onAutoHideActionsReady) return;
+    onAutoHideActionsReady({
+      hideCollectedPublishers: hideFullyCollectedPublishers,
+      hideCollectedSeries: hideFullyCollectedSeries,
+    });
+  }, [onAutoHideActionsReady, hideFullyCollectedPublishers, hideFullyCollectedSeries]);
+
   // Render series detail view
   if (viewMode === "series-detail" && selectedSeries) {
     return (
@@ -335,11 +344,6 @@ const ComicList: React.FC<Props> = ({
         searchFilter={searchFilter}
         sortBy={sortBy}
         favoriteSeries={favoriteSeries}
-        onOpenMultiPull={onOpenMultiPull}
-        canOpenMultiPull={true}
-        activePullListName={activePullListName}
-        onAutoHideCollectedPublishers={hideFullyCollectedPublishers}
-        onAutoHideCollectedSeries={hideFullyCollectedSeries}
         onStatsRefreshReady={(refreshFn) =>
           setGlobalStatsRefresh(() => refreshFn)
         }

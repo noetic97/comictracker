@@ -46,14 +46,3 @@ export const ToggleButton = styled.button`
   }
 `;
 
-export const ActivePill = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: 0.35rem 0.6rem;
-  border-radius: 999px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.card};
-  font-size: 0.85rem;
-  opacity: 0.92;
-`;
-

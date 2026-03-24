@@ -69,6 +69,10 @@ const ThemedAppWithLoading: React.FC = () => {
     volume: string;
   } | null>(null);
   const [newPullListName, setNewPullListName] = useState("");
+  const [autoHideActions, setAutoHideActions] = useState<{
+    hideCollectedPublishers: () => Promise<void>;
+    hideCollectedSeries: () => Promise<void>;
+  } | null>(null);
 
   const {
     hiddenSet,
@@ -490,6 +494,8 @@ const ThemedAppWithLoading: React.FC = () => {
             onClose={() => setIsFilterModalOpen(false)}
             isDetailView={selectedSeries != null || selectedPullList != null}
             onClearAllFilters={handleClearFilters}
+            onOpenMultiPull={handleOpenMultiPull}
+            activePullListName={selectedPullList?.name ?? null}
           />
         </S.HeaderContainer>
 
@@ -531,11 +537,10 @@ const ThemedAppWithLoading: React.FC = () => {
           onHideSeries={hideSeries}
           onUnhideSeries={unhideSeries}
           onAddToPullList={handleAddToPullList}
-          onOpenMultiPull={handleOpenMultiPull}
-          activePullListName={selectedPullList?.name ?? null}
           selectedPullList={selectedPullList}
           onBackFromMultiPull={() => setSelectedPullList(null)}
           onRemoveFromPullList={handleRemoveFromPullList}
+          onAutoHideActionsReady={setAutoHideActions}
         />
 
         <HamburgerMenu
@@ -548,6 +553,24 @@ const ThemedAppWithLoading: React.FC = () => {
           isSyncingOffline={isSyncing}
           lastSyncedAt={lastSyncedAt}
           offlineSyncError={offlineSyncError}
+          onHideCollectedPublishers={
+            autoHideActions
+              ? () => {
+                  autoHideActions.hideCollectedPublishers().catch((err) =>
+                    logger.warn("Hide collected publishers failed", err),
+                  );
+                }
+              : undefined
+          }
+          onHideCollectedSeries={
+            autoHideActions
+              ? () => {
+                  autoHideActions.hideCollectedSeries().catch((err) =>
+                    logger.warn("Hide collected series failed", err),
+                  );
+                }
+              : undefined
+          }
         />
 
         <ImportModal

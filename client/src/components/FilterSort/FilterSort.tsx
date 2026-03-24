@@ -32,6 +32,8 @@ interface Props {
   isDetailView?: boolean;
   /** Reset all filter fields to defaults (search, filter option, type, grade, value range). */
   onClearAllFilters?: () => void;
+  onOpenMultiPull?: () => void;
+  activePullListName?: string | null;
 }
 
 const FilterSort: React.FC<Props> = memo(
@@ -60,6 +62,8 @@ const FilterSort: React.FC<Props> = memo(
     onClose,
     isDetailView = false,
     onClearAllFilters,
+    onOpenMultiPull,
+    activePullListName,
   }) => {
     const { types: typeOptions } = useDistinctTypes(isOpen);
 
@@ -77,6 +81,16 @@ const FilterSort: React.FC<Props> = memo(
               data-sc="ClearFiltersButton"
             >
               Clear filters
+            </S.ClearFiltersButton>
+          )}
+          {onOpenMultiPull && (
+            <S.ClearFiltersButton
+              type="button"
+              onClick={onOpenMultiPull}
+              data-sc="OpenMultiPullButton"
+            >
+              Open Multi-Pull
+              {activePullListName ? ` (${activePullListName})` : ""}
             </S.ClearFiltersButton>
           )}
 
