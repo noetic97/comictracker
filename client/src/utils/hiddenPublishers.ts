@@ -49,3 +49,14 @@ export function setShowHiddenPublishers(show: boolean): void {
     // ignore
   }
 }
+
+/** Remove legacy localStorage keys after preferences are stored in the API DB. */
+export function clearHiddenPublishersLocalStorage(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(SHOW_HIDDEN_KEY);
+  } catch {
+    // ignore
+  }
+}
+

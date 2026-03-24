@@ -40,8 +40,12 @@ unused-exports.txt
 client/coverage
 tsconfig.tsbuildinfo
 
-# SQLite (dev-comics.db, prod-comics.db, etc.)
+# SQLite (dev-comics.db, prod-comics.db, etc.) — omit WAL/SHM sidecars (runtime, not portable)
 prisma/*.db
 prisma/**/*.db
 prisma/*.db-journal
 prisma/**/*.db-journal
+prisma/*.db-wal
+prisma/**/*.db-wal
+prisma/*.db-shm
+prisma/**/*.db-shm

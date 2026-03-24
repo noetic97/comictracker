@@ -307,6 +307,28 @@ export const apiService = {
       return handleResponse(response);
     },
   },
+
+  hiddenPublishers: {
+    get: async (): Promise<{ hidden: string[]; showHidden: boolean }> => {
+      const url = `${API_BASE_URL}/hidden-publishers`;
+      const response = await debugFetch(url);
+      return handleResponse(response);
+    },
+
+    put: async (state: {
+      hidden: string[];
+      showHidden: boolean;
+    }): Promise<{ hidden: string[]; showHidden: boolean }> => {
+      const url = `${API_BASE_URL}/hidden-publishers`;
+      const response = await debugFetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(state),
+      });
+      return handleResponse(response);
+    },
+  },
+
   // Admin API (for development/testing only)
   admin: {
     clearDatabase: async (): Promise<{

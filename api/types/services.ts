@@ -6,6 +6,7 @@ export interface DatabaseCounts {
   comics: number;
   favorites: number;
   alerts: number;
+  hiddenPublishers: number;
   total: number;
 }
 

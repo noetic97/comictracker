@@ -13,21 +13,23 @@ export const getDatabaseCounts = async (
 ): Promise<DatabaseCounts> => {
   console.log("📊 Getting database counts for admin user");
 
-  const [comics, favorites, alerts] = await Promise.all([
+  const [comics, favorites, alerts, hiddenPublishers] = await Promise.all([
     prisma.comic.count(),
     prisma.favoriteSeries.count(),
     prisma.alertLog.count(),
+    prisma.hiddenPublisher.count(),
   ]);
 
   const counts: DatabaseCounts = {
     comics,
     favorites,
     alerts,
-    total: comics + favorites + alerts,
+    hiddenPublishers,
+    total: comics + favorites + alerts + hiddenPublishers,
   };
 
   console.log(
-    `📊 Found ${counts.comics} comics, ${counts.favorites} favorites, ${counts.alerts} alerts (${counts.total} total)`
+    `📊 Found ${counts.comics} comics, ${counts.favorites} favorites, ${counts.alerts} alerts, ${counts.hiddenPublishers} hidden publisher rows (${counts.total} total)`
   );
 
   return counts;
@@ -46,6 +48,7 @@ export const clearAllDatabaseData = async (
   await prisma.alertLog.deleteMany({});
   await prisma.comic.deleteMany({});
   await prisma.favoriteSeries.deleteMany({});
+  await prisma.hiddenPublisher.deleteMany({});
   await prisma.user.deleteMany({});
 
   console.log(`✅ Successfully cleared database`);
@@ -66,22 +69,25 @@ export const clearUserData = async (
 ): Promise<ClearDatabaseResult> => {
   console.log(`🗑️ Starting user data clear operation for user ${userId}`);
 
-  const [comics, favorites, alerts] = await Promise.all([
+  const [comics, favorites, alerts, hiddenPublishers] = await Promise.all([
     prisma.comic.count({ where: { userId } }),
     prisma.favoriteSeries.count({ where: { userId } }),
     prisma.alertLog.count({ where: { userId } }),
+    prisma.hiddenPublisher.count({ where: { userId } }),
   ]);
 
   const userCounts: DatabaseCounts = {
     comics,
     favorites,
     alerts,
-    total: comics + favorites + alerts,
+    hiddenPublishers,
+    total: comics + favorites + alerts + hiddenPublishers,
   };
 
   await prisma.alertLog.deleteMany({ where: { userId } });
   await prisma.comic.deleteMany({ where: { userId } });
   await prisma.favoriteSeries.deleteMany({ where: { userId } });
+  await prisma.hiddenPublisher.deleteMany({ where: { userId } });
 
   console.log(`✅ Successfully cleared user data for ${userId}`);
 
