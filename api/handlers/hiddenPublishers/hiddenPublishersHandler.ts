@@ -7,6 +7,7 @@ import { createResponse, createErrorResponse } from "../../utils/cors";
 import {
   getHiddenPublisherState,
   putHiddenPublisherState,
+  hideFullyCollectedPublishers,
 } from "../../services/hiddenPublishers/hiddenPublishersService";
 
 export const handleGetHiddenPublishers = async (
@@ -32,6 +33,19 @@ export const handlePutHiddenPublishers = async (
     return createResponse(200, state);
   } catch (error: any) {
     console.error("Put hidden publishers error:", error);
+    return createErrorResponse(500, error.message);
+  }
+};
+
+export const handlePostHideCollectedPublishers = async (
+  prisma: PrismaClient,
+  userId: string
+) => {
+  try {
+    const { count } = await hideFullyCollectedPublishers(prisma, userId);
+    return createResponse(200, { count });
+  } catch (error: any) {
+    console.error("Post hide-collected publishers error:", error);
     return createErrorResponse(500, error.message);
   }
 };

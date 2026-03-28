@@ -7,6 +7,7 @@ export interface DatabaseCounts {
   favorites: number;
   alerts: number;
   hiddenPublishers: number;
+  hiddenSeries: number;
   pullLists: number;
   pullListSeries: number;
   total: number;

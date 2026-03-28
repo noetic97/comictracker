@@ -58,3 +58,13 @@ export function setShowHiddenSeries(show: boolean): void {
     // ignore
   }
 }
+
+/** Remove legacy localStorage keys after preferences are stored in the API DB. */
+export function clearHiddenSeriesLocalStorage(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(SHOW_HIDDEN_KEY);
+  } catch {
+    // ignore
+  }
+}

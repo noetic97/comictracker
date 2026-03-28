@@ -32,6 +32,7 @@ import { favoritesHandler } from "./routes/favorites";
 import { adminHandler } from "./routes/admin";
 import { alertsHandler } from "./routes/alerts";
 import { hiddenPublishersHandler } from "./routes/hiddenPublishers";
+import { hiddenSeriesHandler } from "./routes/hiddenSeries";
 import { pullListsHandler } from "./routes/pullLists";
 import { setupFileLogging, createClientLogPostHandler } from "./fileLog";
 
@@ -84,7 +85,8 @@ app.all("/api/comics*", createRequestHandler(comicsHandler));
 app.all("/api/favorites*", createRequestHandler(favoritesHandler));
 app.all("/api/admin", createRequestHandler(adminHandler));
 app.all("/api/alerts", createRequestHandler(alertsHandler));
-app.all("/api/hidden-publishers", createRequestHandler(hiddenPublishersHandler));
+app.all("/api/hidden-publishers*", createRequestHandler(hiddenPublishersHandler));
+app.all("/api/hidden-series*", createRequestHandler(hiddenSeriesHandler));
 app.all("/api/pull-lists*", createRequestHandler(pullListsHandler));
 
 // Static SPA (production)

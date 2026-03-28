@@ -327,6 +327,41 @@ export const apiService = {
       });
       return handleResponse(response);
     },
+
+    hideCollected: async (): Promise<{ count: number }> => {
+      const response = await debugFetch(
+        `${API_BASE_URL}/hidden-publishers/hide-collected`,
+        { method: "POST" }
+      );
+      return handleResponse(response);
+    },
+  },
+
+  hiddenSeries: {
+    get: async (): Promise<{ hidden: string[]; showHidden: boolean }> => {
+      const url = `${API_BASE_URL}/hidden-series`;
+      const response = await debugFetch(url);
+      return handleResponse(response);
+    },
+
+    put: async (state: {
+      hidden: string[];
+      showHidden: boolean;
+    }): Promise<{ hidden: string[]; showHidden: boolean }> => {
+      const response = await debugFetch(`${API_BASE_URL}/hidden-series`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(state),
+      });
+      return handleResponse(response);
+    },
+
+    hideCollected: async (): Promise<{ count: number }> => {
+      const response = await debugFetch(`${API_BASE_URL}/hidden-series/hide-collected`, {
+        method: "POST",
+      });
+      return handleResponse(response);
+    },
   },
 
   pullLists: {

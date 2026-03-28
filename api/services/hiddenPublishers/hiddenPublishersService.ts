@@ -61,3 +61,32 @@ export async function putHiddenPublisherState(
 
   return getHiddenPublisherState(prisma, userId);
 }
+
+/** Mark publishers as hidden when every comic row in that publisher group is collected (all comics for user). */
+export async function hideFullyCollectedPublishers(
+  prisma: PrismaClient,
+  userId: string
+): Promise<{ count: number }> {
+  const rows = await prisma.$queryRaw<{ publisher: string }[]>`
+    SELECT publisher
+    FROM comics
+    WHERE user_id = ${userId}
+    GROUP BY publisher
+    HAVING COUNT(*) > 0
+      AND SUM(CASE WHEN collected = 1 THEN 1 ELSE 0 END) = COUNT(*)
+  `;
+  if (rows.length === 0) return { count: 0 };
+  const publishers = [...new Set(rows.map((r) => r.publisher))];
+  const already = await prisma.hiddenPublisher.findMany({
+    where: { userId, publisher: { in: publishers } },
+    select: { publisher: true },
+  });
+  const have = new Set(already.map((a) => a.publisher));
+  const missing = publishers.filter((p) => !have.has(p));
+  if (missing.length > 0) {
+    await prisma.hiddenPublisher.createMany({
+      data: missing.map((publisher) => ({ userId, publisher })),
+    });
+  }
+  return { count: rows.length };
+}

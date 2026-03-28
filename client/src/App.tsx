@@ -106,6 +106,7 @@ const ThemedAppWithLoading: React.FC = () => {
     setShowHidden: setShowHiddenPublishers,
     hidePublisher,
     unhidePublisher,
+    refresh: refreshHiddenPublishers,
   } = useHiddenPublishers();
   const {
     hiddenSet: hiddenSeriesSet,
@@ -113,6 +114,7 @@ const ThemedAppWithLoading: React.FC = () => {
     setShowHidden: setShowHiddenSeries,
     hideSeries,
     unhideSeries,
+    refresh: refreshHiddenSeries,
   } = useHiddenSeries();
 
   // UI state
@@ -563,6 +565,8 @@ const ThemedAppWithLoading: React.FC = () => {
           onRemoveFromPullList={handleRemoveFromPullList}
           onAutoHideActionsReady={setAutoHideActions}
           onAutoHideCollectedOutcome={handleAutoHideCollectedOutcome}
+          refreshHiddenPublishers={refreshHiddenPublishers}
+          refreshHiddenSeries={refreshHiddenSeries}
         />
 
         <HamburgerMenu

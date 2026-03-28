@@ -7,8 +7,7 @@ import {
 } from "../../types";
 import { usePublisherSummaries, useExpandedState } from "../../hooks";
 import { logger } from "../../utils/logger";
-import { getApiBaseUrl, buildQueryParams } from "../../hooks/utils";
-import { seriesStorageKey } from "../../utils/hiddenSeries";
+import { apiService } from "../../utils/apiService";
 import * as S from "./styles";
 import ErrorMessage from "../shared/ErrorMessage";
 import ControlsSection from "./ControlsSection";
@@ -75,6 +74,8 @@ interface Props {
     kind: "publishers" | "series",
     hiddenCount: number
   ) => void;
+  refreshHiddenPublishers?: () => Promise<void>;
+  refreshHiddenSeries?: () => Promise<void>;
 }
 
 const ComicList: React.FC<Props> = ({
@@ -111,6 +112,8 @@ const ComicList: React.FC<Props> = ({
   onRemoveFromPullList,
   onAutoHideActionsReady,
   onAutoHideCollectedOutcome,
+  refreshHiddenPublishers,
+  refreshHiddenSeries,
 }) => {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -198,14 +201,8 @@ const ComicList: React.FC<Props> = ({
 
   const hideFullyCollectedPublishers = useCallback(async () => {
     try {
-      const targets = publishers.filter(
-        (p) => p.totalComics > 0 && p.totalComics === p.collectedComics
-      );
-      // Sequential awaits: hidePublisher is async and updates API state; parallel calls race on stale hiddenList.
-      for (const p of targets) {
-        await hidePublisher(p.publisher);
-      }
-      const count = targets.length;
+      const { count } = await apiService.hiddenPublishers.hideCollected();
+      await refreshHiddenPublishers?.();
       onAutoHideCollectedOutcome?.("publishers", count);
       setNotice(
         count > 0
@@ -217,42 +214,12 @@ const ComicList: React.FC<Props> = ({
     } catch (err: any) {
       setError(`Failed to auto-hide publishers: ${err?.message ?? "Unknown error"}`);
     }
-  }, [publishers, hidePublisher, onAutoHideCollectedOutcome]);
+  }, [refreshHiddenPublishers, onAutoHideCollectedOutcome]);
 
   const hideFullyCollectedSeries = useCallback(async () => {
     try {
-      const baseFilters = {
-        filterOption,
-        search: searchFilter,
-        sortBy,
-        type: filterType || undefined,
-        grade: filterGrade || undefined,
-        minValue: filterMinValue || undefined,
-        maxValue: filterMaxValue || undefined,
-      };
-
-      const allSeries = await Promise.all(
-        publishers.map(async (p) => {
-          const params = buildQueryParams({ ...baseFilters, publisher: p.publisher });
-          const res = await fetch(`${getApiBaseUrl()}/comics/series?${params}`);
-          if (!res.ok) return [];
-          return res.json();
-        })
-      );
-
-      const targets = allSeries
-        .flat()
-        .filter(
-          (s: any) =>
-            Number(s.issueCount) > 0 &&
-            Number(s.issueCount) === Number(s.collectedCount)
-        );
-      for (const s of targets) {
-        const vol =
-          s.volume === undefined || s.volume === null ? "" : String(s.volume);
-        hideSeries(seriesStorageKey(s.publisher, s.series, vol));
-      }
-      const count = targets.length;
+      const { count } = await apiService.hiddenSeries.hideCollected();
+      await refreshHiddenSeries?.();
       onAutoHideCollectedOutcome?.("series", count);
       setNotice(
         count > 0
@@ -262,18 +229,7 @@ const ComicList: React.FC<Props> = ({
     } catch (err: any) {
       setError(`Failed to auto-hide series: ${err?.message ?? "Unknown error"}`);
     }
-  }, [
-    publishers,
-    filterOption,
-    searchFilter,
-    sortBy,
-    filterType,
-    filterGrade,
-    filterMinValue,
-    filterMaxValue,
-    hideSeries,
-    onAutoHideCollectedOutcome,
-  ]);
+  }, [refreshHiddenSeries, onAutoHideCollectedOutcome]);
 
   React.useEffect(() => {
     if (!onAutoHideActionsReady) return;

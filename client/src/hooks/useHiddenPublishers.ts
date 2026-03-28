@@ -123,6 +123,16 @@ export function useHiddenPublishers() {
     [hiddenList, showHidden]
   );
 
+  const refresh = useCallback(async () => {
+    try {
+      const remote = await apiService.hiddenPublishers.get();
+      setHiddenList(remote.hidden);
+      setShowHiddenState(remote.showHidden);
+    } catch (e) {
+      logger.warn("refresh hidden publishers failed", e);
+    }
+  }, []);
+
   return {
     hiddenSet,
     hiddenList,
@@ -131,5 +141,6 @@ export function useHiddenPublishers() {
     hidePublisher,
     unhidePublisher,
     hydrated,
+    refresh,
   };
 }

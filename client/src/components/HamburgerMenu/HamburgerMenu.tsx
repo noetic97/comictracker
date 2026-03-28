@@ -124,8 +124,9 @@ const HamburgerMenu: React.FC<Props> = ({
           </S.ShowHiddenLabel>
         </S.ShowHiddenGroup>
         <S.MenuHint>
-          Manual hides are stored in your hidden lists (publishers sync to the server; series stay on this
-          device). &quot;Hide collected&quot; below adds anything that is 100% collected.
+          Manual hides and &quot;Hide collected&quot; are stored on the server for your account. Hidden lists
+          use every comic in your collection (current filters are ignored when deciding what is 100%
+          collected).
         </S.MenuHint>
       </S.MenuOption>
 

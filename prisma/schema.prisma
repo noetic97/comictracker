@@ -22,7 +22,9 @@ model User {
   favoriteSeries       FavoriteSeries[]
   pullLists            PullList[]
   hiddenPublishers     HiddenPublisher[]
+  hiddenSeries         HiddenSeries[]
   showHiddenPublishers Boolean            @default(false) @map("show_hidden_publishers")
+  showHiddenSeries     Boolean            @default(false) @map("show_hidden_series")
 
   @@index([email])
   @@map("users")
@@ -38,6 +40,20 @@ model HiddenPublisher {
   @@unique([userId, publisher])
   @@index([userId])
   @@map("hidden_publishers")
+}
+
+model HiddenSeries {
+  id        String   @id @default(cuid())
+  publisher String
+  series    String
+  volume    String   @default("")
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, publisher, series, volume])
+  @@index([userId])
+  @@map("hidden_series")
 }
 
 model Comic {
