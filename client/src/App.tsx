@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { FilterOption, FavoriteSeries, PullListDetail, SortOption } from "./types";
+import { FilterOption, FavoriteSeries, HuntListDetail, SortOption } from "./types";
 import ComicActionsErrorBoundary from "./components/shared/ComicActionErrorBoundary";
 import ErrorMessage from "./components/shared/ErrorMessage";
 import ImportModal from "./components/ImportModal";
@@ -34,7 +34,7 @@ import {
 import { useHiddenPublishers } from "./hooks/useHiddenPublishers";
 import { useHiddenSeries } from "./hooks/useHiddenSeries";
 import { useOfflineSync } from "./hooks/useOfflineSync";
-import { usePullLists } from "./hooks/usePullLists";
+import { useHuntLists } from "./hooks/useHuntLists";
 import { getFavoriteSeries } from "./utils/db";
 import { syncCollectionToIndexedDB } from "./utils/offlineFullSync";
 import {
@@ -66,15 +66,15 @@ const ThemedAppWithLoading: React.FC = () => {
     volume?: string;
   } | null>(null);
   const [seriesPage, setSeriesPage] = useState(1);
-  const [selectedPullList, setSelectedPullList] = useState<PullListDetail | null>(null);
-  const [isPullListModalOpen, setIsPullListModalOpen] = useState(false);
-  const [pullListModalMode, setPullListModalMode] = useState<"open" | "add">("open");
-  const [pendingPullSeries, setPendingPullSeries] = useState<{
+  const [selectedHuntList, setSelectedHuntList] = useState<HuntListDetail | null>(null);
+  const [isHuntListModalOpen, setIsHuntListModalOpen] = useState(false);
+  const [huntListModalMode, setHuntListModalMode] = useState<"open" | "add">("open");
+  const [pendingHuntSeries, setPendingHuntSeries] = useState<{
     publisher: string;
     series: string;
     volume: string;
   } | null>(null);
-  const [newPullListName, setNewPullListName] = useState("");
+  const [newHuntListName, setNewHuntListName] = useState("");
   const [autoHideActions, setAutoHideActions] = useState<{
     hideCollectedPublishers: () => Promise<void>;
     hideCollectedSeries: () => Promise<void>;
@@ -135,13 +135,13 @@ const ThemedAppWithLoading: React.FC = () => {
     syncNow,
   } = useOfflineSync();
   const {
-    lists: pullLists,
+    lists: huntLists,
     createList,
     renameList,
     deleteList,
     getListDetail,
     addSeriesToList,
-  } = usePullLists();
+  } = useHuntLists();
 
   // Restore view from URL on mount, or from localStorage when URL has no params
   useEffect(() => {
@@ -154,7 +154,7 @@ const ThemedAppWithLoading: React.FC = () => {
         setSortBy(last.sortBy);
         setItemsPerPage(last.itemsPerPage);
         setSelectedSeries(last.selectedSeries);
-        setSelectedPullList(null);
+        setSelectedHuntList(null);
         setSeriesPage(last.page ?? 1);
         return;
       }
@@ -166,7 +166,7 @@ const ThemedAppWithLoading: React.FC = () => {
     setSortBy(applied.sortBy ?? "series");
     setItemsPerPage(applied.itemsPerPage ?? 25);
     setSelectedSeries(applied.selectedSeries ?? null);
-    setSelectedPullList(null);
+    setSelectedHuntList(null);
     setSeriesPage(applied.page ?? 1);
   }, []);
 
@@ -340,105 +340,105 @@ const ThemedAppWithLoading: React.FC = () => {
     setFilterMaxValue("");
   };
 
-  const openPullListModal = (
+  const openHuntListModal = (
     mode: "open" | "add",
     pending?: { publisher: string; series: string; volume: string }
   ) => {
-    setPullListModalMode(mode);
-    setPendingPullSeries(pending ?? null);
-    setIsPullListModalOpen(true);
+    setHuntListModalMode(mode);
+    setPendingHuntSeries(pending ?? null);
+    setIsHuntListModalOpen(true);
   };
 
-  const closePullListModal = () => {
-    setIsPullListModalOpen(false);
-    setPendingPullSeries(null);
-    setNewPullListName("");
+  const closeHuntListModal = () => {
+    setIsHuntListModalOpen(false);
+    setPendingHuntSeries(null);
+    setNewHuntListName("");
   };
 
-  const handleCreatePullList = async () => {
-    const name = newPullListName.trim();
+  const handleCreateHuntList = async () => {
+    const name = newHuntListName.trim();
     if (!name) return;
     try {
       const created = await createList(name);
-      setNewPullListName("");
-      if (pullListModalMode === "open") {
+      setNewHuntListName("");
+      if (huntListModalMode === "open") {
         const detail = await getListDetail(created.id);
         setSelectedSeries(null);
-        setSelectedPullList(detail);
+        setSelectedHuntList(detail);
         setSeriesPage(1);
-        closePullListModal();
-      } else if (pendingPullSeries) {
-        const detail = await addSeriesToList(created.id, pendingPullSeries);
-        if (selectedPullList?.id === detail.id) setSelectedPullList(detail);
-        closePullListModal();
+        closeHuntListModal();
+      } else if (pendingHuntSeries) {
+        const detail = await addSeriesToList(created.id, pendingHuntSeries);
+        if (selectedHuntList?.id === detail.id) setSelectedHuntList(detail);
+        closeHuntListModal();
       }
     } catch (err: any) {
-      setError(`Failed to create pull list: ${err?.message ?? "Unknown error"}`);
+      setError(`Failed to create hunt list: ${err?.message ?? "Unknown error"}`);
     }
   };
 
-  const handleSelectPullList = async (listId: string) => {
+  const handleSelectHuntList = async (listId: string) => {
     try {
-      if (pullListModalMode === "open") {
+      if (huntListModalMode === "open") {
         const detail = await getListDetail(listId);
         setSelectedSeries(null);
-        setSelectedPullList(detail);
+        setSelectedHuntList(detail);
         setSeriesPage(1);
-      } else if (pendingPullSeries) {
-        const detail = await addSeriesToList(listId, pendingPullSeries);
-        if (selectedPullList?.id === detail.id) setSelectedPullList(detail);
+      } else if (pendingHuntSeries) {
+        const detail = await addSeriesToList(listId, pendingHuntSeries);
+        if (selectedHuntList?.id === detail.id) setSelectedHuntList(detail);
       }
-      closePullListModal();
+      closeHuntListModal();
     } catch (err: any) {
-      setError(`Failed to use pull list: ${err?.message ?? "Unknown error"}`);
+      setError(`Failed to use hunt list: ${err?.message ?? "Unknown error"}`);
     }
   };
 
-  const handleOpenMultiPull = async () => {
-    openPullListModal("open");
+  const handleOpenMultiHunt = async () => {
+    openHuntListModal("open");
   };
 
-  const handleAddToPullList = async (
+  const handleAddToHuntList = async (
     publisher: string,
     series: string,
     volume: string
   ) => {
-    openPullListModal("add", { publisher, series, volume });
+    openHuntListModal("add", { publisher, series, volume });
   };
 
-  const handleRemoveFromPullList = async (item: {
+  const handleRemoveFromHuntList = async (item: {
     publisher: string;
     series: string;
     volume?: string;
   }) => {
-    if (!selectedPullList) return;
-    const updated = await apiService.pullLists.removeSeries(selectedPullList.id, item);
-    setSelectedPullList(updated);
+    if (!selectedHuntList) return;
+    const updated = await apiService.huntLists.removeSeries(selectedHuntList.id, item);
+    setSelectedHuntList(updated);
   };
 
-  const handleRenamePullList = async (id: string, currentName: string) => {
-    const next = window.prompt("Rename pull list", currentName);
+  const handleRenameHuntList = async (id: string, currentName: string) => {
+    const next = window.prompt("Rename hunt list", currentName);
     if (next == null || !next.trim()) return;
     try {
       const updated = await renameList(id, next.trim());
-      if (selectedPullList?.id === id) {
-        setSelectedPullList({ ...selectedPullList, name: updated.name });
+      if (selectedHuntList?.id === id) {
+        setSelectedHuntList({ ...selectedHuntList, name: updated.name });
       }
     } catch (err: any) {
-      setError(`Failed to rename pull list: ${err?.message ?? "Unknown error"}`);
+      setError(`Failed to rename hunt list: ${err?.message ?? "Unknown error"}`);
     }
   };
 
-  const handleDeletePullList = async (id: string, name: string) => {
-    const ok = window.confirm(`Delete pull list "${name}"?`);
+  const handleDeleteHuntList = async (id: string, name: string) => {
+    const ok = window.confirm(`Delete hunt list "${name}"?`);
     if (!ok) return;
     try {
       await deleteList(id);
-      if (selectedPullList?.id === id) {
-        setSelectedPullList(null);
+      if (selectedHuntList?.id === id) {
+        setSelectedHuntList(null);
       }
     } catch (err: any) {
-      setError(`Failed to delete pull list: ${err?.message ?? "Unknown error"}`);
+      setError(`Failed to delete hunt list: ${err?.message ?? "Unknown error"}`);
     }
   };
 
@@ -517,8 +517,8 @@ const ThemedAppWithLoading: React.FC = () => {
             isOpen={isFilterModalOpen}
             onClose={() => setIsFilterModalOpen(false)}
             onClearAllFilters={handleClearFilters}
-            onOpenMultiPull={handleOpenMultiPull}
-            activePullListName={selectedPullList?.name ?? null}
+            onOpenMultiHunt={handleOpenMultiHunt}
+            activeHuntListName={selectedHuntList?.name ?? null}
           />
         </S.HeaderContainer>
 
@@ -544,12 +544,12 @@ const ThemedAppWithLoading: React.FC = () => {
           setSeriesPage={setSeriesPage}
           onOpenDetailView={(publisher, series, volume) => {
             setSeriesPage(1);
-            setSelectedPullList(null);
+            setSelectedHuntList(null);
             setSelectedSeries({ publisher, series, volume });
           }}
           onBackToGrid={() => {
             setSelectedSeries(null);
-            setSelectedPullList(null);
+            setSelectedHuntList(null);
           }}
           hiddenPublishersSet={hiddenSet}
           showHiddenPublishers={showHiddenPublishers}
@@ -559,10 +559,10 @@ const ThemedAppWithLoading: React.FC = () => {
           showHiddenSeries={showHiddenSeries}
           onHideSeries={hideSeries}
           onUnhideSeries={unhideSeries}
-          onAddToPullList={handleAddToPullList}
-          selectedPullList={selectedPullList}
-          onBackFromMultiPull={() => setSelectedPullList(null)}
-          onRemoveFromPullList={handleRemoveFromPullList}
+          onAddToHuntList={handleAddToHuntList}
+          selectedHuntList={selectedHuntList}
+          onBackFromMultiHunt={() => setSelectedHuntList(null)}
+          onRemoveFromHuntList={handleRemoveFromHuntList}
           onAutoHideActionsReady={setAutoHideActions}
           onAutoHideCollectedOutcome={handleAutoHideCollectedOutcome}
           refreshHiddenPublishers={refreshHiddenPublishers}
@@ -629,26 +629,26 @@ const ThemedAppWithLoading: React.FC = () => {
         />
 
         <Modal
-          isOpen={isPullListModalOpen}
-          onClose={closePullListModal}
-          title={pullListModalMode === "open" ? "Open Multi-Pull" : "Add to Pull List"}
+          isOpen={isHuntListModalOpen}
+          onClose={closeHuntListModal}
+          title={huntListModalMode === "open" ? "Open Multi-Hunt" : "Add to Hunt List"}
           size="medium"
         >
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
             <input
               type="text"
-              placeholder="New pull list name"
-              value={newPullListName}
-              onChange={(e) => setNewPullListName(e.target.value)}
+              placeholder="New hunt list name"
+              value={newHuntListName}
+              onChange={(e) => setNewHuntListName(e.target.value)}
               style={{ flex: 1, padding: "0.55rem 0.7rem", borderRadius: 8, border: "1px solid #666" }}
             />
-            <Button onClick={handleCreatePullList} variant="primary" size="small">
+            <Button onClick={handleCreateHuntList} variant="primary" size="small">
               Create
             </Button>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            {pullLists.map((list) => (
+            {huntLists.map((list) => (
               <div
                 key={list.id}
                 style={{
@@ -669,21 +669,21 @@ const ThemedAppWithLoading: React.FC = () => {
                 </div>
                 <div style={{ display: "flex", gap: "0.35rem" }}>
                   <Button
-                    onClick={() => handleSelectPullList(list.id)}
+                    onClick={() => handleSelectHuntList(list.id)}
                     variant="primary"
                     size="small"
                   >
-                    {pullListModalMode === "open" ? "Open" : "Add"}
+                    {huntListModalMode === "open" ? "Open" : "Add"}
                   </Button>
                   <Button
-                    onClick={() => handleRenamePullList(list.id, list.name)}
+                    onClick={() => handleRenameHuntList(list.id, list.name)}
                     variant="secondary"
                     size="small"
                   >
                     Rename
                   </Button>
                   <Button
-                    onClick={() => handleDeletePullList(list.id, list.name)}
+                    onClick={() => handleDeleteHuntList(list.id, list.name)}
                     variant="tertiary"
                     size="small"
                   >
@@ -692,8 +692,8 @@ const ThemedAppWithLoading: React.FC = () => {
                 </div>
               </div>
             ))}
-            {pullLists.length === 0 && (
-              <div style={{ opacity: 0.8 }}>No pull lists yet. Create one above.</div>
+            {huntLists.length === 0 && (
+              <div style={{ opacity: 0.8 }}>No hunt lists yet. Create one above.</div>
             )}
           </div>
         </Modal>

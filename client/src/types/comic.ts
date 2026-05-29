@@ -55,13 +55,13 @@ export interface FavoriteSeries {
   dateAdded: number;
 }
 
-export interface PullListSeries {
+export interface HuntListSeries {
   publisher: string;
   series: string;
   volume: string;
 }
 
-export interface PullListSummary {
+export interface HuntListSummary {
   id: string;
   name: string;
   seriesCount: number;
@@ -69,8 +69,8 @@ export interface PullListSummary {
   updatedAt: string;
 }
 
-export interface PullListDetail extends PullListSummary {
-  series: PullListSeries[];
+export interface HuntListDetail extends HuntListSummary {
+  series: HuntListSeries[];
 }
 
 interface GroupedComics {

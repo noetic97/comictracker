@@ -31,7 +31,7 @@ interface SeriesCardProps {
   seriesStorageKey?: string;
   onHideSeries?: (storageKey: string) => void;
   onUnhideSeries?: (storageKey: string) => void;
-  onAddToPullList?: (publisher: string, series: string, volume: string) => void;
+  onAddToHuntList?: (publisher: string, series: string, volume: string) => void;
 }
 
 const SeriesCard: React.FC<SeriesCardProps> = ({
@@ -55,7 +55,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
   seriesStorageKey: seriesStorageKeyProp,
   onHideSeries,
   onUnhideSeries,
-  onAddToPullList,
+  onAddToHuntList,
 }) => {
   const handleDetailView = () => {
     onOpenDetailView(
@@ -151,10 +151,10 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
         >
           Detail View
         </Button>
-        {onAddToPullList && (
+        {onAddToHuntList && (
           <Button
             onClick={() =>
-              onAddToPullList(
+              onAddToHuntList(
                 seriesSummary.publisher,
                 seriesSummary.series,
                 seriesSummary.volume || ""
@@ -163,7 +163,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({
             variant="secondary"
             size="small"
           >
-            Add to Pull List
+            Add to Hunt List
           </Button>
         )}
       </S.SeriesActions>

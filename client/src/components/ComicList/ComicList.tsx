@@ -14,8 +14,8 @@ import ControlsSection from "./ControlsSection";
 import PublisherCard from "./PublisherCard";
 import ToTopButton from "./ToTopButton";
 import SeriesDetailView from "../SeriesDetailView";
-import MultiPullDetailView from "../MultiPullDetailView";
-import { PullListDetail } from "../../types";
+import MultiHuntView from "../MultiHuntView";
+import { HuntListDetail } from "../../types";
 
 interface Props {
   itemsPerPage: number;
@@ -57,10 +57,10 @@ interface Props {
   showHiddenSeries: boolean;
   onHideSeries: (storageKey: string) => void;
   onUnhideSeries: (storageKey: string) => void;
-  onAddToPullList: (publisher: string, series: string, volume: string) => void;
-  selectedPullList: PullListDetail | null;
-  onBackFromMultiPull: () => void;
-  onRemoveFromPullList: (series: {
+  onAddToHuntList: (publisher: string, series: string, volume: string) => void;
+  selectedHuntList: HuntListDetail | null;
+  onBackFromMultiHunt: () => void;
+  onRemoveFromHuntList: (series: {
     publisher: string;
     series: string;
     volume?: string;
@@ -106,10 +106,10 @@ const ComicList: React.FC<Props> = ({
   showHiddenSeries,
   onHideSeries: hideSeries,
   onUnhideSeries: unhideSeries,
-  onAddToPullList,
-  selectedPullList,
-  onBackFromMultiPull,
-  onRemoveFromPullList,
+  onAddToHuntList,
+  selectedHuntList,
+  onBackFromMultiHunt,
+  onRemoveFromHuntList,
   onAutoHideActionsReady,
   onAutoHideCollectedOutcome,
   refreshHiddenPublishers,
@@ -124,7 +124,7 @@ const ComicList: React.FC<Props> = ({
 
   const viewMode: ViewMode = selectedSeries
     ? "series-detail"
-    : selectedPullList
+    : selectedHuntList
       ? "series-detail"
       : "grid";
 
@@ -283,12 +283,12 @@ const ComicList: React.FC<Props> = ({
     );
   }
 
-  if (selectedPullList) {
+  if (selectedHuntList) {
     return (
-      <MultiPullDetailView
-        pullList={selectedPullList}
-        onBack={onBackFromMultiPull}
-        onRemoveSeries={onRemoveFromPullList}
+      <MultiHuntView
+        huntList={selectedHuntList}
+        onBack={onBackFromMultiHunt}
+        onRemoveSeries={onRemoveFromHuntList}
         itemsPerPage={itemsPerPage}
         setItemsPerPage={setItemsPerPage}
         filterOption={filterOption}
@@ -371,7 +371,7 @@ const ComicList: React.FC<Props> = ({
               showHiddenSeries={showHiddenSeries}
               onHideSeries={hideSeries}
               onUnhideSeries={unhideSeries}
-              onAddToPullList={onAddToPullList}
+              onAddToHuntList={onAddToHuntList}
             />
           ))}
         </S.PublisherGrid>

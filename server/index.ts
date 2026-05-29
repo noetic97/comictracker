@@ -33,7 +33,7 @@ import { adminHandler } from "./routes/admin";
 import { alertsHandler } from "./routes/alerts";
 import { hiddenPublishersHandler } from "./routes/hiddenPublishers";
 import { hiddenSeriesHandler } from "./routes/hiddenSeries";
-import { pullListsHandler } from "./routes/pullLists";
+import { huntListsRouter } from "./routes/huntLists";
 import { setupFileLogging, createClientLogPostHandler } from "./fileLog";
 
 setupFileLogging(projectRoot);
@@ -87,7 +87,7 @@ app.all("/api/admin", createRequestHandler(adminHandler));
 app.all("/api/alerts", createRequestHandler(alertsHandler));
 app.all("/api/hidden-publishers*", createRequestHandler(hiddenPublishersHandler));
 app.all("/api/hidden-series*", createRequestHandler(hiddenSeriesHandler));
-app.all("/api/pull-lists*", createRequestHandler(pullListsHandler));
+app.use("/api/hunt-lists", huntListsRouter);
 
 // Static SPA (production)
 const distPath = path.join(__dirname, "../client/dist");

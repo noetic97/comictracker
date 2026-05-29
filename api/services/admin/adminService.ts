@@ -13,14 +13,14 @@ export const getDatabaseCounts = async (
 ): Promise<DatabaseCounts> => {
   console.log("📊 Getting database counts for admin user");
 
-  const [comics, favorites, alerts, hiddenPublishers, hiddenSeries, pullLists, pullListSeries] = await Promise.all([
+  const [comics, favorites, alerts, hiddenPublishers, hiddenSeries, huntLists, huntListSeries] = await Promise.all([
     prisma.comic.count(),
     prisma.favoriteSeries.count(),
     prisma.alertLog.count(),
     prisma.hiddenPublisher.count(),
     prisma.hiddenSeries.count(),
-    prisma.pullList.count(),
-    prisma.pullListSeries.count(),
+    prisma.huntList.count(),
+    prisma.huntListSeries.count(),
   ]);
 
   const counts: DatabaseCounts = {
@@ -29,13 +29,13 @@ export const getDatabaseCounts = async (
     alerts,
     hiddenPublishers,
     hiddenSeries,
-    pullLists,
-    pullListSeries,
-    total: comics + favorites + alerts + hiddenPublishers + hiddenSeries + pullLists + pullListSeries,
+    huntLists,
+    huntListSeries,
+    total: comics + favorites + alerts + hiddenPublishers + hiddenSeries + huntLists + huntListSeries,
   };
 
   console.log(
-    `📊 Found ${counts.comics} comics, ${counts.favorites} favorites, ${counts.alerts} alerts, ${counts.hiddenPublishers} hidden publisher rows, ${counts.hiddenSeries} hidden series rows, ${counts.pullLists} pull lists, ${counts.pullListSeries} pull list rows (${counts.total} total)`
+    `📊 Found ${counts.comics} comics, ${counts.favorites} favorites, ${counts.alerts} alerts, ${counts.hiddenPublishers} hidden publisher rows, ${counts.hiddenSeries} hidden series rows, ${counts.huntLists} hunt lists, ${counts.huntListSeries} hunt list rows (${counts.total} total)`
   );
 
   return counts;
@@ -56,8 +56,8 @@ export const clearAllDatabaseData = async (
   await prisma.favoriteSeries.deleteMany({});
   await prisma.hiddenPublisher.deleteMany({});
   await prisma.hiddenSeries.deleteMany({});
-  await prisma.pullListSeries.deleteMany({});
-  await prisma.pullList.deleteMany({});
+  await prisma.huntListSeries.deleteMany({});
+  await prisma.huntList.deleteMany({});
   await prisma.user.deleteMany({});
 
   console.log(`✅ Successfully cleared database`);
@@ -78,14 +78,14 @@ export const clearUserData = async (
 ): Promise<ClearDatabaseResult> => {
   console.log(`🗑️ Starting user data clear operation for user ${userId}`);
 
-  const [comics, favorites, alerts, hiddenPublishers, hiddenSeries, pullLists, pullListSeries] = await Promise.all([
+  const [comics, favorites, alerts, hiddenPublishers, hiddenSeries, huntLists, huntListSeries] = await Promise.all([
     prisma.comic.count({ where: { userId } }),
     prisma.favoriteSeries.count({ where: { userId } }),
     prisma.alertLog.count({ where: { userId } }),
     prisma.hiddenPublisher.count({ where: { userId } }),
     prisma.hiddenSeries.count({ where: { userId } }),
-    prisma.pullList.count({ where: { userId } }),
-    prisma.pullListSeries.count({ where: { pullList: { userId } } }),
+    prisma.huntList.count({ where: { userId } }),
+    prisma.huntListSeries.count({ where: { huntList: { userId } } }),
   ]);
 
   const userCounts: DatabaseCounts = {
@@ -94,9 +94,9 @@ export const clearUserData = async (
     alerts,
     hiddenPublishers,
     hiddenSeries,
-    pullLists,
-    pullListSeries,
-    total: comics + favorites + alerts + hiddenPublishers + hiddenSeries + pullLists + pullListSeries,
+    huntLists,
+    huntListSeries,
+    total: comics + favorites + alerts + hiddenPublishers + hiddenSeries + huntLists + huntListSeries,
   };
 
   await prisma.alertLog.deleteMany({ where: { userId } });
@@ -104,7 +104,7 @@ export const clearUserData = async (
   await prisma.favoriteSeries.deleteMany({ where: { userId } });
   await prisma.hiddenPublisher.deleteMany({ where: { userId } });
   await prisma.hiddenSeries.deleteMany({ where: { userId } });
-  await prisma.pullList.deleteMany({ where: { userId } });
+  await prisma.huntList.deleteMany({ where: { userId } });
 
   console.log(`✅ Successfully cleared user data for ${userId}`);
 

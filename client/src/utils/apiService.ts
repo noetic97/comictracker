@@ -1,4 +1,4 @@
-import { Comic, FavoriteSeries, PullListDetail, PullListSummary } from "../types";
+import { Comic, FavoriteSeries, HuntListDetail, HuntListSummary } from "../types";
 import { debugFetch, apiDebugger } from "./apiDebugger";
 import { logger } from "./logger";
 
@@ -364,14 +364,14 @@ export const apiService = {
     },
   },
 
-  pullLists: {
-    getAll: async (): Promise<PullListSummary[]> => {
-      const response = await debugFetch(`${API_BASE_URL}/pull-lists`);
+  huntLists: {
+    getAll: async (): Promise<HuntListSummary[]> => {
+      const response = await debugFetch(`${API_BASE_URL}/hunt-lists`);
       return handleResponse(response);
     },
 
-    create: async (name: string): Promise<PullListSummary> => {
-      const response = await debugFetch(`${API_BASE_URL}/pull-lists`, {
+    create: async (name: string): Promise<HuntListSummary> => {
+      const response = await debugFetch(`${API_BASE_URL}/hunt-lists`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
@@ -379,9 +379,9 @@ export const apiService = {
       return handleResponse(response);
     },
 
-    rename: async (id: string, name: string): Promise<PullListSummary> => {
+    rename: async (id: string, name: string): Promise<HuntListSummary> => {
       const response = await debugFetch(
-        `${API_BASE_URL}/pull-lists/${encodeURIComponent(id)}`,
+        `${API_BASE_URL}/hunt-lists/${encodeURIComponent(id)}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -393,7 +393,7 @@ export const apiService = {
 
     remove: async (id: string): Promise<void> => {
       const response = await debugFetch(
-        `${API_BASE_URL}/pull-lists/${encodeURIComponent(id)}`,
+        `${API_BASE_URL}/hunt-lists/${encodeURIComponent(id)}`,
         {
           method: "DELETE",
         }
@@ -401,9 +401,9 @@ export const apiService = {
       await handleResponse(response);
     },
 
-    getSeries: async (id: string): Promise<PullListDetail> => {
+    getSeries: async (id: string): Promise<HuntListDetail> => {
       const response = await debugFetch(
-        `${API_BASE_URL}/pull-lists/${encodeURIComponent(id)}/series`
+        `${API_BASE_URL}/hunt-lists/${encodeURIComponent(id)}/series`
       );
       return handleResponse(response);
     },
@@ -411,9 +411,9 @@ export const apiService = {
     addSeries: async (
       id: string,
       series: { publisher: string; series: string; volume?: string }
-    ): Promise<PullListDetail> => {
+    ): Promise<HuntListDetail> => {
       const response = await debugFetch(
-        `${API_BASE_URL}/pull-lists/${encodeURIComponent(id)}/series`,
+        `${API_BASE_URL}/hunt-lists/${encodeURIComponent(id)}/series`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -426,9 +426,9 @@ export const apiService = {
     removeSeries: async (
       id: string,
       series: { publisher: string; series: string; volume?: string }
-    ): Promise<PullListDetail> => {
+    ): Promise<HuntListDetail> => {
       const response = await debugFetch(
-        `${API_BASE_URL}/pull-lists/${encodeURIComponent(id)}/series`,
+        `${API_BASE_URL}/hunt-lists/${encodeURIComponent(id)}/series`,
         {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },

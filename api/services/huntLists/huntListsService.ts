@@ -1,15 +1,11 @@
-/**
- * Named pull lists + membership operations.
- */
-
 import { PrismaClient } from "@prisma/client";
 import {
-  PullListDetail,
-  PullListSeriesData,
-  PullListSummary,
+  HuntListDetail,
+  HuntListSeriesData,
+  HuntListSummary,
 } from "../../types/services";
 
-function normalizeSeries(input: any): PullListSeriesData {
+function normalizeSeries(input: any): HuntListSeriesData {
   return {
     publisher: String(input?.publisher ?? "").trim(),
     series: String(input?.series ?? "").trim(),
@@ -17,7 +13,7 @@ function normalizeSeries(input: any): PullListSeriesData {
   };
 }
 
-function validateSeries(s: PullListSeriesData): string[] {
+function validateSeries(s: HuntListSeriesData): string[] {
   const errors: string[] = [];
   if (!s.publisher) errors.push("publisher is required");
   if (!s.series) errors.push("series is required");
@@ -30,7 +26,7 @@ function toSummary(row: {
   createdAt: Date;
   updatedAt: Date;
   _count: { series: number };
-}): PullListSummary {
+}): HuntListSummary {
   return {
     id: row.id,
     name: row.name,
@@ -40,11 +36,11 @@ function toSummary(row: {
   };
 }
 
-export async function listPullLists(
+export async function listHuntLists(
   prisma: PrismaClient,
   userId: string
-): Promise<PullListSummary[]> {
-  const rows = await prisma.pullList.findMany({
+): Promise<HuntListSummary[]> {
+  const rows = await prisma.huntList.findMany({
     where: { userId },
     include: { _count: { select: { series: true } } },
     orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
@@ -52,60 +48,60 @@ export async function listPullLists(
   return rows.map(toSummary);
 }
 
-export async function createPullList(
+export async function createHuntList(
   prisma: PrismaClient,
   userId: string,
   nameRaw: unknown
-): Promise<PullListSummary> {
+): Promise<HuntListSummary> {
   const name = String(nameRaw ?? "").trim();
-  if (!name) throw new Error("Pull list name is required");
-  const row = await prisma.pullList.create({
+  if (!name) throw new Error("Hunt list name is required");
+  const row = await prisma.huntList.create({
     data: { userId, name },
     include: { _count: { select: { series: true } } },
   });
   return toSummary(row);
 }
 
-export async function renamePullList(
+export async function renameHuntList(
   prisma: PrismaClient,
   userId: string,
   listId: string,
   nameRaw: unknown
-): Promise<PullListSummary> {
+): Promise<HuntListSummary> {
   const name = String(nameRaw ?? "").trim();
-  if (!name) throw new Error("Pull list name is required");
+  if (!name) throw new Error("Hunt list name is required");
 
-  const updated = await prisma.pullList.updateMany({
+  const updated = await prisma.huntList.updateMany({
     where: { id: listId, userId },
     data: { name },
   });
-  if (updated.count === 0) throw new Error("Pull list not found");
+  if (updated.count === 0) throw new Error("Hunt list not found");
 
-  const row = await prisma.pullList.findFirst({
+  const row = await prisma.huntList.findFirst({
     where: { id: listId, userId },
     include: { _count: { select: { series: true } } },
   });
-  if (!row) throw new Error("Pull list not found");
+  if (!row) throw new Error("Hunt list not found");
   return toSummary(row);
 }
 
-export async function deletePullList(
+export async function deleteHuntList(
   prisma: PrismaClient,
   userId: string,
   listId: string
 ): Promise<void> {
-  const deleted = await prisma.pullList.deleteMany({
+  const deleted = await prisma.huntList.deleteMany({
     where: { id: listId, userId },
   });
-  if (deleted.count === 0) throw new Error("Pull list not found");
+  if (deleted.count === 0) throw new Error("Hunt list not found");
 }
 
-export async function getPullList(
+export async function getHuntList(
   prisma: PrismaClient,
   userId: string,
   listId: string
-): Promise<PullListDetail> {
-  const row = await prisma.pullList.findFirst({
+): Promise<HuntListDetail> {
+  const row = await prisma.huntList.findFirst({
     where: { id: listId, userId },
     include: {
       series: {
@@ -114,7 +110,7 @@ export async function getPullList(
       _count: { select: { series: true } },
     },
   });
-  if (!row) throw new Error("Pull list not found");
+  if (!row) throw new Error("Hunt list not found");
 
   return {
     id: row.id,
@@ -130,17 +126,17 @@ export async function getPullList(
   };
 }
 
-export async function replacePullListSeries(
+export async function replaceHuntListSeries(
   prisma: PrismaClient,
   userId: string,
   listId: string,
   rawSeries: unknown
-): Promise<PullListDetail> {
-  const exists = await prisma.pullList.findFirst({
+): Promise<HuntListDetail> {
+  const exists = await prisma.huntList.findFirst({
     where: { id: listId, userId },
     select: { id: true },
   });
-  if (!exists) throw new Error("Pull list not found");
+  if (!exists) throw new Error("Hunt list not found");
 
   const input = Array.isArray(rawSeries) ? rawSeries : [];
   const normalized = input.map(normalizeSeries);
@@ -149,19 +145,19 @@ export async function replacePullListSeries(
     if (errs.length) throw new Error(`Invalid series entry: ${errs.join(", ")}`);
   }
 
-  const uniq = new Map<string, PullListSeriesData>();
+  const uniq = new Map<string, HuntListSeriesData>();
   for (const s of normalized) {
     const key = `${s.publisher}|${s.series}|${s.volume}`;
     uniq.set(key, s);
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.pullListSeries.deleteMany({ where: { pullListId: listId } });
+    await tx.huntListSeries.deleteMany({ where: { huntListId: listId } });
     const values = [...uniq.values()];
     if (values.length > 0) {
-      await tx.pullListSeries.createMany({
+      await tx.huntListSeries.createMany({
         data: values.map((s) => ({
-          pullListId: listId,
+          huntListId: listId,
           publisher: s.publisher,
           series: s.series,
           volume: s.volume,
@@ -170,36 +166,36 @@ export async function replacePullListSeries(
     }
   });
 
-  return getPullList(prisma, userId, listId);
+  return getHuntList(prisma, userId, listId);
 }
 
-export async function addPullListSeries(
+export async function addHuntListSeries(
   prisma: PrismaClient,
   userId: string,
   listId: string,
   rawSeries: unknown
-): Promise<PullListDetail> {
+): Promise<HuntListDetail> {
   const s = normalizeSeries(rawSeries);
   const errs = validateSeries(s);
   if (errs.length) throw new Error(errs.join(", "));
 
-  const list = await prisma.pullList.findFirst({
+  const list = await prisma.huntList.findFirst({
     where: { id: listId, userId },
     select: { id: true },
   });
-  if (!list) throw new Error("Pull list not found");
+  if (!list) throw new Error("Hunt list not found");
 
-  await prisma.pullListSeries.upsert({
+  await prisma.huntListSeries.upsert({
     where: {
-      pull_list_series_unique: {
-        pullListId: listId,
+      hunt_list_series_unique: {
+        huntListId: listId,
         publisher: s.publisher,
         series: s.series,
         volume: s.volume,
       },
     },
     create: {
-      pullListId: listId,
+      huntListId: listId,
       publisher: s.publisher,
       series: s.series,
       volume: s.volume,
@@ -207,33 +203,33 @@ export async function addPullListSeries(
     update: {},
   });
 
-  return getPullList(prisma, userId, listId);
+  return getHuntList(prisma, userId, listId);
 }
 
-export async function removePullListSeries(
+export async function removeHuntListSeries(
   prisma: PrismaClient,
   userId: string,
   listId: string,
   rawSeries: unknown
-): Promise<PullListDetail> {
+): Promise<HuntListDetail> {
   const s = normalizeSeries(rawSeries);
   const errs = validateSeries(s);
   if (errs.length) throw new Error(errs.join(", "));
 
-  const list = await prisma.pullList.findFirst({
+  const list = await prisma.huntList.findFirst({
     where: { id: listId, userId },
     select: { id: true },
   });
-  if (!list) throw new Error("Pull list not found");
+  if (!list) throw new Error("Hunt list not found");
 
-  await prisma.pullListSeries.deleteMany({
+  await prisma.huntListSeries.deleteMany({
     where: {
-      pullListId: listId,
+      huntListId: listId,
       publisher: s.publisher,
       series: s.series,
       volume: s.volume,
     },
   });
 
-  return getPullList(prisma, userId, listId);
+  return getHuntList(prisma, userId, listId);
 }

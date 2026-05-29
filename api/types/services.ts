@@ -8,8 +8,8 @@ export interface DatabaseCounts {
   alerts: number;
   hiddenPublishers: number;
   hiddenSeries: number;
-  pullLists: number;
-  pullListSeries: number;
+  huntLists: number;
+  huntListSeries: number;
   total: number;
 }
 
@@ -180,15 +180,15 @@ export interface FavoriteCheckResult {
 }
 
 /**
- * Pull List Service
+ * Hunt List Service
  */
-export interface PullListSeriesData {
+export interface HuntListSeriesData {
   publisher: string;
   series: string;
   volume: string;
 }
 
-export interface PullListSummary {
+export interface HuntListSummary {
   id: string;
   name: string;
   seriesCount: number;
@@ -196,8 +196,8 @@ export interface PullListSummary {
   updatedAt: string;
 }
 
-export interface PullListDetail extends PullListSummary {
-  series: PullListSeriesData[];
+export interface HuntListDetail extends HuntListSummary {
+  series: HuntListSeriesData[];
 }
 
 export interface ComicStats {

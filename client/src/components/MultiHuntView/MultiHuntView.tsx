@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import SeriesDetailView from "../SeriesDetailView";
-import { FavoriteSeries, FilterOption, PullListDetail, SortOption } from "../../types";
+import { FavoriteSeries, FilterOption, HuntListDetail, SortOption } from "../../types";
 import Button from "../shared/Button";
 import * as S from "./styles";
 
-interface MultiPullDetailViewProps {
-  pullList: PullListDetail;
+interface MultiHuntViewProps {
+  huntList: HuntListDetail;
   onBack: () => void;
   onRemoveSeries: (series: { publisher: string; series: string; volume?: string }) => Promise<void>;
   itemsPerPage: number;
@@ -24,8 +24,8 @@ interface MultiPullDetailViewProps {
   setSortOrder: (v: "asc" | "desc") => void;
 }
 
-const MultiPullDetailView: React.FC<MultiPullDetailViewProps> = ({
-  pullList,
+const MultiHuntView: React.FC<MultiHuntViewProps> = ({
+  huntList,
   onBack,
   onRemoveSeries,
   itemsPerPage,
@@ -46,7 +46,7 @@ const MultiPullDetailView: React.FC<MultiPullDetailViewProps> = ({
   const [activeIdx, setActiveIdx] = useState(0);
   const [page, setPage] = useState(1);
 
-  const tabs = pullList.series;
+  const tabs = huntList.series;
   const active = tabs[Math.min(activeIdx, Math.max(0, tabs.length - 1))];
 
   if (!active) {
@@ -55,8 +55,8 @@ const MultiPullDetailView: React.FC<MultiPullDetailViewProps> = ({
         <Button onClick={onBack} variant="secondary" size="small">
           Back
         </Button>
-        <h2 style={{ marginTop: "1rem" }}>{pullList.name}</h2>
-        <p>This pull list is empty. Add series from the grid first.</p>
+        <h2 style={{ marginTop: "1rem" }}>{huntList.name}</h2>
+        <p>This hunt list is empty. Add series from the grid first.</p>
       </S.EmptyState>
     );
   }
@@ -67,7 +67,7 @@ const MultiPullDetailView: React.FC<MultiPullDetailViewProps> = ({
         <Button onClick={onBack} variant="secondary" size="small">
           Back to Grid
         </Button>
-        <S.ListName>{pullList.name}</S.ListName>
+        <S.ListName>{huntList.name}</S.ListName>
       </S.HeaderRow>
 
       <S.TabsRow>
@@ -88,7 +88,7 @@ const MultiPullDetailView: React.FC<MultiPullDetailViewProps> = ({
               </S.TabButton>
               <S.RemoveTabButton
                 type="button"
-                aria-label={`Remove ${label} from pull list`}
+                aria-label={`Remove ${label} from hunt list`}
                 onClick={async () => {
                   await onRemoveSeries(t);
                   if (activeIdx >= idx && activeIdx > 0) setActiveIdx(activeIdx - 1);
@@ -135,4 +135,4 @@ const MultiPullDetailView: React.FC<MultiPullDetailViewProps> = ({
   );
 };
 
-export default MultiPullDetailView;
+export default MultiHuntView;

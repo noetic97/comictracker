@@ -1,143 +1,139 @@
-/**
- * Pull list HTTP handlers.
- */
-
 import { PrismaClient } from "@prisma/client";
 import { createErrorResponse, createResponse } from "../../utils/cors";
 import {
-  addPullListSeries,
-  createPullList,
-  deletePullList,
-  getPullList,
-  listPullLists,
-  removePullListSeries,
-  renamePullList,
-  replacePullListSeries,
-} from "../../services/pullLists/pullListsService";
+  addHuntListSeries,
+  createHuntList,
+  deleteHuntList,
+  getHuntList,
+  listHuntLists,
+  removeHuntListSeries,
+  renameHuntList,
+  replaceHuntListSeries,
+} from "../../services/huntLists/huntListsService";
 
-export const handleGetPullLists = async (prisma: PrismaClient, userId: string) => {
+export const handleGetHuntLists = async (prisma: PrismaClient, userId: string) => {
   try {
-    const rows = await listPullLists(prisma, userId);
+    const rows = await listHuntLists(prisma, userId);
     return createResponse(200, rows);
   } catch (error: any) {
     return createErrorResponse(500, error.message);
   }
 };
 
-export const handleCreatePullList = async (
+export const handleCreateHuntList = async (
   prisma: PrismaClient,
   userId: string,
   body: any
 ) => {
   try {
-    const created = await createPullList(prisma, userId, body?.name);
+    const created = await createHuntList(prisma, userId, body?.name);
     return createResponse(201, created);
   } catch (error: any) {
     if (String(error?.message ?? "").includes("Unique constraint")) {
-      return createErrorResponse(409, "A pull list with this name already exists");
+      return createErrorResponse(409, "A hunt list with this name already exists");
     }
     return createErrorResponse(400, error.message);
   }
 };
 
-export const handleRenamePullList = async (
+export const handleRenameHuntList = async (
   prisma: PrismaClient,
   userId: string,
   listId: string,
   body: any
 ) => {
   try {
-    const updated = await renamePullList(prisma, userId, listId, body?.name);
+    const updated = await renameHuntList(prisma, userId, listId, body?.name);
     return createResponse(200, updated);
   } catch (error: any) {
     if (String(error?.message ?? "").includes("not found")) {
-      return createErrorResponse(404, "Pull list not found");
+      return createErrorResponse(404, "Hunt list not found");
     }
     if (String(error?.message ?? "").includes("Unique constraint")) {
-      return createErrorResponse(409, "A pull list with this name already exists");
+      return createErrorResponse(409, "A hunt list with this name already exists");
     }
     return createErrorResponse(400, error.message);
   }
 };
 
-export const handleDeletePullList = async (
+export const handleDeleteHuntList = async (
   prisma: PrismaClient,
   userId: string,
   listId: string
 ) => {
   try {
-    await deletePullList(prisma, userId, listId);
+    await deleteHuntList(prisma, userId, listId);
     return createResponse(204, null);
   } catch (error: any) {
     if (String(error?.message ?? "").includes("not found")) {
-      return createErrorResponse(404, "Pull list not found");
+      return createErrorResponse(404, "Hunt list not found");
     }
     return createErrorResponse(400, error.message);
   }
 };
 
-export const handleGetPullListSeries = async (
+export const handleGetHuntListSeries = async (
   prisma: PrismaClient,
   userId: string,
   listId: string
 ) => {
   try {
-    const row = await getPullList(prisma, userId, listId);
+    const row = await getHuntList(prisma, userId, listId);
     return createResponse(200, row);
   } catch (error: any) {
     if (String(error?.message ?? "").includes("not found")) {
-      return createErrorResponse(404, "Pull list not found");
+      return createErrorResponse(404, "Hunt list not found");
     }
     return createErrorResponse(400, error.message);
   }
 };
 
-export const handlePutPullListSeries = async (
+export const handlePutHuntListSeries = async (
   prisma: PrismaClient,
   userId: string,
   listId: string,
   body: any
 ) => {
   try {
-    const row = await replacePullListSeries(prisma, userId, listId, body?.series);
+    const row = await replaceHuntListSeries(prisma, userId, listId, body?.series);
     return createResponse(200, row);
   } catch (error: any) {
     if (String(error?.message ?? "").includes("not found")) {
-      return createErrorResponse(404, "Pull list not found");
+      return createErrorResponse(404, "Hunt list not found");
     }
     return createErrorResponse(400, error.message);
   }
 };
 
-export const handleAddPullListSeries = async (
+export const handleAddHuntListSeries = async (
   prisma: PrismaClient,
   userId: string,
   listId: string,
   body: any
 ) => {
   try {
-    const row = await addPullListSeries(prisma, userId, listId, body);
+    const row = await addHuntListSeries(prisma, userId, listId, body);
     return createResponse(200, row);
   } catch (error: any) {
     if (String(error?.message ?? "").includes("not found")) {
-      return createErrorResponse(404, "Pull list not found");
+      return createErrorResponse(404, "Hunt list not found");
     }
     return createErrorResponse(400, error.message);
   }
 };
 
-export const handleRemovePullListSeries = async (
+export const handleRemoveHuntListSeries = async (
   prisma: PrismaClient,
   userId: string,
   listId: string,
   body: any
 ) => {
   try {
-    const row = await removePullListSeries(prisma, userId, listId, body);
+    const row = await removeHuntListSeries(prisma, userId, listId, body);
     return createResponse(200, row);
   } catch (error: any) {
     if (String(error?.message ?? "").includes("not found")) {
-      return createErrorResponse(404, "Pull list not found");
+      return createErrorResponse(404, "Hunt list not found");
     }
     return createErrorResponse(400, error.message);
   }
