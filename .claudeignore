@@ -1,0 +1,55 @@
+# .claudeignore — exclude noisy or sensitive files from Claude's context
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+out/
+.next/
+.nuxt/
+
+# Bun
+bun.lockb
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+.env.local
+secrets/
+.secrets
+*.pem
+*.key
+*.cert
+*.p12
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+migrations/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Generated / cache
+.cache/
+*.tsbuildinfo
+.turbo/
